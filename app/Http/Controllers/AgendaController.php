@@ -189,7 +189,28 @@ class AgendaController extends Controller
         $selectedPesertaIds = $agenda->pegawai->pluck('id');
         $simpleFieldsCek = array_diff(self::SIMPLE_KOMPONEN_FIELDS, ['peng_riil']);
         $pesertaHasBiayaIds = $agenda->pegawai->filter(function ($p) use ($simpleFieldsCek) {
-            // ...(isi tetap sama, tidak berubah)
+            $pivot = $p->pivot;
+
+            // Komponen biaya "simple" (tiket, hotel, dst)
+            foreach ($simpleFieldsCek as $field) {
+                if (!empty($pivot->{$field})) {
+                    return true;
+                }
+            }
+
+            // Peng. Riil: dicek lewat total & detail entry-nya
+            if (!empty($pivot->peng_riil) || !empty($pivot->peng_riil_detail)) {
+                return true;
+            }
+
+            // Uang harian: hari yang sudah diisi, atau lumpsum > 0
+            foreach (self::UH_FIELD_MAP as $map) {
+                if (!empty($pivot->{$map['hari']})) {
+                    return true;
+                }
+            }
+
+            return !empty($pivot->lumpsum);
         })->pluck('id');
 
         return view('agendas.edit', compact(

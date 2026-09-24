@@ -4,7 +4,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             {{-- Breadcrumb / context bar --}}
             <div class="flex items-center gap-2 mb-5 px-1 text-sm">
@@ -32,6 +32,7 @@
                         'ppk_id' => 'Pejabat Pembuat Komitmen (PPK)',
                         'bendahara_id' => 'Bendahara',
                         'penanggung_jawab_id' => 'Penanggung Jawab Kegiatan',
+                        'pic_id' => 'PIC',
                         'pegawai_id' => 'Peserta',
                         'mak' => 'MAK',
                         'uraian_giat' => 'Uraian Giat',
@@ -47,29 +48,29 @@
                         'nomor_memo_non_pns' => 'Nomor Memo (Non PNS)',
                     ];
                 @endphp
-                    <div class="flex gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 mt-0.5" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                        </svg>
-                        <div>
-                            <p class="font-semibold mb-1">Ada {{ $errors->count() }} field yang perlu dicek:</p>
-                            <ul class="space-y-0.5 list-disc list-inside">
-                                @foreach ($errors->getMessages() as $field => $messages)
-                                    @php
-                                        // pegawai_id.* / komponen_biaya.* dll -> ambil nama field induknya aja
-                                        $baseField = explode('.', $field)[0];
-                                        $label = $fieldLabels[$baseField] ?? $baseField;
-                                    @endphp
-                                    <li>
-                                        <strong>{{ $label }}</strong>
-                                        — {{ str_contains($messages[0], 'validation.') ? 'wajib diisi / formatnya belum sesuai' : $messages[0] }}
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
+                <div class="flex gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 mt-0.5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                    <div>
+                        <p class="font-semibold mb-1">Ada {{ $errors->count() }} field yang perlu dicek:</p>
+                        <ul class="space-y-0.5 list-disc list-inside">
+                            @foreach ($errors->getMessages() as $field => $messages)
+                                @php
+                                    // pegawai_id.* / komponen_biaya.* dll -> ambil nama field induknya aja
+                                    $baseField = explode('.', $field)[0];
+                                    $label = $fieldLabels[$baseField] ?? $baseField;
+                                @endphp
+                                <li>
+                                    <strong>{{ $label }}</strong>
+                                    — {{ str_contains($messages[0], 'validation.') ? 'wajib diisi / formatnya belum sesuai' : $messages[0] }}
+                                </li>
+                            @endforeach
+                        </ul>
                     </div>
+                </div>
             @endif
 
             <form action="{{ route('agendas.update', $agenda) }}" method="POST" id="agenda-form">
@@ -77,8 +78,14 @@
                 @method('PUT')
 
                 @php
-                    // Replika logika pengurutan dari create.blade.php, supaya urutan peserta
-                    // di sini konsisten dengan halaman Buat Agenda & Data Pegawai.
+                    // Peserta yang sudah dipilih sebelumnya, buat pre-check checkbox (kalau
+                    // form ini di-reload setelah validasi gagal, old() menang).
+                    $oldPesertaIds = old('pegawai_id', $selectedPesertaIds->all());
+
+// Replika logika pengurutan dari PegawaiController::index, sama persis dengan                    // create.blade.php), supaya urutan peserta di sini konsisten dengan halaman
+                    // Buat Agenda & Data Pegawai: dikelompokkan per unit kerja (alfabet, unit
+                    // kosong ditaruh paling bawah), lalu di dalam tiap unit: PNS diurutkan
+                    // urutan→golongan_rank, Non PNS diurutkan urutan→nama.
                     $sortGolongan = function ($a, $b) {
                         $urutanA = $a->urutan ?? PHP_INT_MAX;
                         $urutanB = $b->urutan ?? PHP_INT_MAX;
@@ -135,266 +142,11 @@
                         ->unique()
                         ->sort()
                         ->values();
-
-                    // Peserta yang sudah dipilih sebelumnya, buat pre-check checkbox (kalau
-                    // form ini di-reload setelah validasi gagal, old() menang).
-                    $oldPesertaIds = old('pegawai_id', $selectedPesertaIds->all());
                 @endphp
 
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:items-stretch">
 
-                    {{-- KOLOM KIRI: detail agenda --}}
-                    <div
-                        class="lg:col-span-3 bg-white shadow-sm rounded-2xl border border-gray-100 p-6 sm:p-7 space-y-6 lg:h-full">
-
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="flex items-center gap-3">
-                                <div class="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-bold text-gray-800">Informasi Agenda</h3>
-                                    <p class="text-sm text-gray-400">Perbarui detail perjalanan dinas ini.</p>
-                                </div>
-                            </div>
-                            @php
-                                $statusStyle = match (strtolower($agenda->status ?? '')) {
-                                    'draft' => 'bg-gray-100 text-gray-500',
-                                    'diajukan', 'proses', 'pending' => 'bg-amber-50 text-amber-600',
-                                    'disetujui', 'selesai', 'approved' => 'bg-green-50 text-green-600',
-                                    'ditolak', 'rejected' => 'bg-red-50 text-red-600',
-                                    default => 'bg-gray-100 text-gray-500',
-                                };
-                            @endphp
-                            @if ($agenda->status ?? false)
-                                <span
-                                    class="flex-shrink-0 inline-block px-2.5 py-1 rounded-full text-xs font-semibold {{ $statusStyle }}">
-                                    {{ ucfirst($agenda->status) }}
-                                </span>
-                            @endif
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">
-                                Nomor Surat Tugas <span class="text-red-400">*</span>
-                            </label>
-                            <input type="text" name="nomor_st" value="{{ old('nomor_st', $agenda->nomor_st) }}"
-                                required placeholder="800/123/ST/2026"
-                                class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition placeholder:text-gray-300">
-                            <p class="text-xs text-gray-300 mt-1">Dipakai bareng buat semua peserta.</p>
-                        </div>
-
-                        {{-- Muncul otomatis kalau ada Kepala Biro yang dicentang di kolom peserta --}}
-                        <div id="nomor-st-karo-wrap" class="hidden">
-                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">
-                                Nomor ST Kepala Biro <span class="text-red-400">*</span>
-                                <span id="nomor-st-karo-nama" class="text-gray-300 font-normal"></span>
-                            </label>
-                            <input type="text" id="nomor-st-karo-input" name="nomor_st_karo"
-                                value="{{ old('nomor_st_karo', $agenda->nomor_st_karo) }}" placeholder="800/124/ST/2026"
-                                class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition placeholder:text-gray-300">
-                            <p class="text-xs text-gray-300 mt-1">Khusus Kepala Biro, biasanya beda nomor dari peserta
-                                lain.</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">Uraian Kegiatan <span
-                                    class="text-red-400">*</span></label>
-                            <input type="text" name="uraian_kegiatan"
-                                value="{{ old('uraian_kegiatan', $agenda->uraian_kegiatan) }}" required
-                                placeholder="Rapat koordinasi program tahunan"
-                                class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition placeholder:text-gray-300">
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tujuan (Provinsi) <span
-                                        class="text-red-400">*</span></label>
-                                <select name="tujuan" id="tujuan-select" required
-                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                                    <option value="" disabled {{ old('tujuan', $agenda->tujuan) ? '' : 'selected' }}>
-                                        Pilih provinsi tujuan</option>
-                                    @foreach ($provinsiList as $provinsi)
-                                        <option value="{{ $provinsi }}" @selected(old('tujuan', $agenda->tujuan) === $provinsi)>{{ $provinsi }}</option>
-                                    @endforeach
-                                    {{-- Jaga-jaga data lama yang tujuan-nya belum tentu ada di master sbm_rates
-                                    (misal diisi bebas sebelum fitur ini ada) — tetap muncul biar gak keganti diam-diam --}}
-                                    @if ($agenda->tujuan && !$provinsiList->contains($agenda->tujuan))
-                                        <option value="{{ $agenda->tujuan }}" selected>{{ $agenda->tujuan }} (belum ada
-                                            di master SBM)</option>
-                                    @endif
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Kab/Kota</label>
-                                <select name="kota_tujuan" id="kota-tujuan-select"
-                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition disabled:bg-gray-50 disabled:text-gray-400">
-                                    <option value="">Pilih provinsi dulu</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tanggal Mulai <span
-                                        class="text-red-400">*</span></label>
-                                <input type="date" name="tanggal_mulai" id="tanggal-mulai" required
-                                    value="{{ old('tanggal_mulai', $agenda->tanggal_mulai->format('Y-m-d')) }}"
-                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tanggal Selesai <span
-                                        class="text-red-400">*</span></label>
-                                <input type="date" name="tanggal_selesai" id="tanggal-selesai" required
-                                    value="{{ old('tanggal_selesai', $agenda->tanggal_selesai->format('Y-m-d')) }}"
-                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                                <p id="durasi-info" class="hidden text-xs text-blue-500 mt-1"></p>
-                            </div>
-                        </div>
-
-                        <div class="sm:w-1/2 sm:pr-2">
-                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">Alat Angkut <span
-                                    class="text-red-400">*</span></label>
-                            <div class="relative">
-                                <select name="alat_angkut" required
-                                    class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
-                                    <option value="" disabled {{ old('alat_angkut', $agenda->alat_angkut) ? '' : 'selected' }}>
-                                        — Pilih —</option>
-                                    <option value="darat" @selected(old('alat_angkut', $agenda->alat_angkut) === 'darat')>Angkutan Darat</option>
-                                    <option value="udara" @selected(old('alat_angkut', $agenda->alat_angkut) === 'udara')>Angkutan Udara</option>
-                                    <option value="laut" @selected(old('alat_angkut', $agenda->alat_angkut) === 'laut')>Angkutan Laut</option>
-                                    <option value="darat_udara" @selected(old('alat_angkut', $agenda->alat_angkut) === 'darat_udara')>Angkutan Darat dan Udara</option>
-                                </select>
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                    class="h-4 w-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-                            <p class="text-xs text-gray-300 mt-1">Muncul di SPD.</p>
-                        </div>
-
-                        {{-- ===== Penanggung jawab ===== --}}
-                        <div class="pt-6 border-t border-gray-100">
-                            <div class="flex items-center justify-between gap-3 mb-3">
-                                <p class="text-xs font-semibold text-gray-500">
-                                    Penanggung jawab <span class="text-red-400">*</span>
-                                </p>
-                                <span id="pj-progress"
-                                    class="text-[11px] font-semibold rounded-full px-2 py-0.5 bg-gray-50 text-gray-400 transition">
-                                    0/3 dipilih
-                                </span>
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1.5">PPK</label>
-                                    <div class="relative">
-                                        <select name="ppk_id" required
-                                            class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
-                                            <option value="" disabled {{ old('ppk_id', $agenda->ppk_id) ? '' : 'selected' }}>
-                                                — Pilih —</option>
-                                            @forelse ($ppkList as $p)
-                                                <option value="{{ $p->id }}"
-                                                    {{ old('ppk_id', $agenda->ppk_id) == $p->id ? 'selected' : '' }}>
-                                                    {{ $p->nama_gelar ?? $p->nama }}
-                                                </option>
-                                            @empty
-                                                <option value="" disabled>Belum ada pegawai berlabel PPK</option>
-                                            @endforelse
-                                        </select>
-                                        <svg xmlns="http://www.w3.org/2000/svg"
-                                            class="h-3.5 w-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1.5">Bendahara</label>
-                                    <div class="relative">
-                                        <select name="bendahara_id" required
-                                            class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
-                                            <option value="" disabled {{ old('bendahara_id', $agenda->bendahara_id) ? '' : 'selected' }}>
-                                                — Pilih —</option>
-                                            @forelse ($bendaharaList as $p)
-                                                <option value="{{ $p->id }}"
-                                                    {{ old('bendahara_id', $agenda->bendahara_id) == $p->id ? 'selected' : '' }}>
-                                                    {{ $p->nama_gelar ?? $p->nama }}
-                                                </option>
-                                            @empty
-                                                <option value="" disabled>Belum ada pegawai berlabel Bendahara</option>
-                                            @endforelse
-                                        </select>
-                                        <svg xmlns="http://www.w3.org/2000/svg"
-                                            class="h-3.5 w-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-xs text-gray-400 mb-1.5">Penanggung Jawab Kegiatan</label>
-                                    <div class="relative">
-                                        <select name="penanggung_jawab_id" required
-                                            class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
-                                            <option value="" disabled {{ old('penanggung_jawab_id', $agenda->penanggung_jawab_id) ? '' : 'selected' }}>
-                                                — Pilih —</option>
-                                            @forelse ($pjList as $p)
-                                                <option value="{{ $p->id }}"
-                                                    {{ old('penanggung_jawab_id', $agenda->penanggung_jawab_id) == $p->id ? 'selected' : '' }}>
-                                                    {{ $p->nama_gelar ?? $p->nama }}
-                                                </option>
-                                            @empty
-                                                <option value="" disabled>Belum ada pegawai berlabel ini</option>
-                                            @endforelse
-                                        </select>
-                                        <svg xmlns="http://www.w3.org/2000/svg"
-                                            class="h-3.5 w-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- ===== Anggaran & Administrasi (bisa dilipat) ===== --}}
-                        <div class="mt-8 pt-6 border-t border-gray-100">
-                            <button type="button" id="anggaran-toggle" aria-expanded="true"
-                                aria-controls="anggaran-body"
-                                class="group w-full flex items-center gap-3 text-left rounded-lg -mx-1 px-1 py-1 hover:bg-gray-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition">
-                                <span
-                                    class="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </span>
-                                <span class="flex-1 min-w-0">
-                                    <span class="block text-sm font-bold text-gray-700">Anggaran &amp;
-                                        Administrasi</span>
-                                    <span class="block text-xs text-gray-400 truncate">Dipakai bersama untuk memorandum
-                                        PNS &amp; Non-PNS, cukup diisi sekali.</span>
-                                </span>
-                                <svg id="anggaran-chevron" xmlns="http://www.w3.org/2000/svg"
-                                    class="h-4 w-4 text-gray-400 flex-shrink-0 transition-transform duration-300"
-                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-
-                            <div id="anggaran-body" class="overflow-hidden transition-all duration-300 ease-out">
-                                <div class="pt-5 space-y-5">
-                                    @include('agendas.partials.administrasi-anggaran', ['agenda' => $agenda])
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- KOLOM KANAN: pilih peserta (sticky, tinggi menyesuaikan kolom kiri) --}}
+                    {{-- KOLOM KIRI: pilih peserta (sticky, tinggi menyesuaikan kolom kanan) --}}
                     <div class="lg:col-span-2 lg:sticky lg:top-6 lg:h-full">
                         <div
                             class="lg:h-full flex flex-col bg-white shadow-sm rounded-2xl border border-gray-100 p-6 sm:p-7 space-y-4">
@@ -411,8 +163,6 @@
                                     </div>
                                     <div>
                                         <h3 class="text-lg font-bold text-gray-800">Peserta</h3>
-                                        <p class="text-sm text-gray-400">Siapa saja yang ikut. <span
-                                                class="text-red-400">*</span> min. 1 orang.</p>
                                     </div>
                                 </div>
                                 <span id="peserta-count"
@@ -491,57 +241,314 @@
                                     ['key' => 'pns', 'list' => $pesertaPnsList],
                                     ['key' => 'nonpns', 'list' => $pesertaNonPnsList],
                                 ] as $group)
-                                    <div data-peserta-panel="{{ $group['key'] }}"
-                                        class="{{ $loop->first ? '' : 'hidden' }} flex-1 min-h-[220px] overflow-y-auto divide-y divide-gray-50 -mx-1 pr-1">
-                                        @forelse ($group['list'] as $p)
-                                            @php
-                                                $nama = $p->nama_gelar ?? $p->nama;
-                                                $isKaro = str_contains(strtolower($p->jabatan ?? ''), 'kepala biro');
-                                            @endphp
-                                            <label
-                                                class="peserta-item flex items-center gap-2.5 px-1.5 py-2.5 text-sm rounded-md cursor-pointer transition hover:bg-gray-50 has-[:checked]:bg-blue-50/70"
-                                                data-nama="{{ strtolower($nama) }}"
-                                                data-unit="{{ strtolower($p->unit_kerja ?? '') }}">
-                                                <input type="checkbox" name="pegawai_id[]" value="{{ $p->id }}"
-                                                    class="peserta-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
-                                                    data-has-biaya="{{ $pesertaHasBiayaIds->contains($p->id) ? '1' : '0' }}"
-                                                    data-karo="{{ $isKaro ? '1' : '0' }}"
-                                                    data-nama-pegawai="{{ $nama }}"
-                                                    {{ in_array($p->id, $oldPesertaIds) ? 'checked' : '' }}>
-                                                <span class="min-w-0 flex-1">
-                                                    <span class="block text-gray-700 truncate">{{ $nama }}</span>
-                                                    @if ($p->unit_kerja ?? false)
-                                                        <span
-                                                            class="block text-[11px] text-gray-400 truncate">{{ $p->unit_kerja }}</span>
-                                                    @endif
-                                                </span>
-                                                @if ($pesertaHasBiayaIds->contains($p->id))
+                                <div data-peserta-panel="{{ $group['key'] }}"
+                                    class="{{ $loop->first ? '' : 'hidden' }} flex-1 min-h-[220px] overflow-y-auto divide-y divide-gray-50 -mx-1 pr-1">
+                                    @forelse ($group['list'] as $p)
+                                        @php
+                                            $nama = $p->nama_gelar ?? $p->nama;
+                                            $isKaro = str_contains(strtolower($p->jabatan ?? ''), 'kepala biro');
+                                        @endphp
+                                        <label
+                                            class="peserta-item flex items-center gap-2.5 px-1.5 py-2.5 text-sm rounded-md cursor-pointer transition hover:bg-gray-50 has-[:checked]:bg-blue-50/70"
+                                            data-nama="{{ strtolower($nama) }}"
+                                            data-unit="{{ strtolower($p->unit_kerja ?? '') }}">
+                                            <input type="checkbox" name="pegawai_id[]" value="{{ $p->id }}"
+                                                class="peserta-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+                                                data-has-biaya="{{ $pesertaHasBiayaIds->contains($p->id) ? '1' : '0' }}"
+                                                data-karo="{{ $isKaro ? '1' : '0' }}" data-nama-pegawai="{{ $nama }}"
+                                                {{ in_array($p->id, $oldPesertaIds) ? 'checked' : '' }}>
+                                            <span class="min-w-0 flex-1">
+                                                <span class="block text-gray-700 truncate">{{ $nama }}</span>
+                                                @if ($p->unit_kerja ?? false)
                                                     <span
-                                                        class="flex-shrink-0 text-[10px] font-medium text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">
-                                                        ada biaya
-                                                    </span>
+                                                        class="block text-[11px] text-gray-400 truncate">{{ $p->unit_kerja }}</span>
                                                 @endif
-                                            </label>
-                                        @empty
-                                            <p class="px-1 py-3 text-xs text-gray-400">Tidak ada data.</p>
-                                        @endforelse
-                                        <div class="peserta-empty-search hidden px-1 py-8 text-center">
-                                            <p class="text-sm text-gray-400">Tidak ada nama yang cocok.</p>
-                                            <button type="button"
-                                                class="peserta-reset-filters mt-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700">
-                                                Reset pencarian &amp; filter
-                                            </button>
-                                        </div>
+                                            </span>
+                                            @if ($pesertaHasBiayaIds->contains($p->id))
+                                                <span
+                                                    class="flex-shrink-0 text-[10px] font-medium text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">
+                                                    ada biaya
+                                                </span>
+                                            @endif
+                                        </label>
+                                    @empty
+                                        <p class="px-1 py-3 text-xs text-gray-400">Tidak ada data.</p>
+                                    @endforelse
+                                    <div class="peserta-empty-search hidden px-1 py-8 text-center">
+                                        <p class="text-sm text-gray-400">Tidak ada nama yang cocok.</p>
+                                        <button type="button"
+                                            class="peserta-reset-filters mt-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700">
+                                            Reset pencarian &amp; filter
+                                        </button>
                                     </div>
+                                </div>
                             @endforeach
+                        </div>
+                    </div>
+
+                    {{-- KOLOM KANAN: detail agenda --}}
+                    <div
+                        class="lg:col-span-3 bg-white shadow-sm rounded-2xl border border-gray-100 p-6 sm:p-7 space-y-6 lg:h-full">
+
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800">Informasi Agenda</h3>
+                                    <p class="text-sm text-gray-400">Detail perjalanan dinas — nomor ST, tujuan, dan
+                                        anggarannya.</p>
+                                </div>
+                            </div>
+                            @php
+                                $statusStyle = match (strtolower($agenda->status ?? '')) {
+                                    'draft' => 'bg-gray-100 text-gray-500',
+                                    'diajukan', 'proses', 'pending' => 'bg-amber-50 text-amber-600',
+                                    'disetujui', 'selesai', 'approved' => 'bg-green-50 text-green-600',
+                                    'ditolak', 'rejected' => 'bg-red-50 text-red-600',
+                                    default => 'bg-gray-100 text-gray-500',
+                                };
+                            @endphp
+                            @if ($agenda->status ?? false)
+                                <span
+                                    class="flex-shrink-0 inline-block px-2.5 py-1 rounded-full text-xs font-semibold {{ $statusStyle }}">
+                                    {{ ucfirst($agenda->status) }}
+                                </span>
+                            @endif
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">
+                                Nomor Surat Tugas <span class="text-red-400">*</span>
+                            </label>
+                            <input type="text" name="nomor_st" value="{{ old('nomor_st', $agenda->nomor_st) }}"
+                                required placeholder="800/123/ST/2026"
+                                class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition placeholder:text-gray-300">
+                            <p class="text-xs text-gray-300 mt-1">Dipakai bareng buat semua peserta.</p>
+                        </div>
+
+                        {{-- Muncul otomatis kalau ada Kepala Biro yang dicentang di kolom peserta --}}
+                        <div id="nomor-st-karo-wrap" class="hidden rounded-lg transition-shadow duration-500">
+                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">
+                                Nomor ST Kepala Biro <span class="text-red-400">*</span>
+                                <span id="nomor-st-karo-nama" class="text-gray-300 font-normal"></span>
+                            </label>
+                            <input type="text" id="nomor-st-karo-input" name="nomor_st_karo"
+                                value="{{ old('nomor_st_karo', $agenda->nomor_st_karo) }}" placeholder="800/124/ST/2026"
+                                class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition placeholder:text-gray-300">
+                            <p class="text-xs text-gray-300 mt-1">Khusus Kepala Biro, biasanya beda nomor dari peserta
+                                lain.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">Uraian Kegiatan <span
+                                    class="text-red-400">*</span></label>
+                            <input type="text" name="uraian_kegiatan"
+                                value="{{ old('uraian_kegiatan', $agenda->uraian_kegiatan) }}" required
+                                placeholder="Rapat koordinasi program tahunan"
+                                class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition placeholder:text-gray-300">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tujuan (Provinsi) <span
+                                        class="text-red-400">*</span></label>
+                                <select name="tujuan" id="tujuan-select" required
+                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                    <option value="" disabled {{ old('tujuan', $agenda->tujuan) ? '' : 'selected' }}>
+                                        Pilih provinsi tujuan</option>
+                                    @foreach ($provinsiList as $provinsi)
+                                        <option value="{{ $provinsi }}" @selected(old('tujuan', $agenda->tujuan) === $provinsi)>{{ $provinsi }}</option>
+                                    @endforeach
+                                    {{-- Jaga-jaga data lama yang tujuan-nya belum tentu ada di master sbm_rates
+                                    (misal diisi bebas sebelum fitur ini ada) — tetap muncul biar gak keganti diam-diam --}}
+                                    @if ($agenda->tujuan && !$provinsiList->contains($agenda->tujuan))
+                                        <option value="{{ $agenda->tujuan }}" selected>{{ $agenda->tujuan }} (belum ada
+                                            di master SBM)</option>
+                                    @endif
+                                </select>
+                                @if ($provinsiList->isEmpty())
+                                    <p class="text-xs text-amber-600 mt-1">Belum ada data provinsi di master SBM.</p>
+                                @endif
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Kab/Kota</label>
+                                <select name="kota_tujuan" id="kota-tujuan-select"
+                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition disabled:bg-gray-50 disabled:text-gray-400">
+                                    <option value="">Pilih provinsi dulu</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tanggal Mulai <span
+                                        class="text-red-400">*</span></label>
+                                <input type="date" name="tanggal_mulai" id="tanggal-mulai"
+                                    value="{{ old('tanggal_mulai', $agenda->tanggal_mulai->format('Y-m-d')) }}" required
+                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tanggal Selesai <span
+                                        class="text-red-400">*</span></label>
+                                <input type="date" name="tanggal_selesai" id="tanggal-selesai"
+                                    value="{{ old('tanggal_selesai', $agenda->tanggal_selesai->format('Y-m-d')) }}" required
+                                    class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                <p id="durasi-info" class="hidden text-xs text-blue-500 mt-1"></p>
+                            </div>
+                        </div>
+
+                        <div class="sm:w-1/2 sm:pr-2">
+                            <label class="block text-xs font-semibold text-gray-500 mb-1.5">Alat Angkut <span
+                                    class="text-red-400">*</span></label>
+                            <div class="relative">
+                                <select name="alat_angkut" required
+                                    class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
+                                    <option value="" disabled
+                                        {{ old('alat_angkut', $agenda->alat_angkut) ? '' : 'selected' }}>— Pilih —
+                                    </option>
+                                    <option value="darat" @selected(old('alat_angkut', $agenda->alat_angkut) === 'darat')>Angkutan Darat</option>
+                                    <option value="udara" @selected(old('alat_angkut', $agenda->alat_angkut) === 'udara')>Angkutan Udara</option>
+                                    <option value="laut" @selected(old('alat_angkut', $agenda->alat_angkut) === 'laut')>Angkutan Laut</option>
+                                    <option value="darat_udara" @selected(old('alat_angkut', $agenda->alat_angkut) === 'darat_udara')>Angkutan Darat dan Udara</option>
+                                </select>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {{-- ===== Penanggung jawab ===== --}}
+                        <div class="pt-6 border-t border-gray-100">
+                            <div class="flex items-center justify-between gap-3 mb-3">
+                                <p class="text-xs font-semibold text-gray-500">
+                                    Penanggung jawab <span class="text-red-400">*</span>
+                                </p>
+                                <span id="pj-progress"
+                                    class="text-[11px] font-semibold rounded-full px-2 py-0.5 bg-gray-50 text-gray-400 transition">
+                                    0/3 dipilih
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1.5">PPK</label>
+                                    <div class="relative">
+                                        <select name="ppk_id" required
+                                            class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
+                                            <option value="" disabled
+                                                {{ old('ppk_id', $agenda->ppk_id) ? '' : 'selected' }}>— Pilih —
+                                            </option>
+                                            @forelse ($ppkList as $p)
+                                                <option value="{{ $p->id }}"
+                                                    {{ old('ppk_id', $agenda->ppk_id) == $p->id ? 'selected' : '' }}>
+                                                    {{ $p->nama_gelar ?? $p->nama }}
+                                                </option>
+                                            @empty
+                                                <option value="" disabled>Belum ada pegawai berlabel PPK</option>
+                                            @endforelse
+                                        </select>
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="h-3.5 w-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1.5">Bendahara</label>
+                                    <div class="relative">
+                                        <select name="bendahara_id" required
+                                            class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
+                                            <option value="" disabled
+                                                {{ old('bendahara_id', $agenda->bendahara_id) ? '' : 'selected' }}>—
+                                                Pilih —</option>
+                                            @forelse ($bendaharaList as $p)
+                                                <option value="{{ $p->id }}"
+                                                    {{ old('bendahara_id', $agenda->bendahara_id) == $p->id ? 'selected' : '' }}>
+                                                    {{ $p->nama_gelar ?? $p->nama }}
+                                                </option>
+                                            @empty
+                                                <option value="" disabled>Belum ada pegawai berlabel Bendahara</option>
+                                            @endforelse
+                                        </select>
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="h-3.5 w-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-400 mb-1.5">Penanggung Jawab Kegiatan</label>
+                                    <div class="relative">
+                                        <select name="penanggung_jawab_id" required
+                                            class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
+                                            <option value="" disabled
+                                                {{ old('penanggung_jawab_id', $agenda->penanggung_jawab_id) ? '' : 'selected' }}>
+                                                — Pilih —</option>
+                                            @forelse ($pjList as $p)
+                                                <option value="{{ $p->id }}"
+                                                    {{ old('penanggung_jawab_id', $agenda->penanggung_jawab_id) == $p->id ? 'selected' : '' }}>
+                                                    {{ $p->nama_gelar ?? $p->nama }}
+                                                </option>
+                                            @empty
+                                                <option value="" disabled>Belum ada pegawai berlabel ini</option>
+                                            @endforelse
+                                        </select>
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            class="h-3.5 w-3.5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ===== Anggaran & Administrasi (bisa dilipat) ===== --}}
+                        <div class="mt-8 pt-6 border-t border-gray-100">
+                            <button type="button" id="anggaran-toggle" aria-expanded="true"
+                                aria-controls="anggaran-body"
+                                class="group w-full flex items-center gap-3 text-left rounded-lg -mx-1 px-1 py-1 hover:bg-gray-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition">
+                                <span
+                                    class="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </span>
+                                <span class="flex-1 min-w-0">
+                                    <span class="block text-sm font-bold text-gray-700">Anggaran &amp;
+                                        Administrasi</span>
+                                    <span class="block text-xs text-gray-400 truncate">Dipakai bersama untuk memorandum
+                                        PNS &amp; Non-PNS, cukup diisi sekali.</span>
+                                </span>
+                                <svg id="anggaran-chevron" xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 text-gray-400 flex-shrink-0 transition-transform duration-300"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <div id="anggaran-body" class="overflow-hidden transition-all duration-300 ease-out">
+                                <div class="pt-5 space-y-5">
+                                    @include('agendas.partials.administrasi-anggaran', ['agenda' => $agenda])
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-between mt-6">
                     <a href="{{ route('agendas.show', $agenda) }}"
-                        class="inline-flex items-center gap-1.5 border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 font-semibold px-5 py-2.5 rounded-lg text-sm transition">
-                        Batal
+                        class="text-sm text-gray-400 hover:text-gray-600 transition">
+                        &larr; Batal
                     </a>
                     <button type="submit"
                         class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
@@ -557,6 +564,15 @@
     </div>
 
     <script>
+        // State section "Anggaran & Administrasi" — dideklarasikan paling atas supaya
+        // aman dipakai fungsi mana pun di bawah (tidak bergantung urutan pemanggilan).
+        let anggaranOpen = true;
+
+        // Di halaman edit, peserta sudah tercentang dari awal. Flag ini mencegah
+        // highlight "field baru muncul" menyala saat render pertama — highlight
+        // cuma untuk perubahan akibat klik user.
+        let initialRender = true;
+
         // ==== Tab switcher (PNS / Non PNS) ====
         function showPesertaPanel(key) {
             document.querySelectorAll('[data-peserta-panel]').forEach(function (panel) {
@@ -584,6 +600,27 @@
             });
         });
 
+        // ==== Highlight singkat untuk field yang baru muncul karena pilihan peserta ====
+        function flashField(wrap) {
+            if (!wrap) return;
+            wrap.classList.add('ring-2', 'ring-blue-300', 'ring-offset-4');
+            setTimeout(function () {
+                wrap.classList.remove('ring-2', 'ring-blue-300', 'ring-offset-4');
+            }, 1500);
+        }
+
+        // Ubah visibilitas wrapper; kalau barusan berubah dari hidden -> tampil, kasih highlight
+        // (kecuali pada render pertama). Return true kalau memang baru muncul.
+        function setWrapVisible(wrap, visible) {
+            const wasHidden = wrap.classList.contains('hidden');
+            wrap.classList.toggle('hidden', !visible);
+            if (visible && wasHidden) {
+                if (!initialRender) flashField(wrap);
+                return true;
+            }
+            return false;
+        }
+
         // ==== Muncul/ilang field Nomor ST Kepala Biro sesuai peserta yg dicentang ====
         function toggleNomorStKaro(checked) {
             const wrap = document.getElementById('nomor-st-karo-wrap');
@@ -593,10 +630,12 @@
 
             const karo = checked.find(function (cb) { return cb.dataset.karo === '1'; });
 
-            wrap.classList.toggle('hidden', !karo);
+            setWrapVisible(wrap, Boolean(karo));
             if (namaLabel) {
                 namaLabel.textContent = karo ? '(' + karo.dataset.namaPegawai + ')' : '';
             }
+            // required cuma aktif kalau field-nya kelihatan (ada Karo yg dicentang) —
+            // biar gak nahan submit gara-gara field yg lagi disembunyiin.
             if (input) {
                 input.required = Boolean(karo);
             }
@@ -619,8 +658,8 @@
             const adaPns = checked.some(function (cb) { return statusOf(cb) === 'pns'; });
             const adaNonPns = checked.some(function (cb) { return statusOf(cb) === 'nonpns'; });
 
-            pnsWrap.classList.toggle('hidden', !adaPns);
-            nonPnsWrap.classList.toggle('hidden', !adaNonPns);
+            setWrapVisible(pnsWrap, adaPns);
+            setWrapVisible(nonPnsWrap, adaNonPns);
             if (pnsInput) pnsInput.required = adaPns;
             if (nonPnsInput) nonPnsInput.required = adaNonPns;
 
@@ -649,8 +688,8 @@
             chipsWrap.classList.remove('hidden');
             chipsWrap.innerHTML = '';
             checked.forEach(function (cb) {
-                const nama = cb.closest('.peserta-item')?.querySelector('span > span')?.textContent
-                    ?? cb.closest('.peserta-item')?.querySelector('span')?.textContent ?? '';
+                // pakai data-nama-pegawai (bukan selector DOM) supaya tidak rusak kalau struktur label berubah
+                const nama = cb.dataset.namaPegawai ?? '';
                 const chip = document.createElement('span');
                 chip.className = 'inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full';
                 chip.innerHTML = '<span></span><button type="button" class="hover:bg-blue-100 rounded-full p-0.5 transition" aria-label="Hapus">'
@@ -783,7 +822,6 @@
         });
 
         // ==== Section "Anggaran & Administrasi" bisa dilipat ====
-        let anggaranOpen = true;
 
         // Dipanggil tiap kali ada field di dalamnya yang muncul/hilang, biar tinggi
         // kontainernya ikut nyesuaiin dan isinya gak kepotong.
@@ -822,6 +860,21 @@
             // default kebuka; ganti ke setOpen(false) kalau mau default terlipat
             setOpen(true);
         })();
+
+        // ==== Kalau validasi browser menolak submit gara-gara field di section Anggaran
+        // yang lagi terlipat, buka otomatis lalu arahkan fokus ke field-nya. ====
+        // Pakai capture (true) karena event "invalid" tidak bubble.
+        document.getElementById('agenda-form').addEventListener('invalid', function (e) {
+            const body = document.getElementById('anggaran-body');
+            if (!body || !body.contains(e.target) || anggaranOpen) return;
+
+            document.getElementById('anggaran-toggle').click();
+            const target = e.target;
+            setTimeout(function () {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.focus({ preventScroll: true });
+            }, 350);
+        }, true);
 
         // ==== Badge progres penanggung jawab ====
         (function () {
@@ -874,6 +927,7 @@
         })();
 
         updatePesertaCount();
+        initialRender = false;
         applyPesertaFilters();
 
         // ==== Dropdown Kab/Kota cascading sesuai Provinsi (Tujuan) yang dipilih ====
