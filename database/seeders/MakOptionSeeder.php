@@ -217,6 +217,12 @@ class MakOptionSeeder extends Seeder
             'uraian_akun_ap' => 'TERLAKSANANYA MONEV KOORDINASI KEBIJAKAN SISTEM INFORMASI PANGAN TERINTEGRASI NASIONAL',
             'uraian_belanja' => 'Belanja Jasa Lainnya',
         ],
+        '7458.ABR.006.075.EE.524111' => [
+            'uraian_giat' => 'Rekomendasi Kebijakan Program Prioritas Nasional Bidang Tata Niaga dan Distribusi Pangan',
+            'uraian_komponen' => 'Monev dan Sinkronisasi, Koodinasi dan Pengendalian MRPN LS Bidang Pangan Terkait Nilai Ekonomi Karbon',
+            'uraian_akun_ap' => 'Koordinasi Implementasi NEK dan Pengendalian Emisi GRK',
+            'uraian_belanja' => 'Belanja Perjalanan Dinas Biasa',
+        ],
     ];
 
     public function run(): void

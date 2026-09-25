@@ -16,7 +16,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
+<body class="font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: true }">
     <div class="min-h-screen bg-gray-100 flex">
 
         @include('layouts.navigation')
@@ -24,7 +24,7 @@
         <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false" class="fixed inset-0 bg-black/40 z-30 lg:hidden">
         </div>
 
-        <div class="flex-1 flex flex-col min-w-0 transition-all duration-200"
+        <div x-cloak class="flex-1 flex flex-col min-w-0 transition-all duration-200"
             :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
 
             <!-- Top bar (logo + mobile toggle + user menu) -->

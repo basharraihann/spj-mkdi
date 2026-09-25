@@ -70,7 +70,6 @@ Route::middleware('auth')->group(function () {
     // Pegawai
     Route::post('pegawais/reorder', [PegawaiController::class, 'reorder'])->name('pegawais.reorder');
     Route::resource('pegawais', PegawaiController::class);
-
     // Rekap nomor memo (PNS & Non PNS, dari seluruh agenda)
     Route::controller(MemoController::class)
         ->prefix('nomor-memo')
@@ -80,6 +79,10 @@ Route::middleware('auth')->group(function () {
             Route::get('create', 'create')->name('create');
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
+            Route::get('{memo}/edit', 'edit')->name('edit');
+            Route::put('{memo}', 'update')->name('update');
+            Route::delete('{memo}', 'destroy')->name('destroy');
+            Route::get('{memo}/pdf', 'pdf')->name('pdf');
         });
 });
 
