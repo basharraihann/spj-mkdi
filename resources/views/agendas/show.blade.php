@@ -5,16 +5,6 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('success'))
-                <div
-                    class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {{ session('success') }}
-                </div>
-            @endif
 
             {{-- Header info card --}}
             <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6">
@@ -89,13 +79,14 @@
                 <div x-show="openDokumen" x-cloak x-transition.duration.200ms class="pt-1">
 
                     {{-- Form hapus dipisah per kategori (pakai atribut form="" biar gak nested <form> di dalam form
-                        upload) --}}
+                        upload). Konfirmasi hapusnya dipicu dari tombol di bawah lewat confirmDelete() (SweetAlert2),
+                        BUKAN pakai onsubmit/confirm() bawaan browser lagi. --}}
                         @foreach ($kategoriList as $key => $label)
                             @php $existing = $agenda->dokumen($key); @endphp
                             @if ($existing)
                                 <form id="hapus-dok-{{ $key }}"
                                     action="{{ route('agendas.dokumen.destroy', [$agenda, $existing]) }}" method="POST"
-                                    onsubmit="return confirm('Hapus file ini?')" class="hidden">
+                                    class="hidden">
                                     @csrf @method('DELETE')
                                 </form>
                             @endif
@@ -150,7 +141,8 @@
                                                     </svg>
                                                     <span class="truncate font-medium">{{ $existing->nama_file }}</span>
                                                 </a>
-                                                <button type="submit" form="hapus-dok-{{ $key }}"
+                                                <button type="button"
+                                                    onclick="confirmDelete('hapus-dok-{{ $key }}', 'file {{ $label }}')"
                                                     class="flex-shrink-0 inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold transition">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -164,10 +156,10 @@
 
                                         <input type="file" name="files[{{ $key }}]"
                                             class="w-full text-sm text-gray-500 border border-gray-200 rounded-lg
-                                                                                                           file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
-                                                                                                           file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
-                                                                                                           hover:file:bg-gray-200 file:transition cursor-pointer
-                                                                                                           focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                                                                                                           file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
+                                                                                                                           file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
+                                                                                                                           hover:file:bg-gray-200 file:transition cursor-pointer
+                                                                                                                           focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                                         <p class="text-xs text-gray-400 mt-1.5">
                                             {{ $existing ? 'Pilih file baru untuk mengganti.' : 'PDF, JPG, atau PNG.' }}
                                         </p>

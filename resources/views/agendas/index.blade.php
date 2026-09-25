@@ -5,18 +5,6 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-
-            @if (session('success'))
-                <div
-                    class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {{ session('success') }}
-                </div>
-            @endif
-
             {{-- Kartu utama: judul + search bar + tabel --}}
             <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 space-y-6">
 
@@ -169,15 +157,10 @@
                                                 class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
                                                 Lihat
                                             </a>
-                                            <form action="{{ route('agendas.destroy', $agenda) }}" method="POST"
-                                                onsubmit="return confirm('Yakin ingin menghapus agenda ini? Data yang sudah dihapus tidak bisa dikembalikan.');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border border-red-400 text-red-500 bg-white hover:bg-red-50 transition">
-                                                    Hapus
-                                                </button>
-                                            </form>
+                                            <x-delete-button :action="route('agendas.destroy', $agenda)" :label="'agenda ini'" :id="'agenda-' . $agenda->id"
+                                                class="px-3 py-1.5 rounded-md text-xs font-semibold border border-red-400 text-red-500 bg-white hover:bg-red-50 transition">
+                                                Hapus
+                                            </x-delete-button>
                                         </div>
                                     </td>
                                 </tr>

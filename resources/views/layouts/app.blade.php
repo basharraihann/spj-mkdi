@@ -14,6 +14,9 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <!-- SweetAlert2 (dipakai untuk konfirmasi hapus yang seragam di semua halaman) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: true }">
@@ -83,10 +86,230 @@
 
             <!-- Page Content -->
             <main class="flex-1">
+                {{-- Flash message global (success & error).
+                Datanya cuma dititip lewat data-attribute yang disembunyikan di sini,
+                lalu ditampilkan sebagai toast modern oleh script di bawah (lihat #flash-data).
+                TIDAK perlu lagi nulis blok @if(session('success')) ... @endif di tiap Blade view. --}}
+                <div id="flash-data" class="hidden" data-success="{{ session('success') }}"
+                    data-error="{{ session('error') }}"></div>
+
                 {{ $slot }}
             </main>
         </div>
     </div>
+
+    {{--
+    Fungsi konfirmasi hapus global.
+    Dipakai di SEMUA tombol Hapus di seluruh aplikasi (Pegawai, Nomor Memo, dll)
+    supaya tampilannya konsisten, bukan confirm() bawaan browser.
+
+    Cara pakai di Blade manapun (contoh, JANGAN taruh di file ini):
+
+    <form id="delete-pegawai-XXX" action="URL_DESTROY" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+    <button type="button" onclick="confirmDelete('delete-pegawai-XXX', 'pegawai NAMA')">
+        Hapus
+    </button>
+    --}}
+    <style>
+        .swal-delete-popup {
+            border-radius: 1.25rem !important;
+            padding: 2rem 1.5rem !important;
+        }
+
+        .swal-delete-icon-wrap {
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swal-delete-icon-wrap svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .swal-delete-title {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin-bottom: 0.375rem !important;
+        }
+
+        .swal-delete-text {
+            font-size: 0.9rem !important;
+            color: #9ca3af !important;
+            line-height: 1.4 !important;
+        }
+
+        .swal-delete-actions {
+            gap: 0.75rem !important;
+            width: 100%;
+            margin-top: 1.5rem !important;
+        }
+
+        .swal-btn-cancel {
+            flex: 1;
+            border: 2px solid #fecaca !important;
+            background: #ffffff !important;
+            color: #ef4444 !important;
+            font-weight: 600 !important;
+            border-radius: 0.75rem !important;
+            padding: 0.7rem 1rem !important;
+            box-shadow: none !important;
+            transition: background 0.15s ease;
+        }
+
+        .swal-btn-cancel:hover {
+            background: #fef2f2 !important;
+        }
+
+        .swal-btn-confirm {
+            flex: 1;
+            border: none !important;
+            background: #ef4444 !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            border-radius: 0.75rem !important;
+            padding: 0.7rem 1rem !important;
+            box-shadow: none !important;
+            transition: background 0.15s ease;
+        }
+
+        .swal-btn-confirm:hover {
+            background: #dc2626 !important;
+        }
+
+        /* Toast flash message (success/error) */
+        .app-toast-popup {
+            border-radius: 0.875rem !important;
+            padding: 0.85rem 1.1rem !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .app-toast-inner {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .app-toast-icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .app-toast-msg {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .app-toast-progress-success {
+            background: #16a34a !important;
+        }
+
+        .app-toast-progress-error {
+            background: #dc2626 !important;
+        }
+    </style>
+
+    <script>
+        function confirmDelete(formId, itemLabel = 'data ini') {
+            const trashIconSvg = `
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="46" fill="#FEF2F2"/>
+                    <rect x="30" y="38" width="40" height="38" rx="4" fill="#EF4444"/>
+                    <rect x="24" y="30" width="52" height="8" rx="3" fill="#EF4444"/>
+                    <rect x="40" y="20" width="20" height="10" rx="3" fill="#EF4444"/>
+                    <line x1="40" y1="46" x2="40" y2="68" stroke="#FEF2F2" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="50" y1="46" x2="50" y2="68" stroke="#FEF2F2" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="60" y1="46" x2="60" y2="68" stroke="#FEF2F2" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+            `;
+
+            Swal.fire({
+                html: `
+                    <div class="swal-delete-icon-wrap">${trashIconSvg}</div>
+                    <div class="swal-delete-title">Hapus ${itemLabel}?</div>
+                    <div class="swal-delete-text">Data yang sudah dihapus tidak bisa dikembalikan.</div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                buttonsStyling: false,
+                focusConfirm: false,
+                customClass: {
+                    popup: 'swal-delete-popup',
+                    actions: 'swal-delete-actions',
+                    confirmButton: 'swal-btn-confirm',
+                    cancelButton: 'swal-btn-cancel',
+                },
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        }
+
+        // Toast modern untuk flash message (session success/error).
+        // Otomatis muncul di pojok kanan atas, slide-in, lalu hilang sendiri setelah beberapa detik.
+        function showToast(message, type = 'success') {
+            const isSuccess = type === 'success';
+
+            const iconSvg = isSuccess
+                ? `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="12" fill="#DCFCE7"/>
+                        <path d="M7 12.5l3 3 7-7" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                   </svg>`
+                : `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="12" fill="#FEE2E2"/>
+                        <path d="M15 9l-6 6M9 9l6 6" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                   </svg>`;
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true,
+                buttonsStyling: false,
+                customClass: {
+                    popup: 'app-toast-popup',
+                    timerProgressBar: isSuccess ? 'app-toast-progress-success' : 'app-toast-progress-error',
+                },
+                didOpen: (toastEl) => {
+                    toastEl.addEventListener('mouseenter', Swal.stopTimer);
+                    toastEl.addEventListener('mouseleave', Swal.resumeTimer);
+                },
+            });
+
+            Toast.fire({
+                html: `
+                    <div class="app-toast-inner">
+                        <span class="app-toast-icon">${iconSvg}</span>
+                        <span class="app-toast-msg">${message}</span>
+                    </div>
+                `,
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const flash = document.getElementById('flash-data');
+            if (!flash) return;
+
+            const successMsg = flash.dataset.success;
+            const errorMsg = flash.dataset.error;
+
+            if (successMsg) showToast(successMsg, 'success');
+            if (errorMsg) showToast(errorMsg, 'error');
+        });
+    </script>
 </body>
 
 </html>

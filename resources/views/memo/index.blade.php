@@ -8,12 +8,6 @@
     <div class="py-10">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            @if (session('success'))
-                <div class="rounded-xl bg-green-50 border border-green-200 text-green-700 px-4 py-3 text-sm">
-                    {{ session('success') }}
-                </div>
-            @endif
-
             @if (session('error'))
                 <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
                     {{ session('error') }}
@@ -171,18 +165,18 @@
 
                                             <div class="flex flex-wrap items-center gap-1.5">
                                                 <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                                @class([
-                                                                    'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
-                                                                    'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
-                                                                    'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
-                                                                ])">
+                                                                        @class([
+                                                                            'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
+                                                                            'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
+                                                                            'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
+                                                                        ])">
                                                     {{ $memo['jenis_label'] }}
                                                 </span>
 
                                                 @if ($memo['status'])
                                                     <span
                                                         class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                                            {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
+                                                                                            {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
                                                         {{ $memo['status'] }}
                                                     </span>
                                                 @endif
@@ -280,11 +274,17 @@
                 });
             });
 
-            document.querySelectorAll('.delete-memo-form').forEach(function (form) {
+            document.querySelectorAll('.delete-memo-form').forEach(function (form, index) {
+                // Kasih id otomatis kalau form belum punya id
+                if (!form.id) {
+                    form.id = 'delete-memo-form-' + index;
+                }
+
                 form.addEventListener('submit', function (e) {
-                    if (!confirm('Yakin ingin menghapus nomor memo ini? Tindakan ini tidak bisa dibatalkan.')) {
-                        e.preventDefault();
-                    }
+                    e.preventDefault(); // selalu cegah submit langsung, konfirmasi dulu
+
+                    const label = form.dataset.label || 'nomor memo ini';
+                    confirmDelete(form.id, label);
                 });
             });
         });

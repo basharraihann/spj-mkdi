@@ -24,19 +24,6 @@
                 <span class="text-gray-700 font-semibold truncate">{{ $pegawai->nama }}</span>
             </div>
 
-            {{-- Success flash --}}
-            @if (session('success'))
-                <div
-                    class="flex items-center gap-2.5 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 12.75l2.25 2.25 4.5-4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {{ session('success') }}
-                </div>
-            @endif
-
             {{-- Main card --}}
             <div
                 class="relative bg-white shadow-sm hover:shadow-md rounded-2xl border border-gray-100 overflow-hidden transition-shadow duration-300">

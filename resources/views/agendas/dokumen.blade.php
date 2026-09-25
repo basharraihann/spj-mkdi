@@ -10,29 +10,18 @@
             {{-- Breadcrumb --}}
             <div class="flex items-center gap-2 px-1 text-sm">
                 <a href="{{ route('agendas.index') }}" class="text-gray-400 hover:text-gray-600 transition">Agenda</a>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-300" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-300" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
                 <a href="{{ route('agendas.show', $agenda) }}"
                     class="text-gray-400 hover:text-gray-600 transition truncate max-w-[10rem]">{{ $agenda->uraian_kegiatan }}</a>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-300" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-300" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
                 <span class="text-gray-700 font-semibold">Dokumen</span>
             </div>
-
-            @if (session('success'))
-                <div
-                    class="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {{ session('success') }}
-                </div>
-            @endif
 
             {{-- Kartu utama --}}
             <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 sm:p-8 space-y-6">
@@ -107,20 +96,15 @@
                                         </svg>
                                         <span class="truncate font-medium">{{ $existing->nama_file }}</span>
                                     </a>
-                                    <form action="{{ route('agendas.dokumen.destroy', [$agenda, $existing]) }}"
-                                        method="POST" onsubmit="return confirm('Hapus file ini?')"
-                                        class="flex-shrink-0">
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                            class="inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold transition">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                            Hapus
-                                        </button>
-                                    </form>
+                                    <x-delete-button :action="route('agendas.dokumen.destroy', [$agenda, $existing])"
+                                        :label="'file ini'" :id="'dokumen-' . $existing->id"
+                                        class="flex-shrink-0 inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        Hapus
+                                    </x-delete-button>
                                 </div>
                             @endif
 
@@ -130,10 +114,10 @@
                                 <input type="hidden" name="kategori" value="{{ $key }}">
                                 <input type="file" name="file" required
                                     class="flex-1 text-sm text-gray-500 border border-gray-200 rounded-lg
-                                           file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
-                                           file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
-                                           hover:file:bg-gray-200 file:transition cursor-pointer
-                                           focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                                   file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
+                                                   file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
+                                                   hover:file:bg-gray-200 file:transition cursor-pointer
+                                                   focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                                 <button type="submit"
                                     class="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition flex-shrink-0">
                                     @if ($existing)
