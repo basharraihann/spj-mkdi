@@ -26,8 +26,8 @@
             @endphp
 
             @if ($makOptions->isNotEmpty())
-                <select id="mak-select"
-                    class="w-full appearance-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white mb-2">
+                <select id="mak-select" data-placeholder="Cari MAK..."
+                    class="js-searchable w-full appearance-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white mb-2">
                     <option value="" {{ !$currentMak ? 'selected' : '' }}>— Pilih dari daftar MAK —</option>
                     @foreach ($makOptions as $opt)
                         <option value="{{ $opt->mak }}" data-uraian-giat="{{ $opt->uraian_giat }}"
@@ -134,8 +134,8 @@
                 <label class="block text-xs font-semibold text-gray-500 mb-1.5">Petugas Verifikasi <span
                         class="text-red-400">*</span></label>
                 <div class="relative">
-                    <select name="petugas_verifikasi_id" required
-                        class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
+                    <select name="petugas_verifikasi_id" required data-placeholder="Cari Petugas Verifikasi..."
+                        class="js-searchable w-full appearance-none bg-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
                         <option value="" disabled {{ old('petugas_verifikasi_id', $agenda->petugas_verifikasi_id ?? null) ? '' : 'selected' }}>— Pilih —</option>
                         @forelse ($petugasVerifikasiList as $pv)
                             <option value="{{ $pv->id }}" @selected(old('petugas_verifikasi_id', $agenda->petugas_verifikasi_id ?? null) == $pv->id)>
@@ -207,8 +207,8 @@
                     <span class="text-red-400">*</span>
                 </label>
                 <div class="relative sm:w-1/2">
-                    <select name="pic_id" required
-                        class="w-full appearance-none bg-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
+                    <select name="pic_id" required data-placeholder="Cari nama pegawai..."
+                        class="js-searchable w-full appearance-none bg-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
                         <option value="" disabled {{ old('pic_id', $agenda->pic_id ?? null) ? '' : 'selected' }}>—
                             Pilih —</option>
                         @forelse (($pegawaiList ?? collect()) as $p)
