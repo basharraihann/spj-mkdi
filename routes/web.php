@@ -87,16 +87,13 @@ Route::middleware('auth')->group(function () {
             Route::get('{memo}/pdf', 'pdf')->name('pdf');
         });
 
-<<<<<<< HEAD
     Route::middleware(['auth'])->group(function () {
         Route::resource('mak-options', MakOptionController::class)
             ->except(['show', 'create', 'edit']);
     });
 
-=======
     // User Manajemen (Khusus Admin)
     Route::middleware('admin')->resource('users', UserController::class);
->>>>>>> 4fd5edf8224f600aecb199c528ba802824ebd6b2
 });
 
 require __DIR__ . '/auth.php';
