@@ -7,6 +7,7 @@ use App\Http\Controllers\MemoController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MakOptionController;
 
 Route::get('/', fn() => view('welcome'));
 
@@ -84,6 +85,12 @@ Route::middleware('auth')->group(function () {
             Route::delete('{memo}', 'destroy')->name('destroy');
             Route::get('{memo}/pdf', 'pdf')->name('pdf');
         });
+
+    Route::middleware(['auth'])->group(function () {
+        Route::resource('mak-options', MakOptionController::class)
+            ->except(['show', 'create', 'edit']);
+    });
+
 });
 
 require __DIR__ . '/auth.php';

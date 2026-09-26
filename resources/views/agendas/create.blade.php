@@ -344,8 +344,9 @@
                                 @endif
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Kab/Kota</label>
-                                <select name="kota_tujuan" id="kota-tujuan-select" data-placeholder="Cari kab/kota..."
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Kab/Kota <span
+                                        class="text-red-400">*</span></label>
+                                <select name="kota_tujuan" id="kota-tujuan-select" required data-placeholder="Cari kab/kota..."
                                     class="js-searchable w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition disabled:bg-gray-50 disabled:text-gray-400">
                                     <option value="">Pilih provinsi dulu</option>
                                 </select>

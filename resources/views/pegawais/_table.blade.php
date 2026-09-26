@@ -23,7 +23,19 @@
                 </thead>
                 <tbody class="sortable-body divide-y divide-gray-100">
                     @foreach ($list as $pegawai)
-                        <tr data-id="{{ $pegawai->id }}" class="group hover:bg-gray-50/60 transition">
+                        @php
+                            $searchBlob = strtolower(collect([
+                                $pegawai->nama,
+                                $pegawai->nip,
+                                $pegawai->jabatan,
+                                $pegawai->pangkat,
+                                $pegawai->golongan,
+                                $pegawai->role_penandatangan,
+                            ])->filter()->implode(' '));
+                        @endphp
+                        <tr data-id="{{ $pegawai->id }}" class="js-pegawai-row group hover:bg-gray-50/60 transition"
+                            data-search="{{ $searchBlob }}" data-jabatan="{{ strtolower($pegawai->jabatan ?? '') }}"
+                            data-status="{{ $pegawai->status_kepegawaian ?? '' }}">
                             <td
                                 class="pl-3 py-4 text-gray-300 group-hover:text-gray-400 drag-handle cursor-grab active:cursor-grabbing transition">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -85,7 +97,19 @@
     {{-- Mobile: stacked card view --}}
     <div class="sm:hidden sortable-body space-y-3">
         @foreach ($list as $pegawai)
-            <div data-id="{{ $pegawai->id }}" class="border border-gray-100 rounded-xl p-4 bg-white">
+            @php
+                $searchBlob = strtolower(collect([
+                    $pegawai->nama,
+                    $pegawai->nip,
+                    $pegawai->jabatan,
+                    $pegawai->pangkat,
+                    $pegawai->golongan,
+                    $pegawai->role_penandatangan,
+                ])->filter()->implode(' '));
+            @endphp
+            <div data-id="{{ $pegawai->id }}" class="js-pegawai-row border border-gray-100 rounded-xl p-4 bg-white"
+                data-search="{{ $searchBlob }}" data-jabatan="{{ strtolower($pegawai->jabatan ?? '') }}"
+                data-status="{{ $pegawai->status_kepegawaian ?? '' }}">
                 <div class="flex items-start gap-3">
                     <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 pt-1 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">

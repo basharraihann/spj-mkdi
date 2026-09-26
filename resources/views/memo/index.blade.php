@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Nomor Memo') }}
+            {{ __('Memorandum') }}
         </h2>
     </x-slot>
 
@@ -38,13 +38,12 @@
                 </div>
             </div>
 
-            {{-- Filter --}}
+            {{-- Filter : instan client-side, tidak reload halaman --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5">
-                <form method="GET" action="{{ route('memo.index') }}"
-                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
                     <div class="lg:col-span-2">
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Cari</label>
-                        <input type="text" name="cari" value="{{ request('cari') }}"
+                        <input type="text" id="memo-filter-cari" autocomplete="off"
                             placeholder="Nomor memo atau uraian kegiatan..."
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
                     </div>
@@ -52,15 +51,12 @@
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Jenis</label>
                         <div class="relative">
-                            <select name="jenis"
+                            <select id="memo-filter-jenis"
                                 class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
-                                <option value="semua" {{ !request('jenis') || request('jenis') === 'semua' ? 'selected' : '' }}>Semua Jenis</option>
-                                <option value="perdin" {{ request('jenis') === 'perdin' ? 'selected' : '' }}>Perjalanan
-                                    Dinas</option>
-                                <option value="konsumsi" {{ request('jenis') === 'konsumsi' ? 'selected' : '' }}>Konsumsi
-                                </option>
-                                <option value="honorarium" {{ request('jenis') === 'honorarium' ? 'selected' : '' }}>
-                                    Honorarium</option>
+                                <option value="semua" selected>Semua Jenis</option>
+                                <option value="perdin">Perjalanan Dinas</option>
+                                <option value="konsumsi">Konsumsi</option>
+                                <option value="honorarium">Honorarium</option>
                             </select>
                             <svg xmlns="http://www.w3.org/2000/svg"
                                 class="h-4 w-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -73,13 +69,11 @@
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">PIC</label>
                         <div class="relative">
-                            <select name="pic"
+                            <select id="memo-filter-pic"
                                 class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
                                 <option value="">Semua PIC</option>
                                 @foreach ($picOptions as $namaPic)
-                                    <option value="{{ $namaPic }}" {{ request('pic') === $namaPic ? 'selected' : '' }}>
-                                        {{ $namaPic }}
-                                    </option>
+                                    <option value="{{ $namaPic }}">{{ $namaPic }}</option>
                                 @endforeach
                             </select>
                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -92,33 +86,23 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Dari Tanggal</label>
-                        <input type="date" name="dari_tanggal" value="{{ request('dari_tanggal') }}"
+                        <input type="date" id="memo-filter-dari"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Sampai Tanggal</label>
-                        <input type="date" name="sampai_tanggal" value="{{ request('sampai_tanggal') }}"
+                        <input type="date" id="memo-filter-sampai"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
                     </div>
 
                     <div class="lg:col-span-6 flex items-center gap-2 pt-1">
-                        <button type="submit"
-                            class="inline-flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold px-4 py-2 rounded-lg text-xs transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h18M6 9h12M10 13.5h4" />
-                            </svg>
-                            Terapkan Filter
+                        <button type="button" id="memo-filter-reset"
+                            class="text-xs font-medium text-gray-400 hover:text-gray-600 px-3 py-2 transition">
+                            Reset Filter
                         </button>
-                        @if (request()->anyFilled(['cari', 'jenis', 'pic', 'dari_tanggal', 'sampai_tanggal']))
-                            <a href="{{ route('memo.index') }}"
-                                class="text-xs font-medium text-gray-400 hover:text-gray-600 px-3 py-2 transition">
-                                Reset
-                            </a>
-                        @endif
                     </div>
-                </form>
+                </div>
             </div>
 
             {{-- Daftar nomor memo --}}
@@ -127,7 +111,8 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-800">Daftar Nomor Memo</h3>
                         <p class="text-sm text-gray-400 mt-1.5">
-                            Diurutkan dari nomor memo terbaru. Menampilkan {{ $memos->count() }} entri.
+                            Diurutkan dari nomor memo terbaru. Menampilkan
+                            <span id="memo-visible-count">{{ $memos->count() }}</span> dari {{ $memos->count() }} entri.
                         </p>
                     </div>
                 </div>
@@ -146,10 +131,26 @@
                                 <th class="px-4 py-3.5 font-medium text-center w-32">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-gray-100" id="memo-table-body">
                             @forelse ($memos as $i => $memo)
-                                <tr class="hover:bg-gray-50/70 transition align-top">
-                                    <td class="px-4 py-5 text-gray-400">{{ $i + 1 }}</td>
+                                @php
+                                    $tanggalIso = optional($memo['tanggal_memo'])->format('Y-m-d');
+                                    $tanggalTampil = optional($memo['tanggal_memo'])->translatedFormat('d M Y');
+                                    $tanggalTampilLengkap = optional($memo['tanggal_memo'])->translatedFormat('d F Y');
+
+                                    $searchBlob = strtolower(collect([
+                                        $memo['nomor_memo'] ?? '',
+                                        $memo['uraian_kegiatan'] ?? '',
+                                        $memo['pic'] ?? '',
+                                        $tanggalIso,
+                                        $tanggalTampil,
+                                        $tanggalTampilLengkap,
+                                    ])->filter()->implode(' '));
+                                @endphp
+                                <tr class="js-memo-row hover:bg-gray-50/70 transition align-top"
+                                    data-search="{{ $searchBlob }}" data-jenis="{{ $memo['jenis'] }}"
+                                    data-pic="{{ $memo['pic'] }}" data-tanggal="{{ $tanggalIso }}">
+                                    <td class="px-4 py-5 text-gray-400 js-memo-number">{{ $i + 1 }}</td>
                                     <td class="px-4 py-5">
                                         <div class="flex flex-col gap-1.5 items-start">
                                             @if ($memo['agenda_id'])
@@ -165,18 +166,18 @@
 
                                             <div class="flex flex-wrap items-center gap-1.5">
                                                 <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                                        @class([
-                                                                            'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
-                                                                            'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
-                                                                            'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
-                                                                        ])">
+                                                                                        @class([
+                                                                                            'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
+                                                                                            'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
+                                                                                            'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
+                                                                                        ])">
                                                     {{ $memo['jenis_label'] }}
                                                 </span>
 
                                                 @if ($memo['status'])
                                                     <span
                                                         class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                                                            {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
+                                                                                                                            {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
                                                         {{ $memo['status'] }}
                                                     </span>
                                                 @endif
@@ -251,12 +252,16 @@
                             @empty
                                 <tr>
                                     <td colspan="8" class="px-6 py-16 text-center text-gray-400">
-                                        Tidak ada nomor memo yang cocok dengan filter ini.
+                                        Belum ada nomor memo.
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
+
+                    <p id="memo-no-result" class="hidden px-6 py-16 text-center text-gray-400">
+                        Tidak ada nomor memo yang cocok dengan filter ini.
+                    </p>
                 </div>
             </div>
 
@@ -275,18 +280,84 @@
             });
 
             document.querySelectorAll('.delete-memo-form').forEach(function (form, index) {
-                // Kasih id otomatis kalau form belum punya id
                 if (!form.id) {
                     form.id = 'delete-memo-form-' + index;
                 }
 
                 form.addEventListener('submit', function (e) {
-                    e.preventDefault(); // selalu cegah submit langsung, konfirmasi dulu
-
+                    e.preventDefault();
                     const label = form.dataset.label || 'nomor memo ini';
                     confirmDelete(form.id, label);
                 });
             });
         });
+    </script>
+
+    {{-- Filter instan client-side --}}
+    <script>
+        (function () {
+            const cariInput = document.getElementById('memo-filter-cari');
+            const jenisSelect = document.getElementById('memo-filter-jenis');
+            const picSelect = document.getElementById('memo-filter-pic');
+            const dariInput = document.getElementById('memo-filter-dari');
+            const sampaiInput = document.getElementById('memo-filter-sampai');
+            const resetBtn = document.getElementById('memo-filter-reset');
+
+            const rows = Array.from(document.querySelectorAll('.js-memo-row'));
+            const noResult = document.getElementById('memo-no-result');
+            const tableBody = document.getElementById('memo-table-body');
+            const visibleCountEl = document.getElementById('memo-visible-count');
+
+            if (rows.length === 0) return; // belum ada data, gak perlu filter
+
+            function applyFilter() {
+                const cari = cariInput.value.trim().toLowerCase();
+                const jenis = jenisSelect.value;
+                const pic = picSelect.value;
+                const dari = dariInput.value; // format YYYY-MM-DD, cocok buat compare string
+                const sampai = sampaiInput.value;
+
+                let visibleCount = 0;
+
+                rows.forEach(function (row, idx) {
+                    const matchCari = cari === '' || row.dataset.search.includes(cari);
+                    const matchJenis = jenis === 'semua' || row.dataset.jenis === jenis;
+                    const matchPic = pic === '' || row.dataset.pic === pic;
+
+                    const tgl = row.dataset.tanggal || '';
+                    const matchDari = dari === '' || (tgl !== '' && tgl >= dari);
+                    const matchSampai = sampai === '' || (tgl !== '' && tgl <= sampai);
+
+                    const visible = matchCari && matchJenis && matchPic && matchDari && matchSampai;
+
+                    row.style.display = visible ? '' : 'none';
+
+                    if (visible) {
+                        visibleCount++;
+                        const numberCell = row.querySelector('.js-memo-number');
+                        if (numberCell) numberCell.textContent = visibleCount;
+                    }
+                });
+
+                if (visibleCountEl) visibleCountEl.textContent = visibleCount;
+                if (noResult) noResult.classList.toggle('hidden', visibleCount > 0);
+                if (tableBody) tableBody.style.display = visibleCount > 0 ? '' : 'none';
+            }
+
+            cariInput.addEventListener('input', applyFilter);
+            jenisSelect.addEventListener('change', applyFilter);
+            picSelect.addEventListener('change', applyFilter);
+            dariInput.addEventListener('change', applyFilter);
+            sampaiInput.addEventListener('change', applyFilter);
+
+            resetBtn.addEventListener('click', function () {
+                cariInput.value = '';
+                jenisSelect.value = 'semua';
+                picSelect.value = '';
+                dariInput.value = '';
+                sampaiInput.value = '';
+                applyFilter();
+            });
+        })();
     </script>
 </x-app-layout>

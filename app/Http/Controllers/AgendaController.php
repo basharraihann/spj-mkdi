@@ -76,27 +76,15 @@ class AgendaController extends Controller
 
     public function index(Request $request)
     {
-        $agendas = Agenda::query()
-            ->when($request->filled('q'), function ($query) use ($request) {
-                $query->where('uraian_kegiatan', 'like', '%' . $request->q . '%');
-            })
-            ->when($request->filled('tujuan'), function ($query) use ($request) {
-                $query->where('tujuan', 'like', '%' . $request->tujuan . '%');
-            })
-            ->when($request->filled('bulan'), function ($query) use ($request) {
-                $query->whereMonth('tanggal_mulai', $request->bulan);
-            })
-            ->with('pegawai')
+        $agendas = Agenda::with('pegawai')
             ->withCount('dokumenUploads')
             ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            ->get();
 
         $totalDokumenKategori = count(Agenda::KATEGORI_DOKUMEN);
 
         return view('agendas.index', compact('agendas', 'totalDokumenKategori'));
     }
-
     public function create()
     {
         $pegawaiList = Pegawai::orderBy('nama')->get();
@@ -123,7 +111,7 @@ class AgendaController extends Controller
             'nomor_st_karo' => 'nullable|string',
             'uraian_kegiatan' => 'required|string',
             'tujuan' => 'required|string',
-            'kota_tujuan' => 'nullable|string',
+            'kota_tujuan' => 'required|string',
             'alat_angkut' => 'nullable|in:darat,udara,laut,darat_udara',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',

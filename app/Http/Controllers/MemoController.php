@@ -102,43 +102,9 @@ class MemoController extends Controller
         }
 
         // Opsi PIC buat dropdown filter, diambil dari data yang benar-benar ada
-        // (bukan seluruh master pegawai) biar filternya relevan.
         $picOptions = $memos->pluck('pic')->unique()->sort()->values();
 
-        // --- Filtering ---
-        if ($request->filled('jenis') && $request->jenis !== 'semua') {
-            $memos = $memos->where('jenis', $request->jenis)->values();
-        }
-
-        if ($request->filled('pic')) {
-            $memos = $memos->where('pic', $request->pic)->values();
-        }
-
-        if ($request->filled('cari')) {
-            $cari = mb_strtolower($request->cari);
-            $memos = $memos->filter(function ($m) use ($cari) {
-                return str_contains(mb_strtolower($m['nomor_memo'] ?? ''), $cari)
-                    || str_contains(mb_strtolower($m['uraian_kegiatan'] ?? ''), $cari);
-            })->values();
-        }
-
-        if ($request->filled('dari_tanggal')) {
-            $dari = $request->dari_tanggal;
-            $memos = $memos->filter(function ($m) use ($dari) {
-                $tgl = optional($m['tanggal_memo'])->format('Y-m-d');
-                return $tgl && $tgl >= $dari;
-            })->values();
-        }
-
-        if ($request->filled('sampai_tanggal')) {
-            $sampai = $request->sampai_tanggal;
-            $memos = $memos->filter(function ($m) use ($sampai) {
-                $tgl = optional($m['tanggal_memo'])->format('Y-m-d');
-                return $tgl && $tgl <= $sampai;
-            })->values();
-        }
-
-        // --- Urutan: nomor memo terbesar (terbaru) di atas ---
+        // Urutan: nomor memo terbesar (terbaru) di atas
         $memos = $memos->sortByDesc('nomor_urut')->values();
 
         $nomorBerikutnya = NomorMemoService::dataBerikutnya();

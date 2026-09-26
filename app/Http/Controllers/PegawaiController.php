@@ -9,20 +9,7 @@ class PegawaiController extends Controller
 {
     public function index(Request $request)
     {
-        $pegawais = Pegawai::query()
-            ->when($request->filled('q'), function ($query) use ($request) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('nama', 'like', '%' . $request->q . '%')
-                        ->orWhere('nip', 'like', '%' . $request->q . '%');
-                });
-            })
-            ->when($request->filled('jabatan'), function ($query) use ($request) {
-                $query->where('jabatan', 'like', '%' . $request->jabatan . '%');
-            })
-            ->when($request->filled('status'), function ($query) use ($request) {
-                $query->where('status_kepegawaian', $request->status);
-            })
-            ->get();
+        $pegawais = Pegawai::query()->get();
 
         $sortGolongan = function ($a, $b) {
             $urutanA = $a->urutan ?? PHP_INT_MAX;
@@ -38,9 +25,6 @@ class PegawaiController extends Controller
             return $urutanA <=> $urutanB ?: $a->nama <=> $b->nama;
         };
 
-        // Kelompokkan per unit kerja dulu. Yang belum diisi unit_kerja-nya
-        // dikumpulkan jadi satu grup 'Belum Diisi Unit' dan selalu ditaruh
-        // paling bawah (sortBy pakai prefix 'zzz_' biar kealfabet-an tetap jalan).
         $unitGroups = $pegawais
             ->groupBy(fn($p) => $p->unit_kerja ?: 'Belum Diisi Unit')
             ->sortBy(fn($items, $unit) => $unit === 'Belum Diisi Unit' ? 'zzz_' . $unit : $unit)
