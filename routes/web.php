@@ -6,10 +6,11 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MakOptionController;
 
-Route::get('/', fn() => view('welcome'));
+Route::get('/', fn() => redirect()->route('dashboard'));
 
 /*
 |--------------------------------------------------------------------------
@@ -86,11 +87,16 @@ Route::middleware('auth')->group(function () {
             Route::get('{memo}/pdf', 'pdf')->name('pdf');
         });
 
+<<<<<<< HEAD
     Route::middleware(['auth'])->group(function () {
         Route::resource('mak-options', MakOptionController::class)
             ->except(['show', 'create', 'edit']);
     });
 
+=======
+    // User Manajemen (Khusus Admin)
+    Route::middleware('admin')->resource('users', UserController::class);
+>>>>>>> 4fd5edf8224f600aecb199c528ba802824ebd6b2
 });
 
 require __DIR__ . '/auth.php';

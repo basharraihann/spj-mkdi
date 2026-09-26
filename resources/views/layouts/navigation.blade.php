@@ -64,6 +64,15 @@
                         'icon' => 'M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z'
                     ],
                 ];
+
+                if (Auth::user()?->isAdmin()) {
+                    $items[] = [
+                        'route' => 'users.index',
+                        'active' => request()->routeIs('users.*'),
+                        'label' => __('User Manajemen'),
+                        'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'
+                    ];
+                }
             @endphp
 
             @foreach ($items as $item)
@@ -86,8 +95,13 @@
                     class="h-9 w-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold shrink-0">
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                 </div>
-                <div class="min-w-0" x-show="!sidebarCollapsed" x-cloak>
-                    <div class="text-sm font-medium text-gray-800 truncate">{{ Auth::user()->name }}</div>
+                <div class="min-w-0 flex-1" x-show="!sidebarCollapsed" x-cloak>
+                    <div class="flex items-center justify-between gap-1">
+                        <div class="text-sm font-medium text-gray-800 truncate">{{ Auth::user()->name }}</div>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 {{ Auth::user()->isAdmin() ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700' }}">
+                            {{ Auth::user()->isAdmin() ? 'Admin' : 'Staf' }}
+                        </span>
+                    </div>
                     <div class="text-xs text-gray-400 truncate">{{ Auth::user()->email }}</div>
                 </div>
             </div>

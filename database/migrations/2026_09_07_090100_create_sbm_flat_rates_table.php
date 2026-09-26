@@ -17,17 +17,16 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('sbm_rates', function (Blueprint $table) {
+        Schema::create('sbm_flat_rates', function (Blueprint $table) {
             $table->id();
-            $table->string('provinsi')->unique();
-            $table->decimal('uh_biasa', 12, 2);
-            $table->decimal('peng_riil', 12, 2)->nullable();
+            $table->string('kategori')->unique();
+            $table->decimal('nominal', 12, 2);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sbm_rates');
+        Schema::dropIfExists('sbm_flat_rates');
     }
 };
