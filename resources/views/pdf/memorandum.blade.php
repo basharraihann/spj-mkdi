@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <title>Memo {{ $statusLabel }} - {{ $agenda->tujuan }}</title>
     <style>
         @page {
             margin: 40px 60px;

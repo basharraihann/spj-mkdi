@@ -82,6 +82,19 @@ class NomorMemoService
             ->filter();
     }
 
+    /**
+     * Susun "ekor" (bagian format setelah angka urut) buat nomor memo
+     * berikutnya, ditiru dari nomor terakhir yang pernah dipakai, dengan
+     * bulan/tahun di dalamnya disesuaikan ke bulan/tahun sekarang.
+     *
+     * Deteksi tahun/bulan pakai regex terhadap 4-digit & 2-digit di ujung
+     * string, BUKAN explode('/') + hitung index segmen — karena format nomor
+     * memo yang beneran dipakai ternyata gak konsisten jumlah segmennya
+     * (mis. format lama "323/LS.D1.PPK/KU.00/07/2026" vs format baru
+     * "374.KU.00.00/2027"). Pendekatan lama (explode + index) cuma cocok utk
+     * format lama, jadi di format baru bulan/tahunnya gak pernah ke-update
+     * dan nyangkut ke tahun manapun yang kebetulan jadi contoh pertama.
+     */
     private static function templateEkor(): string
     {
         $bulan = now()->format('m');
@@ -97,15 +110,17 @@ class NomorMemoService
         // Buang angka urut di depan, sisanya dipakai sbg "ekor" format.
         $ekor = preg_replace('/^\s*\d+/', '', $contoh);
 
-        // Asumsi 2 segmen terakhir (dipisah "/") adalah bulan & tahun -> diganti
-        // ke bulan/tahun sekarang biar gak ketinggalan bulan lama.
-        $segments = explode('/', $ekor);
-        if (count($segments) >= 3) {
-            $segments[count($segments) - 1] = $tahun;
-            $segments[count($segments) - 2] = $bulan;
-        }
+        // Ganti 4 digit tahun di paling ujung ke tahun sekarang — gak
+        // bergantung separator apapun (baik "/" maupun "."), jadi format lama
+        // ("323/.../07/2026") maupun format baru (".KU.00.00/2027") sama-sama
+        // ke-update tahunnya.
+        $ekor = preg_replace('/\d{4}\s*$/', $tahun, $ekor);
 
-        return implode('/', $segments);
+        // Kalau formatnya juga punya segmen bulan terpisah (misal ".../07/2026"),
+        // segmen bulan (2 digit sebelum tahun, dipisah "/") ikut di-update juga.
+        $ekor = preg_replace('/(\/)\d{2}(\/\d{4}\s*$)/', '$1' . $bulan . '$2', $ekor);
+
+        return $ekor;
     }
 
     /**

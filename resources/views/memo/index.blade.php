@@ -118,17 +118,29 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                    <table class="w-full text-sm table-fixed">
+                        <colgroup>
+                            <col style="width: 3%">
+                            <col style="width: 12%">
+                            <col style="width: 11%">
+                            <col style="width: 9%">
+                            <col style="width: 22%">
+                            <col style="width: 11%">
+                            <col style="width: 11%">
+                            <col style="width: 10%">
+                            <col style="width: 11%">
+                        </colgroup>
                         <thead>
                             <tr class="bg-gray-50/80 text-gray-500 text-left border-b border-gray-100">
-                                <th class="px-4 py-3.5 font-medium w-10">No</th>
-                                <th class="px-4 py-3.5 font-medium w-52">Nomor Memo</th>
-                                <th class="px-4 py-3.5 font-medium w-28">Tanggal</th>
-                                <th class="px-4 py-3.5 font-medium">Nama Kegiatan</th>
-                                <th class="px-4 py-3.5 font-medium w-36">PIC</th>
-                                <th class="px-4 py-3.5 font-medium w-44">MAK</th>
-                                <th class="px-4 py-3.5 font-medium text-right w-32">Nominal</th>
-                                <th class="px-4 py-3.5 font-medium text-center w-32">Aksi</th>
+                                <th class="px-3 py-3.5 font-medium">No</th>
+                                <th class="px-3 py-3.5 font-medium">Nomor Memo</th>
+                                <th class="px-3 py-3.5 font-medium">Jenis</th>
+                                <th class="px-3 py-3.5 font-medium">Tanggal</th>
+                                <th class="px-3 py-3.5 font-medium">Nama Kegiatan</th>
+                                <th class="px-3 py-3.5 font-medium">PIC</th>
+                                <th class="px-3 py-3.5 font-medium">MAK</th>
+                                <th class="px-3 py-3.5 font-medium text-right">Nominal</th>
+                                <th class="px-3 py-3.5 font-medium text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100" id="memo-table-body">
@@ -150,44 +162,43 @@
                                 <tr class="js-memo-row hover:bg-gray-50/70 transition align-top"
                                     data-search="{{ $searchBlob }}" data-jenis="{{ $memo['jenis'] }}"
                                     data-pic="{{ $memo['pic'] }}" data-tanggal="{{ $tanggalIso }}">
-                                    <td class="px-4 py-5 text-gray-400 js-memo-number">{{ $i + 1 }}</td>
-                                    <td class="px-4 py-5">
-                                        <div class="flex flex-col gap-1.5 items-start">
-                                            @if ($memo['agenda_id'])
-                                                <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
-                                                    class="font-semibold text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
-                                                    {{ $memo['nomor_memo'] }}
-                                                </a>
-                                            @else
-                                                <span class="font-semibold text-gray-800 tabular-nums break-all">
-                                                    {{ $memo['nomor_memo'] }}
+                                    <td class="px-3 py-5 text-gray-400 js-memo-number">{{ $i + 1 }}</td>
+                                    <td class="px-3 py-5">
+                                        @if ($memo['agenda_id'])
+                                            <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
+                                                class="font-semibold text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
+                                                {{ $memo['nomor_memo'] }}
+                                            </a>
+                                        @else
+                                            <span class="font-semibold text-gray-800 tabular-nums break-all">
+                                                {{ $memo['nomor_memo'] }}
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-5">
+                                        <div class="flex flex-col items-start gap-1.5">
+                                            <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
+                                        @class([
+                                            'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
+                                            'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
+                                            'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
+                                        ])">
+                                                {{ $memo['jenis_label'] }}
+                                            </span>
+
+                                            @if ($memo['status'])
+                                                <span
+                                                    class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
+                                                    {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
+                                                    {{ $memo['status'] }}
                                                 </span>
                                             @endif
-
-                                            <div class="flex flex-wrap items-center gap-1.5">
-                                                <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                                                        @class([
-                                                                                            'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
-                                                                                            'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
-                                                                                            'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
-                                                                                        ])">
-                                                    {{ $memo['jenis_label'] }}
-                                                </span>
-
-                                                @if ($memo['status'])
-                                                    <span
-                                                        class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                                                                                            {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
-                                                        {{ $memo['status'] }}
-                                                    </span>
-                                                @endif
-                                            </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-5 text-gray-500">
+                                    <td class="px-3 py-5 text-gray-500 whitespace-nowrap">
                                         {{ optional($memo['tanggal_memo'])->translatedFormat('d M Y') }}
                                     </td>
-                                    <td class="px-4 py-5 text-gray-700 leading-relaxed">
+                                    <td class="px-3 py-5 text-gray-700 leading-relaxed">
                                         <p class="uraian-text line-clamp-2">
                                             {{ $memo['uraian_kegiatan'] ?? '-' }}
                                         </p>
@@ -198,17 +209,17 @@
                                             </button>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-5 text-gray-600" title="{{ $memo['pic'] }}">
-                                        <span class="line-clamp-2">{{ $memo['pic'] }}</span>
+                                    <td class="px-3 py-5 text-gray-600 truncate" title="{{ $memo['pic'] }}">
+                                        {{ $memo['pic'] }}
                                     </td>
-                                    <td class="px-4 py-5 text-gray-500 text-xs break-all font-mono"
+                                    <td class="px-3 py-5 text-gray-500 text-xs font-mono truncate"
                                         title="{{ $memo['mak'] ?? '-' }}">
                                         {{ $memo['mak'] ?? '-' }}
                                     </td>
-                                    <td class="px-4 py-5 text-gray-900 font-semibold text-right tabular-nums">
+                                    <td class="px-3 py-5 text-gray-900 font-semibold text-right tabular-nums">
                                         Rp{{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
                                     </td>
-                                    <td class="px-4 py-5">
+                                    <td class="px-3 py-5">
                                         <div class="flex flex-col items-stretch gap-1">
                                             <a href="{{ $memo['pdf_url'] }}" target="_blank"
                                                 class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
@@ -251,7 +262,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-16 text-center text-gray-400">
+                                    <td colspan="9" class="px-6 py-16 text-center text-gray-400">
                                         Belum ada nomor memo.
                                     </td>
                                 </tr>
@@ -264,7 +275,6 @@
                     </p>
                 </div>
             </div>
-
         </div>
     </div>
 

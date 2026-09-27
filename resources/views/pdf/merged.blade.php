@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <title>SPD Lengkap - {{ $pegawai->nama_gelar ?? $pegawai->nama }} - {{ $agenda->tujuan }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,7 +18,7 @@
 <body>
 
     <div class="page-break">
-        @include('pdf.spd', ['agenda' => $agenda, 'pegawai' => $pegawai, 'ppk' => $ppk])
+        @include('pdf.spd', ['agenda' => $agenda, 'pegawai' => $pegawai, 'ppk' => $ppk, 'nomorSt' => $nomorSt])
     </div>
 
     <div class="page-break">

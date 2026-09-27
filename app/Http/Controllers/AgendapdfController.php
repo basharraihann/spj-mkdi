@@ -139,17 +139,22 @@ class AgendaPdfController extends Controller
         $agenda->load(['ppk', 'bendahara']);
         $pivot = $agenda->pegawai()->where('pegawai.id', $pegawai->id)->first()?->pivot;
 
+        $isKaro = str_contains(strtolower($pegawai->jabatan ?? ''), 'kepala biro');
+        $nomorSt = ($isKaro && $agenda->nomor_st_karo)
+            ? $agenda->nomor_st_karo
+            : $agenda->nomor_st;
+
         $pdf = Pdf::loadView('pdf.merged', [
             'agenda' => $agenda,
             'pegawai' => $pegawai,
             'pivot' => $pivot,
             'ppk' => $agenda->ppk,
             'bendahara' => $agenda->bendahara,
+            'nomorSt' => $nomorSt,
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream("Merged-{$pegawai->nama}-{$agenda->id}.pdf");
     }
-
     private function validateMemoStatus(string $status): void
     {
         abort_unless(in_array($status, ['pns', 'non-pns']), 404);

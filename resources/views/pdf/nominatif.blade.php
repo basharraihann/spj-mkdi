@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <title>Nomi {{ $statusLabel }} - {{ $agenda->tujuan }}</title>
     <style>
         @page {
             size: A4 landscape;

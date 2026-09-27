@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agenda;
+use App\Models\MemoEntry;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -16,28 +17,17 @@ class DashboardController extends Controller
         $agendaBulanIni = Agenda::whereMonth('tanggal_mulai', $now->month)
             ->whereYear('tanggal_mulai', $now->year)
             ->count();
+        // Dana diajukan (LS) bulan ini, lengkap dengan breakdown per jenis
+        // (Perdin / Konsumsi / Honorarium) — dipakai di card ringkasan.
+        $danaLsBulanIni = $this->danaLsBulan($now->month, $now->year);
+        $totalDanaBulanIni = $danaLsBulanIni['total'];
 
-        $agendaTahunIni = Agenda::whereYear('tanggal_mulai', $now->year)
-            ->count();
-
-        // Total dana diajukan (LS) bulan ini — dihitung dari rincian biaya
-        // tiap peserta (pivot agenda_pegawai), pakai accessor totalBiaya di model Agenda.
-        $totalDanaBulanIni = Agenda::whereMonth('tanggal_mulai', $now->month)
-            ->whereYear('tanggal_mulai', $now->year)
-            ->with('pegawai')
-            ->get()
-            ->sum(fn($agenda) => $agenda->totalBiaya);
-
-        // Data chart per bulan (Jan - Des) tahun berjalan
+        // Data chart per bulan (Jan - Des) tahun berjalan — cuma butuh totalnya
         $chartLabels = [];
         $chartData = [];
         for ($i = 1; $i <= 12; $i++) {
             $chartLabels[] = Carbon::create()->month($i)->translatedFormat('M');
-            $chartData[] = Agenda::whereMonth('tanggal_mulai', $i)
-                ->whereYear('tanggal_mulai', $now->year)
-                ->with('pegawai')
-                ->get()
-                ->sum(fn($agenda) => $agenda->totalBiaya);
+            $chartData[] = $this->danaLsBulan($i, $now->year)['total'];
         }
 
         // Data awal kalender (bulan dari ?bulan=YYYY-MM, default bulan berjalan)
@@ -45,8 +35,8 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'agendaBulanIni',
-            'agendaTahunIni',
             'totalDanaBulanIni',
+            'danaLsBulanIni',
             'chartLabels',
             'chartData',
             'kalender'
@@ -60,6 +50,52 @@ class DashboardController extends Controller
     public function kalender(Request $request)
     {
         return response()->json($this->dataKalender($request));
+    }
+
+    /**
+     * Dana yang diajukan lewat LS pada bulan & tahun tertentu, dipecah per
+     * jenis, gabungan dari dua sumber (sama persis dengan yang dipakai
+     * MemoController@index buat nampilin daftar nomor memo):
+     * - Perdin: dari Agenda yang nomor_memo_pns/non_pns sudah diisi
+     *   (nominalnya biaya_asn utk PNS, biaya_non_asn utk Non PNS)
+     * - Konsumsi & Honorarium: dari MemoEntry (nomor memo mandiri),
+     *   dipisah berdasarkan kolom jenis_memo
+     *
+     * Difilter berdasarkan tanggal_mulai (Agenda) / tanggal_memo (MemoEntry).
+     */
+    private function danaLsBulan(int $bulan, int $tahun): array
+    {
+        $agendas = Agenda::whereMonth('tanggal_mulai', $bulan)
+            ->whereYear('tanggal_mulai', $tahun)
+            ->get();
+
+        $totalPerdin = $agendas->sum(function ($agenda) {
+            $total = 0;
+
+            if (!empty($agenda->nomor_memo_pns)) {
+                $total += $agenda->biaya_asn;
+            }
+
+            if (!empty($agenda->nomor_memo_non_pns)) {
+                $total += $agenda->biaya_non_asn;
+            }
+
+            return $total;
+        });
+
+        $entries = MemoEntry::whereMonth('tanggal_memo', $bulan)
+            ->whereYear('tanggal_memo', $tahun)
+            ->get();
+
+        $totalKonsumsi = $entries->where('jenis_memo', 'konsumsi')->sum('nominal');
+        $totalHonorarium = $entries->where('jenis_memo', 'honorarium')->sum('nominal');
+
+        return [
+            'perdin' => $totalPerdin,
+            'konsumsi' => $totalKonsumsi,
+            'honorarium' => $totalHonorarium,
+            'total' => $totalPerdin + $totalKonsumsi + $totalHonorarium,
+        ];
     }
 
     private function dataKalender(Request $request): array

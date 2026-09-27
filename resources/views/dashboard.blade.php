@@ -48,18 +48,28 @@
                     </div>
                 </div>
 
-                <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
-                    <div
-                        class="h-11 w-11 shrink-0 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-400">Agenda Tahun {{ now()->year }}</p>
-                        <p class="text-xl font-bold text-gray-800">{{ $agendaTahunIni }}</p>
+                {{-- Breakdown dana LS per jenis --}}
+                <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-5">
+                    <p class="text-sm text-gray-400 mb-3">Breakdown Dana LS Bulan Ini</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <p class="text-[11px] text-gray-400">Perdin</p>
+                            <p class="text-sm font-semibold text-gray-700">
+                                Rp {{ number_format($danaLsBulanIni['perdin'], 0, ',', '.') }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-gray-400">Konsumsi</p>
+                            <p class="text-sm font-semibold text-gray-700">
+                                Rp {{ number_format($danaLsBulanIni['konsumsi'], 0, ',', '.') }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-gray-400">Honor</p>
+                            <p class="text-sm font-semibold text-gray-700">
+                                Rp {{ number_format($danaLsBulanIni['honorarium'], 0, ',', '.') }}
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -75,11 +85,12 @@
                     <div>
                         <p class="text-sm text-gray-400">Dana Diajukan (LS) Bulan Ini</p>
                         <p class="text-xl font-bold text-gray-800">Rp
-                            {{ number_format($totalDanaBulanIni, 0, ',', '.') }}
+                            {{ number_format($danaLsBulanIni['total'], 0, ',', '.') }}
                         </p>
                     </div>
                 </div>
             </div>
+
 
             {{-- Chart pengeluaran & kalender agenda --}}
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">

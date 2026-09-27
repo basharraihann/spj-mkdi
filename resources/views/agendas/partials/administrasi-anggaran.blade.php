@@ -168,7 +168,7 @@
                     <div class="flex gap-2">
                         <input type="text" id="nomor-memo-pns-input" name="nomor_memo_pns"
                             value="{{ old('nomor_memo_pns', $agenda->nomor_memo_pns ?? null) }}"
-                            placeholder="323/LS.D1.PPK/KU.00/07/2026"
+                            placeholder="380.KU.00.00/2026"
                             class="flex-1 min-w-0 border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition placeholder:text-gray-300">
                         <button type="button" id="btn-ambil-memo-pns"
                             class="flex-shrink-0 inline-flex items-center gap-1 border border-blue-200 text-blue-600 hover:bg-blue-50 font-semibold px-3 py-2.5 rounded-lg text-xs transition whitespace-nowrap">
