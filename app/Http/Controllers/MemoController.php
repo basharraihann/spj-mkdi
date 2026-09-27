@@ -246,6 +246,13 @@ class MemoController extends Controller
         $kodeAkunAp = $kodeParts[4] ?? null;
         $kodeBelanja = $kodeParts[5] ?? null;
 
+        // Tentukan "Hal" berdasarkan jenis memo
+        $halMemo = match ($memo->jenis_memo) {
+            'konsumsi' => 'Permintaan Pembayaran Langsung (LS) Konsumsi',
+            'honorarium' => 'Permintaan Pembayaran Langsung (LS) Honorarium',
+            default => 'Permintaan Pembayaran Langsung (LS)',
+        };
+
         $agendaProxy = (object) [
             'dari_memo' => 'Pejabat Pembuat Komitmen Biro Manajemen Kinerja, Data dan Informasi',
             'mak' => $memo->mak,
@@ -270,6 +277,7 @@ class MemoController extends Controller
             'totalBiaya' => $memo->nominal,
             'rincianBiaya' => [],
             'terbilang' => null,
+            'halMemo' => $halMemo, // <-- tambahan ini
         ])->setPaper('a4', 'portrait');
 
         $namaFile = 'Memorandum-' . str_replace(['/', '\\'], '-', $memo->nomor_memo) . '.pdf';

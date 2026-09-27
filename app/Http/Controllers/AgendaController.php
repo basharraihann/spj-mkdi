@@ -76,7 +76,10 @@ class AgendaController extends Controller
 
     public function index(Request $request)
     {
-        $agendas = Agenda::with('pegawai')
+        // 'pic' ikut di-eager load (selain 'pegawai') supaya kartu detail
+        // singkat di halaman index (klik baris utk expand) bisa nampilin
+        // nama PIC tanpa nge-trigger query N+1 per baris.
+        $agendas = Agenda::with(['pegawai', 'pic'])
             ->withCount('dokumenUploads')
             ->latest()
             ->get();

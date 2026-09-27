@@ -129,11 +129,26 @@
 
                                     $searchBlob = strtolower($agenda->uraian_kegiatan . ' ' . $agenda->tujuan . ' ' . $agenda->kota_tujuan);
                                     $bulanAgenda = $agenda->tanggal_mulai->format('n');
+
+                                    $picNama = $agenda->pic->nama_gelar ?? $agenda->pic->nama ?? null;
+
+                                    $pesertaPns = $agenda->pegawai->where('status_kepegawaian', 'PNS')->values();
+                                    $pesertaNonPns = $agenda->pegawai->where('status_kepegawaian', 'Non PNS')->values();
                                 @endphp
-                                <tr class="js-agenda-row hover:bg-gray-50/60 transition align-top" data-search="{{ $searchBlob }}"
-                                    data-tujuan="{{ strtolower($agenda->tujuan) }}" data-bulan="{{ $bulanAgenda }}">
+
+                                {{-- BARIS UTAMA. Tidak pakai border-kiri lagi (itu sumber bug
+                                garis birunya) — pembeda cukup dari warna latar + chevron. --}}
+                                <tr class="js-agenda-row js-agenda-toggle bg-white hover:bg-gray-50/60 transition align-top cursor-pointer"
+                                    data-search="{{ $searchBlob }}" data-tujuan="{{ strtolower($agenda->tujuan) }}"
+                                    data-bulan="{{ $bulanAgenda }}" data-agenda-id="{{ $agenda->id }}">
                                     <td class="px-2 py-3 text-center text-gray-400 tabular-nums js-agenda-number">
-                                        {{ $i + 1 }}
+                                        <div class="js-agenda-number-text">{{ $i + 1 }}</div>
+                                        {{-- Chevron kecil polos: tanda "bisa diklik", warnanya
+                                        berubah abu -> biru & berputar 90° saat dibuka --}}
+                                        <svg class="js-toggle-chevron h-3 w-3 mx-auto mt-1 text-gray-300 transition-all duration-200"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
                                     </td>
                                     <td class="px-3 py-3 font-semibold text-gray-800">
                                         <span class="line-clamp-2 break-words">{{ $agenda->uraian_kegiatan }}</span>
@@ -147,10 +162,12 @@
                                         <span class="text-gray-300">–</span>
                                         {{ $agenda->tanggal_selesai->translatedFormat('d M Y') }}
                                     </td>
-                                    <td class="px-3 py-3 text-right tabular-nums text-xs leading-snug {{ $agenda->biaya_asn == 0 ? 'text-gray-300' : 'text-gray-700 font-medium' }}">
+                                    <td
+                                        class="px-3 py-3 text-right tabular-nums text-xs leading-snug {{ $agenda->biaya_asn == 0 ? 'text-gray-300' : 'text-gray-700 font-medium' }}">
                                         Rp {{ number_format($agenda->biaya_asn, 0, ',', '.') }}
                                     </td>
-                                    <td class="px-3 py-3 text-right tabular-nums text-xs leading-snug {{ $agenda->biaya_non_asn == 0 ? 'text-gray-300' : 'text-gray-700 font-medium' }}">
+                                    <td
+                                        class="px-3 py-3 text-right tabular-nums text-xs leading-snug {{ $agenda->biaya_non_asn == 0 ? 'text-gray-300' : 'text-gray-700 font-medium' }}">
                                         Rp {{ number_format($agenda->biaya_non_asn, 0, ',', '.') }}
                                     </td>
                                     <td class="px-3 py-3">
@@ -164,7 +181,8 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-2 py-3">
+                                    {{-- js-no-toggle: klik di dalam sel ini TIDAK memicu buka/tutup baris --}}
+                                    <td class="px-2 py-3 js-no-toggle">
                                         <div class="flex flex-col items-center justify-center gap-1.5">
                                             <a href="{{ route('agendas.show', $agenda) }}" title="Lihat"
                                                 class="inline-flex items-center justify-center w-full px-2 py-1 rounded-md text-[11px] font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
@@ -174,6 +192,75 @@
                                                 class="inline-flex items-center justify-center w-full px-2 py-1 rounded-md text-[11px] font-semibold border border-red-400 text-red-500 bg-white hover:bg-red-50 transition">
                                                 Hapus
                                             </x-delete-button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {{-- BARIS DETAIL: default "hidden", baru dimunculkan lewat JS.
+                                Pembeda dari baris utama sekarang cuma latar biru muda +
+                                label "DETAIL AGENDA" (tanpa border kiri yang tadi bug), dan
+                                ada panah kecil statis di kolom nomor yang menunjuk turun dari
+                                nomor baris utama ke isi detail. --}}
+                                <tr class="js-agenda-row js-agenda-detail hidden bg-blue-50/40"
+                                    data-search="{{ $searchBlob }}" data-tujuan="{{ strtolower($agenda->tujuan) }}"
+                                    data-bulan="{{ $bulanAgenda }}" data-detail-of="{{ $agenda->id }}">
+                                    <td class="align-top pt-3">
+                                        <svg class="h-4 w-4 mx-auto text-blue-300" fill="none" viewBox="0 0 24 24"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M4 12h11m0 0l-4-4m4 4l-4 4" />
+                                        </svg>
+                                    </td>
+                                    <td colspan="7" class="px-3 py-4">
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-3">
+                                            Detail Agenda
+                                        </p>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                                            <div>
+                                                <p
+                                                    class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
+                                                    Nomor Surat Tugas</p>
+                                                <p class="text-gray-700 font-medium">{{ $agenda->nomor_st ?: '—' }}</p>
+                                                @if ($agenda->nomor_st_karo)
+                                                    <p class="text-gray-400 mt-0.5">Karo: {{ $agenda->nomor_st_karo }}</p>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                <p
+                                                    class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
+                                                    MAK</p>
+                                                <p class="text-gray-700 font-medium break-all">{{ $agenda->mak ?: '—' }}</p>
+                                            </div>
+                                            <div>
+                                                <p
+                                                    class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
+                                                    PIC</p>
+                                                <p class="text-gray-700 font-medium">{{ $picNama ?: '—' }}</p>
+                                            </div>
+                                            <div class="sm:col-span-2 lg:col-span-1">
+                                                <p
+                                                    class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
+                                                    Peserta ({{ $agenda->pegawai->count() }})
+                                                </p>
+                                                @if ($agenda->pegawai->isEmpty())
+                                                    <p class="text-gray-400">Belum ada peserta.</p>
+                                                @else
+                                                    <div class="flex flex-wrap gap-1">
+                                                        @foreach ($pesertaPns as $p)
+                                                            <span
+                                                                class="inline-flex items-center bg-blue-100 text-blue-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                                                                {{ $p->nama_gelar ?? $p->nama }}
+                                                            </span>
+                                                        @endforeach
+                                                        @foreach ($pesertaNonPns as $p)
+                                                            <span
+                                                                class="inline-flex items-center bg-amber-100 text-amber-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                                                                {{ $p->nama_gelar ?? $p->nama }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -209,21 +296,51 @@
         </div>
     </div>
 
-    {{-- Search instan client-side --}}
+    {{-- Semua interaksi (toggle buka/tutup + search) pakai vanilla JS,
+    sengaja TIDAK pakai Alpine.js supaya tidak tergantung apakah
+    Alpine sudah ter-load di layout project ini atau belum. --}}
     <script>
         (function () {
             const qInput = document.getElementById('agenda-filter-q');
             const tujuanInput = document.getElementById('agenda-filter-tujuan');
             const bulanSelect = document.getElementById('agenda-filter-bulan');
             const resetBtn = document.getElementById('agenda-filter-reset');
-
-            const rows = Array.from(document.querySelectorAll('.js-agenda-row'));
             const noResult = document.getElementById('agenda-no-result');
             const tableBody = document.getElementById('agenda-table-body');
             const visibleCountEl = document.getElementById('agenda-visible-count');
 
-            if (rows.length === 0) return; // belum ada data sama sekali
+            const mainRows = Array.from(document.querySelectorAll('.js-agenda-toggle'));
+            if (mainRows.length === 0) return; // belum ada data sama sekali
 
+            // ------- Toggle buka/tutup baris detail -------
+            function setOpen(row, open) {
+                const detailRow = row.nextElementSibling;
+                const chevron = row.querySelector('.js-toggle-chevron');
+
+                if (detailRow && detailRow.classList.contains('js-agenda-detail')) {
+                    detailRow.classList.toggle('hidden', !open);
+                }
+                row.classList.toggle('bg-blue-50/50', open);
+                row.classList.toggle('bg-white', !open);
+                if (chevron) {
+                    chevron.classList.toggle('rotate-90', open);
+                    chevron.classList.toggle('text-blue-500', open);
+                    chevron.classList.toggle('text-gray-300', !open);
+                }
+
+                row.dataset.open = open ? '1' : '0';
+            }
+
+            mainRows.forEach(function (row) {
+                row.addEventListener('click', function (e) {
+                    // Jangan toggle kalau yang diklik ada di dalam kolom Aksi
+                    if (e.target.closest('.js-no-toggle')) return;
+                    const isOpen = row.dataset.open === '1';
+                    setOpen(row, !isOpen);
+                });
+            });
+
+            // ------- Search & filter instan -------
             function applyFilter() {
                 const q = qInput.value.trim().toLowerCase();
                 const tujuan = tujuanInput.value.trim().toLowerCase();
@@ -231,7 +348,7 @@
 
                 let visibleCount = 0;
 
-                rows.forEach(function (row) {
+                mainRows.forEach(function (row) {
                     const matchQ = q === '' || row.dataset.search.includes(q);
                     const matchTujuan = tujuan === '' || row.dataset.tujuan.includes(tujuan);
                     const matchBulan = bulan === '' || row.dataset.bulan === bulan;
@@ -239,9 +356,17 @@
                     const visible = matchQ && matchTujuan && matchBulan;
                     row.style.display = visible ? '' : 'none';
 
+                    // Kalau baris utama disembunyikan filter, tutup & sembunyikan juga
+                    // baris detailnya biar gak "nyangkut" kebuka.
+                    const detailRow = row.nextElementSibling;
+                    if (detailRow && detailRow.classList.contains('js-agenda-detail')) {
+                        detailRow.style.display = visible ? '' : 'none';
+                        if (!visible) setOpen(row, false);
+                    }
+
                     if (visible) {
                         visibleCount++;
-                        const numberCell = row.querySelector('.js-agenda-number');
+                        const numberCell = row.querySelector('.js-agenda-number-text');
                         if (numberCell) numberCell.textContent = visibleCount;
                     }
                 });

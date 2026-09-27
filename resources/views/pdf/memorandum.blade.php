@@ -239,7 +239,7 @@
         <tr>
             <td class="label">Hal</td>
             <td class="colon">:</td>
-            <td>Permintaan Pembayaran Langsung (LS) Perjalanan Dinas</td>
+            <td>{{ $halMemo ?? 'Permintaan Pembayaran Langsung (LS) Perjalanan Dinas' }}</td>
         </tr>
         <tr>
             <td class="label">Lampiran</td>

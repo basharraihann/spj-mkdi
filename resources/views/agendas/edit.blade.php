@@ -377,9 +377,8 @@
                                 @endif
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Kab/Kota <span
-                                        class="text-red-400">*</span></label>
-                                <select name="kota_tujuan" id="kota-tujuan-select" required data-placeholder="Cari kab/kota..."
+                                <label class="block text-xs font-semibold text-gray-500 mb-1.5">Kab/Kota</label>
+                                <select name="kota_tujuan" id="kota-tujuan-select" data-placeholder="Cari kab/kota..."
                                     class="js-searchable w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition disabled:bg-gray-50 disabled:text-gray-400">
                                     <option value="">Pilih provinsi dulu</option>
                                 </select>
@@ -574,6 +573,54 @@
         // cuma untuk perubahan akibat klik user.
         let initialRender = true;
 
+        /**
+         * Konfirmasi lokal KHUSUS halaman ini — gantiin confirm() bawaan browser
+         * yang jelek, pakai SweetAlert2 yang sudah dimuat lewat layout (lihat
+         * app.blade.php: <script src=".../sweetalert2@11">). Sengaja TIDAK
+         * ditaruh sebagai fungsi global di app.blade.php, cuma dipakai di sini.
+         *
+         * Class CSS (swal-delete-popup, swal-btn-confirm, dst) sudah tersedia
+         * dari layout (dipakai juga oleh confirmDelete() global), jadi popup
+         * ini otomatis konsisten tampilannya tanpa perlu nambah CSS baru.
+         *
+         * Swal.fire() itu ASYNC (beda sama confirm() browser yang sinkron),
+         * makanya dipanggil pakai callback, bukan return true/false.
+         */
+        function confirmHapusPesertaBerbiaya(onConfirm) {
+            const warningIconSvg = `
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="46" fill="#FEF2F2"/>
+                    <path d="M50 26L84 84H16L50 26Z" fill="#EF4444"/>
+                    <rect x="46" y="46" width="8" height="20" rx="4" fill="#FEF2F2"/>
+                    <rect x="46" y="70" width="8" height="8" rx="4" fill="#FEF2F2"/>
+                </svg>
+            `;
+
+            Swal.fire({
+                html: `
+                    <div class="swal-delete-icon-wrap">${warningIconSvg}</div>
+                    <div class="swal-delete-title">Peserta ini punya rincian biaya</div>
+                    <div class="swal-delete-text">Kalau di-uncek, data biayanya bakal ikut hilang pas disimpan. Lanjut?</div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Lanjut',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                buttonsStyling: false,
+                focusConfirm: false,
+                customClass: {
+                    popup: 'swal-delete-popup',
+                    actions: 'swal-delete-actions',
+                    confirmButton: 'swal-btn-confirm',
+                    cancelButton: 'swal-btn-cancel',
+                },
+            }).then(function (result) {
+                if (result.isConfirmed && typeof onConfirm === 'function') {
+                    onConfirm();
+                }
+            });
+        }
+
         // ==== Tab switcher (PNS / Non PNS) ====
         function showPesertaPanel(key) {
             document.querySelectorAll('[data-peserta-panel]').forEach(function (panel) {
@@ -699,8 +746,11 @@
                 chip.querySelector('span').textContent = nama;
                 chip.querySelector('button').addEventListener('click', function () {
                     if (cb.dataset.hasBiaya === '1') {
-                        const ok = confirm('Peserta ini sudah punya rincian biaya. Kalau dihapus, data biayanya bakal ikut hilang pas disimpan. Lanjut?');
-                        if (!ok) return;
+                        confirmHapusPesertaBerbiaya(function () {
+                            cb.checked = false;
+                            updatePesertaCount();
+                        });
+                        return;
                     }
                     cb.checked = false;
                     updatePesertaCount();
@@ -812,11 +862,19 @@
         document.querySelectorAll('.peserta-checkbox').forEach(function (cb) {
             cb.addEventListener('change', function () {
                 if (!cb.checked && cb.dataset.hasBiaya === '1') {
-                    const ok = confirm('Peserta ini sudah punya rincian biaya. Kalau dihapus, data biayanya bakal ikut hilang pas disimpan. Lanjut?');
-                    if (!ok) {
-                        cb.checked = true;
-                        return;
-                    }
+                    // Balikin checked dulu SEMENTARA nunggu keputusan user — soalnya
+                    // Swal.fire() itu async (beda sama confirm() browser yang
+                    // sinkron/nge-block). Kalau gak dibalikin dulu, checkbox &
+                    // chip-nya sempat "kelihatan" ke-uncek duluan sebelum
+                    // dialognya kejawab, baru nanti balik lagi — bikin
+                    // tampilan (termasuk tombol "x" di chip) kelihatan
+                    // berkedip/hilang sesaat.
+                    cb.checked = true;
+                    confirmHapusPesertaBerbiaya(function () {
+                        cb.checked = false;
+                        updatePesertaCount();
+                    });
+                    return;
                 }
                 updatePesertaCount();
             });
