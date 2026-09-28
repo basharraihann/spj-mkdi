@@ -141,7 +141,6 @@
                 background: #d9d9d9;
                 padding: 3px 6px;
                 font-weight: bold;
-                /* tambahan ini */
             }
 
             #rincian-biaya-page .spacer td {
@@ -400,14 +399,17 @@
                 </td>
             </tr>
             <tr>
-                <td></td>
+                <td>Bendahara Pengeluaran</td>
                 <td>Yang Menerima,</td>
             </tr>
             <tr>
                 <td class="sign-gap" colspan="2"></td>
             </tr>
             <tr>
-                <td></td>
+                <td>
+                    <strong>{{ $bendahara->nama_gelar ?? $bendahara->nama ?? '(...........................)' }}</strong><br>
+                    NIP. {{ $bendahara->nip ?? '-' }}
+                </td>
                 <td>
                     <strong>{{ $pegawai->nama_gelar ?? $pegawai->nama }}</strong><br>
                     NIP. {{ $pegawai->nip ?? '-' }}
