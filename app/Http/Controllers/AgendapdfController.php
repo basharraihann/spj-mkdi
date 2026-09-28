@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Agenda;
 use App\Models\Pegawai;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class AgendaPdfController extends Controller
 {
@@ -82,9 +83,8 @@ class AgendaPdfController extends Controller
 
         $agenda->load(['penanggungJawab', 'ppk', 'bendahara', 'petugasVerifikasi', 'pegawai']);
 
-        // Daftar rincian biaya (mis. "Pengeluaran Riil", "Uang Harian", dst) yang
-        // ditampilkan di lampiran memorandum halaman 2, diturunkan dari komponen
-        // biaya yang dipilih di halaman peserta (chip "Komponen Biaya").
+        // Daftar rincian biaya yang ditampilkan di lampiran memorandum halaman 2,
+        // diturunkan dari komponen biaya yang dipilih di halaman peserta.
         $rincianBiaya = collect($agenda->komponen_biaya ?? [])
             ->map(fn($key) => self::KOMPONEN_LABELS[$key] ?? ucfirst(str_replace('_', ' ', $key)))
             ->values()
@@ -98,9 +98,96 @@ class AgendaPdfController extends Controller
             'rincianTransfer' => $agenda->rincianTransfer($statusLabel),
             'rincianBiaya' => $rincianBiaya,
             'totalBiaya' => $status === 'pns' ? $agenda->biaya_asn : $agenda->biaya_non_asn,
+            'lampiran' => $this->buildLampiran($agenda, $statusLabel), // halaman 3
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream("Memorandum-{$statusLabel}-{$agenda->id}.pdf");
+    }
+
+    /**
+     * Data halaman 3 (Lampiran Memorandum): rincian item, total bersih per
+     * pegawai, info ST, dan perihal. Hanya pegawai dengan status yang sesuai
+     * (PNS / Non PNS) yang dihitung. Rumus mengikuti Agenda::hitungBiaya().
+     */
+    private function buildLampiran(Agenda $agenda, string $statusLabel): array
+    {
+        $peserta = $agenda->pegawai
+            ->where('status_kepegawaian', $statusLabel)
+            ->values();
+
+        // Jumlahkan tiap item dari semua peserta, buang yang totalnya 0
+        $totalPerItem = [];
+        foreach ($peserta as $p) {
+            foreach ($this->itemBiayaPeserta($p->pivot) as $label => $nilai) {
+                $totalPerItem[$label] = ($totalPerItem[$label] ?? 0) + $nilai;
+            }
+        }
+
+        $items = [];
+        foreach ($totalPerItem as $label => $jumlah) {
+            if ($jumlah > 0) {
+                $items[] = ['item' => $label, 'jumlah' => $jumlah];
+            }
+        }
+
+        // Total bersih per pegawai: pakai rincianTransfer() biar konsisten
+        // dengan total biaya di memorandum.
+        $pegawai = $agenda->rincianTransfer($statusLabel)
+            ->map(fn($r) => [
+                'nama' => $r['nama'],
+                'total' => (float) $r['total_bersih'],
+            ])
+            ->all();
+
+        // Cari tanggal ST dari beberapa kemungkinan nama kolom di tabel agendas.
+        // Kalau nama kolom lu beda, tambahkan ke daftar ini.
+        $tanggalSt = null;
+        foreach (['tanggal_st', 'tgl_st', 'tanggal_surat_tugas', 'tanggal_surat', 'tgl_surat_tugas'] as $kolom) {
+            if (!empty($agenda->{$kolom})) {
+                $tanggalSt = $agenda->{$kolom};
+                break;
+            }
+        }
+
+        // Kolom tanggal ST belum ada, jadi pakai tanggal mulai kegiatan.
+        $tanggalSt ??= $agenda->tanggal_mulai;
+        $stInfo = 'ST No. ' . ($agenda->nomor_st ?? '-');
+        if ($tanggalSt) {
+            $stInfo .= ' Tanggal ' . Carbon::parse($tanggalSt)->translatedFormat('d F Y');
+        }
+
+        return [
+            'perihal' => $agenda->uraian_kegiatan,
+            'st_info' => $stInfo,
+            'items' => $items,
+            'pegawai' => $pegawai,
+        ];
+    }
+
+    /**
+     * Pecah biaya satu peserta ke item-item lampiran. Urutan mengikuti contoh
+     * lampiran; Uang Harian dipecah per jenis (hari x rate), totalnya sama
+     * dengan lumpsum di Agenda::hitungBiaya().
+     */
+    private function itemBiayaPeserta($pivot): array
+    {
+        $v = fn($k) => (float) ($pivot->{$k} ?? 0);
+
+        return [
+            'UH Dinas Biasa' => $v('hari_dinas_biasa') * $v('rate_dinas_biasa'),
+            'UH Biasa 60%' => $v('hari_biasa_60') * $v('rate_biasa_60'),
+            'UH Fullday' => $v('hari_fullday') * $v('rate_fullday'),
+            'UH Fullboard' => $v('hari_fullboard') * $v('rate_fullboard'),
+            'Hotel' => $v('hotel') + $v('penginapan_30'),
+            'Peng. Riil' => $v('peng_riil'),
+            'Tiket' => $v('tiket'),
+            'Uang Representatif' => $v('representatif'),
+            'Dukungan Transportasi' => $v('dukungan_transportasi'),
+            'Transportasi Darat' => $v('transportasi_darat'),
+            'Transportasi Lokal' => $v('transportasi_lokal'),
+            'Belanja Bahan' => $v('belanja_bahan'),
+            'Honor Narasumber' => $v('honor_narsum'),
+        ];
     }
 
     public function generateRincianBiaya(Agenda $agenda, Pegawai $pegawai)
@@ -155,6 +242,7 @@ class AgendaPdfController extends Controller
 
         return $pdf->stream("Merged-{$pegawai->nama}-{$agenda->id}.pdf");
     }
+
     private function validateMemoStatus(string $status): void
     {
         abort_unless(in_array($status, ['pns', 'non-pns']), 404);

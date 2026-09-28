@@ -1,16 +1,64 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $agenda->uraian_kegiatan }}</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight break-words">{{ $agenda->uraian_kegiatan }}</h2>
     </x-slot>
 
+    {{-- Responsif: di bawah 1024px tabel peserta berubah jadi kartu per pegawai.
+    Di desktop (>=1024px) tampilan tabel tetap seperti semula. --}}
+    <style>
+        @media (max-width: 1023px) {
+
+            .peserta-table,
+            .peserta-table tbody {
+                display: block;
+                width: 100%;
+            }
+
+            .peserta-table thead {
+                display: none;
+            }
+
+            .peserta-table tbody>tr {
+                display: block;
+                padding: .875rem 1rem;
+            }
+
+            .peserta-table tbody>tr>td {
+                display: block;
+                padding: .25rem 0;
+                white-space: normal;
+            }
+
+            /* Nominatif & Memorandum (rowspan) dipindah ke header grup di HP */
+            .peserta-table td.cell-group {
+                display: none;
+            }
+
+            .peserta-table td[data-label]::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: .05em;
+                text-transform: uppercase;
+                color: #9ca3af;
+                margin-bottom: .375rem;
+            }
+
+            .peserta-table td.cell-empty {
+                padding: 1.5rem 0;
+            }
+        }
+    </style>
+
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- Header info card --}}
-            <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6">
+            <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6">
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500 mb-5">
                     <span class="inline-flex items-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
@@ -18,9 +66,9 @@
                         </svg>
                         {{ $agenda->tujuan }}
                     </span>
-                    <span class="text-gray-300">•</span>
+                    <span class="text-gray-300 hidden sm:inline">•</span>
                     <span class="inline-flex items-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -32,18 +80,18 @@
 
                 <div class="flex flex-wrap gap-2">
                     <a href="{{ route('agendas.edit', $agenda) }}"
-                        class="inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
+                        class="flex-1 sm:flex-none justify-center text-center inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
                         Edit Agenda dan Peserta
                     </a>
                     <a href="{{ route('agendas.peserta', $agenda) }}"
-                        class="inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
+                        class="flex-1 sm:flex-none justify-center text-center inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
                         Edit Biaya
                     </a>
                 </div>
             </div>
 
             {{-- Kartu Dokumen Pendukung (langsung di sini, gak perlu ke halaman terpisah) --}}
-            <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 space-y-5"
+            <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-5"
                 x-data="{ openDokumen: {{ session('success') && str_contains(session('success'), 'okumen') ? 'true' : 'false' }} }">
                 @php
                     $totalDokumenKategori = count($kategoriList);
@@ -52,8 +100,8 @@
                 @endphp
 
                 <button type="button" @click="openDokumen = !openDokumen"
-                    class="w-full flex items-center justify-between gap-4 text-left">
-                    <div>
+                    class="w-full flex items-center justify-between gap-3 sm:gap-4 text-left">
+                    <div class="min-w-0">
                         <h3 class="text-lg font-bold text-gray-800">Dokumen Pendukung</h3>
                         <p class="text-sm text-gray-400">Upload {{ $totalDokumenKategori }} dokumen pendukung agenda
                             ini.
@@ -61,7 +109,7 @@
                     </div>
                     <div class="flex items-center gap-3 flex-shrink-0">
                         <span
-                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $dokTerupload === $totalDokumenKategori ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600' }}">
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap {{ $dokTerupload === $totalDokumenKategori ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600' }}">
                             {{ $dokTerupload }}/{{ $totalDokumenKategori }} terupload
                         </span>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform"
@@ -102,9 +150,9 @@
                                     @php $existing = $agenda->dokumen($key); @endphp
 
                                     <div
-                                        class="border border-gray-100 rounded-xl p-4 sm:p-5 {{ $existing ? 'bg-white' : 'bg-gray-50/60' }} transition">
+                                        class="min-w-0 border border-gray-100 rounded-xl p-4 sm:p-5 {{ $existing ? 'bg-white' : 'bg-gray-50/60' }} transition">
                                         <div class="flex items-start sm:items-center justify-between gap-3 mb-3">
-                                            <div class="flex items-center gap-3">
+                                            <div class="flex items-center gap-3 min-w-0">
                                                 <span
                                                     class="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 {{ $existing ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400' }}">
                                                     @if ($existing)
@@ -121,10 +169,11 @@
                                                         </svg>
                                                     @endif
                                                 </span>
-                                                <span class="font-semibold text-gray-800 text-sm">{{ $label }}</span>
+                                                <span
+                                                    class="font-semibold text-gray-800 text-sm break-words">{{ $label }}</span>
                                             </div>
                                             <span
-                                                class="flex-shrink-0 text-xs font-semibold {{ $existing ? 'text-green-600' : 'text-gray-400' }}">
+                                                class="flex-shrink-0 text-xs font-semibold whitespace-nowrap {{ $existing ? 'text-green-600' : 'text-gray-400' }}">
                                                 {{ $existing ? 'Sudah diupload' : 'Belum diupload' }}
                                             </span>
                                         </div>
@@ -143,7 +192,7 @@
                                                 </a>
                                                 <button type="button"
                                                     onclick="confirmDelete('hapus-dok-{{ $key }}', 'file {{ $label }}')"
-                                                    class="flex-shrink-0 inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold transition">
+                                                    class="flex-shrink-0 inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold transition py-1">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -156,10 +205,10 @@
 
                                         <input type="file" name="files[{{ $key }}]"
                                             class="w-full text-sm text-gray-500 border border-gray-200 rounded-lg
-                                                                                                                           file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
-                                                                                                                           file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
-                                                                                                                           hover:file:bg-gray-200 file:transition cursor-pointer
-                                                                                                                           focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                                                                                                               file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
+                                                                                                                               file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
+                                                                                                                               hover:file:bg-gray-200 file:transition cursor-pointer
+                                                                                                                               focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                                         <p class="text-xs text-gray-400 mt-1.5">
                                             {{ $existing ? 'Pilih file baru untuk mengganti.' : 'PDF, JPG, atau PNG.' }}
                                         </p>
@@ -220,17 +269,39 @@
                 ];
 
                 // Style pill dokumen: dua varian per status (belum terisi = outline, sudah terisi = solid tipis + centang)
-                $pillBtn = 'inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition';
-                $pillBtnDone = 'inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100 transition';
-                $pillBtnSolid = 'inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border border-emerald-500 text-emerald-600 bg-white hover:bg-emerald-50 transition';
-                $pillBtnPurple = 'inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border border-purple-500 text-purple-600 bg-white hover:bg-purple-50 transition';
+                // py-2 di HP (lebih mudah disentuh), py-1.5 di desktop (sama seperti semula)
+                $pillBtn = 'inline-flex items-center px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition';
+                $pillBtnDone = 'inline-flex items-center gap-1 px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100 transition';
+                $pillBtnSolid = 'inline-flex items-center px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-emerald-500 text-emerald-600 bg-white hover:bg-emerald-50 transition';
+                $pillBtnPurple = 'inline-flex items-center px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-purple-500 text-purple-600 bg-white hover:bg-purple-50 transition';
             @endphp
 
             @foreach ($groups as $group)
                 <div class="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
 
+                    {{-- Header grup: hanya tampil di HP/tablet (di desktop tombolnya ada di kolom tabel) --}}
+                    <div class="lg:hidden px-4 py-3 bg-gray-50 border-b border-gray-100 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full {{ $group['dot'] }}"></span>
+                            <span class="text-sm font-bold text-gray-800">{{ $group['label'] }}</span>
+                            <span class="text-xs text-gray-400">({{ $group['list']->count() }})</span>
+                        </div>
+                        @if ($group['list']->count() > 0)
+                            <div class="grid grid-cols-2 gap-2">
+                                <a href="{{ route('agendas.nominatif', [$agenda, $group['nominatif_route']]) }}" target="_blank"
+                                    class="{{ $pillBtnPurple }} w-full justify-center text-center">
+                                    {{ $group['nominatif_label'] }}
+                                </a>
+                                <a href="{{ route('agendas.memorandum.pdf', [$agenda, $group['memorandum_route']]) }}"
+                                    target="_blank" class="{{ $pillBtn }} w-full justify-center text-center">
+                                    {{ $group['memorandum_label'] }}
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+
                     {{-- Tabel peserta --}}
-                    <table class="w-full text-sm">
+                    <table class="peserta-table w-full text-sm">
                         <thead>
                             <tr class="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-400">
                                 <th class="text-left px-6 py-3.5 font-semibold">Nama Pegawai</th>
@@ -256,7 +327,7 @@
                                     <td class="px-6 py-4 font-semibold text-gray-800 align-middle whitespace-nowrap">
                                         {{ $p->nama_gelar ?? $p->nama }}
                                     </td>
-                                    <td class="px-6 py-4 align-middle">
+                                    <td data-label="Dokumen" class="px-6 py-4 align-middle">
                                         <div class="flex flex-wrap gap-2">
                                             <a href="{{ route('agendas.spd', [$agenda, $p]) }}" target="_blank"
                                                 class="{{ $spdTerisi ? $pillBtnDone : $pillBtn }}">
@@ -290,7 +361,7 @@
                                             </a>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 align-middle">
+                                    <td data-label="Merge Dokumen" class="px-6 py-4 align-middle">
                                         <a href="{{ route('agendas.merge-pdf', [$agenda, $p]) }}" target="_blank"
                                             class="{{ $pillBtnSolid }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none"
@@ -302,14 +373,14 @@
                                         </a>
                                     </td>
                                     @if ($loop->first)
-                                        <td class="px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
+                                        <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
                                             rowspan="{{ $group['list']->count() }}">
                                             <a href="{{ route('agendas.nominatif', [$agenda, $group['nominatif_route']]) }}"
                                                 target="_blank" class="{{ $pillBtnPurple }} w-full justify-center">
                                                 {{ $group['nominatif_label'] }}
                                             </a>
                                         </td>
-                                        <td class="px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
+                                        <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
                                             rowspan="{{ $group['list']->count() }}">
                                             <a href="{{ route('agendas.memorandum.pdf', [$agenda, $group['memorandum_route']]) }}"
                                                 target="_blank" class="{{ $pillBtn }} w-full justify-center">
@@ -320,7 +391,8 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-8 text-center text-gray-400">Belum ada peserta di kategori
+                                    <td colspan="5" class="cell-empty px-6 py-8 text-center text-gray-400">Belum ada peserta di
+                                        kategori
                                         ini.</td>
                                 </tr>
                             @endforelse

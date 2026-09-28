@@ -3,13 +3,115 @@
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Daftar Agenda Perjalanan Dinas</h2>
     </x-slot>
 
+    {{-- Responsif: di bawah 1024px tabel berubah jadi kartu bertumpuk.
+    Di desktop (>=1024px) tampilan tabel tetap seperti semula. --}}
+    <style>
+        @media (max-width: 1023px) {
+
+            .agenda-table,
+            .agenda-table tbody {
+                display: block;
+                width: 100%;
+            }
+
+            .agenda-table thead,
+            .agenda-table colgroup {
+                display: none;
+            }
+
+            /* Baris utama = satu kartu */
+            .agenda-table tr.js-agenda-toggle {
+                display: block;
+                padding: .75rem 1rem;
+            }
+
+            .agenda-table tr.js-agenda-toggle>td {
+                display: block;
+                padding: .2rem 0;
+                text-align: left;
+            }
+
+            /* Nomor + chevron dalam satu baris */
+            .agenda-table td.js-agenda-number {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .agenda-table .js-agenda-number-text {
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            .agenda-table .js-agenda-number-text::before {
+                content: "No. ";
+            }
+
+            .agenda-table .js-toggle-chevron {
+                margin: 0;
+                height: 1rem;
+                width: 1rem;
+            }
+
+            /* Sel berlabel: label kiri, nilai kanan */
+            .agenda-table td[data-label] {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                text-align: right;
+            }
+
+            .agenda-table td[data-label]::before {
+                content: attr(data-label);
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: .05em;
+                text-transform: uppercase;
+                color: #9ca3af;
+            }
+
+            .agenda-table td[data-label]>div {
+                width: 50%;
+            }
+
+            /* Kolom aksi: tombol berdampingan */
+            .agenda-table tr.js-agenda-toggle>td.js-no-toggle {
+                padding-top: .5rem;
+            }
+
+            .agenda-table td.js-no-toggle>div {
+                flex-direction: row;
+                gap: .5rem;
+            }
+
+            .agenda-table td.js-no-toggle>div>* {
+                flex: 1 1 0%;
+            }
+
+            /* Baris detail */
+            .agenda-table tr.js-agenda-detail:not(.hidden) {
+                display: block;
+            }
+
+            .agenda-table tr.js-agenda-detail>td:first-child {
+                display: none;
+            }
+
+            .agenda-table tr.js-agenda-detail>td {
+                display: block;
+                padding: .75rem 1rem 1rem;
+            }
+        }
+    </style>
+
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             {{-- Kartu utama: judul + search bar + tabel --}}
-            <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 space-y-6">
+            <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-6">
 
                 <div class="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
+                    <div class="min-w-0">
                         <h3 class="text-lg font-bold text-gray-800">Agenda</h3>
                         <p class="text-sm text-gray-400">Kelola seluruh agenda perjalanan dinas beserta rincian biaya
                             dan
@@ -24,20 +126,20 @@
 
                 {{-- Search & filter bar: instan, tanpa reload --}}
                 <div class="flex flex-wrap items-end gap-3">
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 w-full sm:w-auto">
                         <label class="text-xs font-semibold text-gray-500">Uraian Kegiatan</label>
                         <input type="text" id="agenda-filter-q" autocomplete="off"
                             placeholder="Ketik uraian kegiatan..."
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-52 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-52 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                     </div>
 
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 w-full sm:w-auto">
                         <label class="text-xs font-semibold text-gray-500">Tujuan</label>
                         <input type="text" id="agenda-filter-tujuan" autocomplete="off" placeholder="Ketik tujuan..."
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-48 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-48 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                     </div>
 
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 flex-1 sm:flex-none">
                         <label class="text-xs font-semibold text-gray-500">Bulan</label>
                         @php
                             $namaBulan = [
@@ -56,7 +158,7 @@
                             ];
                         @endphp
                         <select id="agenda-filter-bulan"
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-40 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-40 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                             <option value="">Semua Bulan</option>
                             @foreach ($namaBulan as $num => $label)
                                 <option value="{{ $num }}">{{ $label }}</option>
@@ -65,14 +167,14 @@
                     </div>
 
                     <button type="button" id="agenda-filter-reset"
-                        class="text-sm text-gray-400 hover:text-gray-600 transition px-1">
+                        class="text-sm text-gray-400 hover:text-gray-600 transition px-1 py-2 sm:py-0">
                         Reset
                     </button>
 
-                    <div class="flex-1"></div>
+                    <div class="hidden sm:block flex-1"></div>
 
                     <a href="{{ route('agendas.create') }}"
-                        class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
+                        class="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -81,9 +183,9 @@
                     </a>
                 </div>
 
-                {{-- Tabel --}}
+                {{-- Tabel (desktop) / kartu (HP & tablet) --}}
                 <div class="border border-gray-100 rounded-xl overflow-hidden">
-                    <table class="w-full text-sm table-fixed">
+                    <table class="agenda-table w-full text-sm table-fixed">
                         <colgroup>
                             <col class="w-8">
                             <col>
@@ -162,15 +264,15 @@
                                         <span class="text-gray-300">–</span>
                                         {{ $agenda->tanggal_selesai->translatedFormat('d M Y') }}
                                     </td>
-                                    <td
+                                    <td data-label="Biaya ASN"
                                         class="px-3 py-3 text-right tabular-nums text-xs leading-snug {{ $agenda->biaya_asn == 0 ? 'text-gray-300' : 'text-gray-700 font-medium' }}">
                                         Rp {{ number_format($agenda->biaya_asn, 0, ',', '.') }}
                                     </td>
-                                    <td
+                                    <td data-label="Biaya Non-ASN"
                                         class="px-3 py-3 text-right tabular-nums text-xs leading-snug {{ $agenda->biaya_non_asn == 0 ? 'text-gray-300' : 'text-gray-700 font-medium' }}">
                                         Rp {{ number_format($agenda->biaya_non_asn, 0, ',', '.') }}
                                     </td>
-                                    <td class="px-3 py-3">
+                                    <td data-label="Dokumen" class="px-3 py-3">
                                         <div class="flex flex-col items-center gap-1 w-full">
                                             <span class="text-[11px] font-semibold {{ $dokTeksWarna }}">
                                                 {{ $dokLengkap }}/{{ $dokTotal }}
@@ -185,11 +287,11 @@
                                     <td class="px-2 py-3 js-no-toggle">
                                         <div class="flex flex-col items-center justify-center gap-1.5">
                                             <a href="{{ route('agendas.show', $agenda) }}" title="Lihat"
-                                                class="inline-flex items-center justify-center w-full px-2 py-1 rounded-md text-[11px] font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
+                                                class="inline-flex items-center justify-center w-full px-2 py-2 lg:py-1 rounded-md text-[11px] font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
                                                 Lihat
                                             </a>
                                             <x-delete-button :action="route('agendas.destroy', $agenda)" :label="'agenda ini'" :id="'agenda-' . $agenda->id"
-                                                class="inline-flex items-center justify-center w-full px-2 py-1 rounded-md text-[11px] font-semibold border border-red-400 text-red-500 bg-white hover:bg-red-50 transition">
+                                                class="inline-flex items-center justify-center w-full px-2 py-2 lg:py-1 rounded-md text-[11px] font-semibold border border-red-400 text-red-500 bg-white hover:bg-red-50 transition">
                                                 Hapus
                                             </x-delete-button>
                                         </div>
@@ -216,28 +318,30 @@
                                             Detail Agenda
                                         </p>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                                            <div>
+                                            <div class="min-w-0">
                                                 <p
                                                     class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
                                                     Nomor Surat Tugas</p>
-                                                <p class="text-gray-700 font-medium">{{ $agenda->nomor_st ?: '—' }}</p>
+                                                <p class="text-gray-700 font-medium break-words">
+                                                    {{ $agenda->nomor_st ?: '—' }}</p>
                                                 @if ($agenda->nomor_st_karo)
-                                                    <p class="text-gray-400 mt-0.5">Karo: {{ $agenda->nomor_st_karo }}</p>
+                                                    <p class="text-gray-400 mt-0.5 break-words">Karo:
+                                                        {{ $agenda->nomor_st_karo }}</p>
                                                 @endif
                                             </div>
-                                            <div>
+                                            <div class="min-w-0">
                                                 <p
                                                     class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
                                                     MAK</p>
                                                 <p class="text-gray-700 font-medium break-all">{{ $agenda->mak ?: '—' }}</p>
                                             </div>
-                                            <div>
+                                            <div class="min-w-0">
                                                 <p
                                                     class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
                                                     PIC</p>
-                                                <p class="text-gray-700 font-medium">{{ $picNama ?: '—' }}</p>
+                                                <p class="text-gray-700 font-medium break-words">{{ $picNama ?: '—' }}</p>
                                             </div>
-                                            <div class="sm:col-span-2 lg:col-span-1">
+                                            <div class="min-w-0 sm:col-span-2 lg:col-span-1">
                                                 <p
                                                     class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">
                                                     Peserta ({{ $agenda->pegawai->count() }})

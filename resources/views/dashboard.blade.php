@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- Welcome card --}}
             <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-6">
@@ -21,7 +21,7 @@
                     </div>
 
                     <a href="{{ route('agendas.create') }}"
-                        class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition">
+                        class="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -32,7 +32,7 @@
             </div>
 
             {{-- Ringkasan statistik --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
                     <div
                         class="h-11 w-11 shrink-0 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -42,7 +42,7 @@
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         <p class="text-sm text-gray-400">Agenda Bulan Ini</p>
                         <p class="text-xl font-bold text-gray-800">{{ $agendaBulanIni }}</p>
                     </div>
@@ -52,21 +52,21 @@
                 <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-5">
                     <p class="text-sm text-gray-400 mb-3">Breakdown Dana LS Bulan Ini</p>
                     <div class="grid grid-cols-3 gap-2">
-                        <div>
+                        <div class="min-w-0">
                             <p class="text-[11px] text-gray-400">Perdin</p>
-                            <p class="text-sm font-semibold text-gray-700">
+                            <p class="text-sm font-semibold text-gray-700 break-words">
                                 Rp {{ number_format($danaLsBulanIni['perdin'], 0, ',', '.') }}
                             </p>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <p class="text-[11px] text-gray-400">Konsumsi</p>
-                            <p class="text-sm font-semibold text-gray-700">
+                            <p class="text-sm font-semibold text-gray-700 break-words">
                                 Rp {{ number_format($danaLsBulanIni['konsumsi'], 0, ',', '.') }}
                             </p>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             <p class="text-[11px] text-gray-400">Honor</p>
-                            <p class="text-sm font-semibold text-gray-700">
+                            <p class="text-sm font-semibold text-gray-700 break-words">
                                 Rp {{ number_format($danaLsBulanIni['honorarium'], 0, ',', '.') }}
                             </p>
                         </div>
@@ -82,9 +82,9 @@
                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m9-8a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         <p class="text-sm text-gray-400">Dana Diajukan (LS) Bulan Ini</p>
-                        <p class="text-xl font-bold text-gray-800">Rp
+                        <p class="text-xl font-bold text-gray-800 break-words">Rp
                             {{ number_format($danaLsBulanIni['total'], 0, ',', '.') }}
                         </p>
                     </div>
@@ -94,15 +94,15 @@
 
             {{-- Chart pengeluaran & kalender agenda --}}
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div class="lg:col-span-2 bg-white shadow-sm rounded-2xl border border-gray-100 p-5">
+                <div class="min-w-0 lg:col-span-2 bg-white shadow-sm rounded-2xl border border-gray-100 p-5">
                     <h4 class="font-semibold text-gray-800 mb-1">Tren Pengeluaran Perjalanan Dinas</h4>
                     <p class="text-sm text-gray-400 mb-4">Total belanja per bulan, tahun {{ now()->year }}.</p>
                     <canvas id="chartPengeluaran" height="110"></canvas>
                 </div>
 
                 {{-- Kalender (dirender oleh JS dari data JSON) --}}
-                <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-5">
-                    <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="min-w-0 bg-white shadow-sm rounded-2xl border border-gray-100 p-5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
                         <div class="flex items-center gap-1 min-w-0">
                             <select id="kal-bulan" aria-label="Pilih bulan"
                                 class="border-0 bg-transparent py-0 pl-0 pr-6 text-sm font-semibold text-gray-800 focus:ring-0 cursor-pointer"></select>
@@ -111,12 +111,12 @@
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
                             <button type="button" id="kal-hariini"
-                                class="hidden text-xs text-blue-600 hover:bg-blue-50 px-2 py-1 rounded-lg transition">Hari
+                                class="hidden text-xs text-blue-600 hover:bg-blue-50 px-2 py-1.5 sm:py-1 rounded-lg transition">Hari
                                 ini</button>
                             <button type="button" id="kal-prev" aria-label="Bulan sebelumnya"
-                                class="h-7 w-7 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition">‹</button>
+                                class="h-9 w-9 sm:h-7 sm:w-7 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition">‹</button>
                             <button type="button" id="kal-next" aria-label="Bulan berikutnya"
-                                class="h-7 w-7 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition">›</button>
+                                class="h-9 w-9 sm:h-7 sm:w-7 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition">›</button>
                         </div>
                     </div>
                     <p class="text-sm text-gray-400 mb-4">Tanggal bertanda ada agenda SPJ.</p>
@@ -140,6 +140,7 @@
                 document.addEventListener('DOMContentLoaded', function () {
                     // ==================== Chart ====================
                     const ctx = document.getElementById('chartPengeluaran');
+                    const isMobile = window.innerWidth < 640;
                     if (ctx) {
                         new Chart(ctx, {
                             type: 'bar',
@@ -155,6 +156,8 @@
                             },
                             options: {
                                 responsive: true,
+                                // desktop tetap sama (300/110 ≈ 2.727), HP dibuat lebih tinggi
+                                aspectRatio: isMobile ? 1.5 : 300 / 110,
                                 plugins: {
                                     legend: { display: false },
                                     tooltip: {
@@ -166,9 +169,13 @@
                                     }
                                 },
                                 scales: {
+                                    x: {
+                                        ticks: { font: { size: isMobile ? 10 : 12 } }
+                                    },
                                     y: {
                                         beginAtZero: true,
                                         ticks: {
+                                            font: { size: isMobile ? 10 : 12 },
                                             callback: function (value) {
                                                 if (value >= 1000000) {
                                                     return 'Rp ' + (value / 1000000) + 'jt';
@@ -273,11 +280,11 @@
                         detailBox.classList.remove('hidden');
                         detailBox.innerHTML = list.map(a => {
                             const pegawai = (a.pegawai || []).map(esc).join(', ') || '-';
-                            return `<a href="/agendas/${a.id}" class="block text-xs hover:bg-gray-50 -mx-2 px-2 py-2 rounded-lg transition">
+                            return `<a href="/agendas/${a.id}" class="block text-xs break-words hover:bg-gray-50 -mx-2 px-2 py-2 rounded-lg transition">
                                 <span class="block font-semibold text-gray-800">${esc(a.uraian)}</span>
-                                <span class="flex gap-1.5 text-blue-500 mt-1">${ICON_LOKASI}<span>${esc(a.lokasi)}</span></span>
-                                <span class="flex gap-1.5 text-blue-500">${ICON_PEGAWAI}<span>${pegawai}</span></span>
-                                <span class="flex gap-1.5 text-blue-500">${ICON_TANGGAL}<span>${esc(a.periode)}</span></span>
+                                <span class="flex gap-1.5 text-blue-500 mt-1">${ICON_LOKASI}<span class="min-w-0">${esc(a.lokasi)}</span></span>
+                                <span class="flex gap-1.5 text-blue-500">${ICON_PEGAWAI}<span class="min-w-0">${pegawai}</span></span>
+                                <span class="flex gap-1.5 text-blue-500">${ICON_TANGGAL}<span class="min-w-0">${esc(a.periode)}</span></span>
                             </a>`;
                         }).join('');
                     }

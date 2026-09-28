@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Memo {{ $statusLabel }} - {{ $agenda->tujuan }}</title>
+    <title>Memo {{ $statusLabel ?? '' }} - {{ $agenda->tujuan ?? '' }}</title>
     <style>
         @page {
             margin: 40px 60px;
@@ -95,7 +95,7 @@
             line-height: 1.6;
         }
 
-        /* Blok tanda tangan: rata kanan, tidak lagi di tengah halaman */
+        /* Blok tanda tangan: rata kanan */
         .ttd-block {
             margin-top: 10px;
             width: 280px;
@@ -178,9 +178,7 @@
             padding-top: 10px;
         }
 
-        /* Jarak baris kedua (Mengetahui/menyetujui & Petugas Verifikasi) ke baris
-           pertama (Bendahara & Penanggungjawab) — atur di sini, terpisah dari
-           baris pertama. */
+        /* Jarak baris kedua ke baris pertama tanda tangan */
         .ttd-row tr:nth-child(2) td {
             padding-top: 50px;
         }
@@ -196,6 +194,32 @@
         .ttd-name {
             margin-top: 80px;
             text-decoration: underline;
+        }
+
+        /* ===== Halaman 3: Lampiran Memorandum ===== */
+        table.lamp3 {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        table.lamp3 th,
+        table.lamp3 td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            font-size: 13px;
+        }
+
+        table.lamp3 th {
+            background: #f0f0f0;
+            text-align: center;
+        }
+
+        .lamp3-box {
+            border: 1px solid #000;
+            border-top: none;
+            padding: 18px 6px;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -261,8 +285,7 @@
     <div class="divider"></div>
 
     @php
-        // Hindari kalimat "Sehubungan dengan Sehubungan dengan ..." jika data
-        // $uraianMemo sudah memuat frasa "Sehubungan dengan" di depannya.
+        // Hindari kalimat "Sehubungan dengan Sehubungan dengan ..."
         $uraianBersih = trim(preg_replace('/^sehubungan\s+dengan\s+/i', '', trim($uraianMemo)));
     @endphp
     <div class="isi">
@@ -274,7 +297,6 @@
 
     <div class="isi-closing">Atas perhatian dan kerjasamanya, kami ucapkan terimakasih.</div>
 
-    {{-- Blok tanda tangan diposisikan di sisi kanan halaman, mengikuti jabatan lengkap pada field "Dari" --}}
     <div class="ttd-block">
         <div class="jabatan">Pejabat Pembuat Komitmen,</div>
         <div class="signer-name">{{ $agenda->ppk->nama ?? '.....................' }}</div>
@@ -326,7 +348,6 @@
                 <td>{{ $agenda->kode_belanja }}</td>
                 <td>
                     {{ $agenda->uraian_belanja }}
-                    {{-- Rincian biaya yang dipilih (mis. Pengeluaran Riil, Uang Harian, dsb) --}}
                     @if(!empty($rincianBiaya))
                         <br>
                         @foreach ($rincianBiaya as $itemBiaya)
@@ -340,8 +361,7 @@
     </table>
 
     @php
-        // Fallback: kalau controller belum kirim $terbilang, hitung otomatis di
-        // sini dari $totalBiaya, supaya tidak pernah kosong/error.
+        // Fallback: hitung terbilang otomatis kalau controller belum kirim.
         if (empty($terbilang)) {
             $terbilangFn = function ($angka) use (&$terbilangFn) {
                 $angka = (int) abs($angka);
@@ -428,6 +448,61 @@
             </td>
         </tr>
     </table>
+
+    {{-- ================= HALAMAN 3: LAMPIRAN MEMORANDUM ================= --}}
+    {{-- Tampil hanya kalau controller mengirim variabel $lampiran --}}
+    @if(!empty($lampiran))
+        <div class="page-break"></div>
+
+        <div style="text-align:center; font-weight:bold; font-size:13px; margin-bottom:10px;">
+            LAMPIRAN MEMORANDUM
+        </div>
+        <div style="text-align:center; font-weight:bold; font-size:13px; margin-bottom:2px;">
+            {{ $lampiran['perihal'] }}
+        </div>
+
+        {{-- Tabel rincian item --}}
+        <table class="lamp3">
+            <tr>
+                <th style="width:60%;"></th>
+                <th>Item</th>
+                <th style="width:100px;">Jumlah</th>
+            </tr>
+            @foreach($lampiran['items'] as $i => $it)
+                <tr>
+                    @if($i === 0)
+                        <td rowspan="{{ count($lampiran['items']) }}" class="text-center"
+                            style="vertical-align:middle; font-size:13px; font-weight:bold;">
+                            {{ $agenda->mak }}
+                        </td>
+                    @endif
+                    <td>{{ $it['item'] }}</td>
+                    <td class="text-right">Rp{{ number_format($it['jumlah'], 0, '.', ',') }}</td>
+                </tr>
+            @endforeach
+        </table>
+
+        {{-- Tabel total bersih per pegawai --}}
+        @php $grandTotal = collect($lampiran['pegawai'])->sum('total'); @endphp
+        <table class="lamp3" style="margin-bottom:0;">
+            <tr>
+                <th style="width:50%;"></th>
+                <th>Total Bersih</th>
+            </tr>
+            @foreach($lampiran['pegawai'] as $p)
+                <tr>
+                    <td style="padding:8px 5px;">{{ $p['nama'] }}</td>
+                    <td class="text-center">Rp{{ number_format($p['total'], 0, '.', ',') }}</td>
+                </tr>
+            @endforeach
+            <tr>
+                <td style="padding:8px 5px;">TOTAL</td>
+                <td class="text-center">Rp{{ number_format($grandTotal, 0, '.', ',') }}</td>
+            </tr>
+        </table>
+        <div class="lamp3-box">{{ $lampiran['st_info'] }}</div>
+        <div class="lamp3-box">Perihal: {{ $lampiran['perihal'] }}</div>
+    @endif
 
 </body>
 
