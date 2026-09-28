@@ -1,5 +1,4 @@
-<x-guest-layout>
-    <x-slot name="background">{{ asset('images/login-bg.webp') }}</x-slot>
+<x-guest-layout title="Login"> <x-slot name="background">{{ asset('images/login-bg.webp') }}</x-slot>
 
     <x-slot name="tagline">
         MAUUU BIKIN SPJ KANN?

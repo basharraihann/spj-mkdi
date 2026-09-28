@@ -1,5 +1,9 @@
-<x-app-layout>
+<x-app-layout title="Memorandum">
     <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Dashboard') }}
+        </h2>
+    </x-slot> <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Memorandum') }}
         </h2>
@@ -178,18 +182,18 @@
                                     <td class="px-3 py-5">
                                         <div class="flex flex-col items-start gap-1.5">
                                             <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                        @class([
-                                            'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
-                                            'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
-                                            'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
-                                        ])">
+                                            @class([
+                                                'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
+                                                'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
+                                                'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
+                                            ])">
                                                 {{ $memo['jenis_label'] }}
                                             </span>
 
                                             @if ($memo['status'])
                                                 <span
                                                     class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                    {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
+                                                            {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
                                                     {{ $memo['status'] }}
                                                 </span>
                                             @endif

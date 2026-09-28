@@ -1,5 +1,9 @@
-<x-app-layout>
+<x-app-layout title="Detail Agenda">
     <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Dashboard') }}
+        </h2>
+    </x-slot> <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight break-words">{{ $agenda->uraian_kegiatan }}</h2>
     </x-slot>
 
@@ -205,10 +209,10 @@
 
                                         <input type="file" name="files[{{ $key }}]"
                                             class="w-full text-sm text-gray-500 border border-gray-200 rounded-lg
-                                                                                                                               file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
-                                                                                                                               file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
-                                                                                                                               hover:file:bg-gray-200 file:transition cursor-pointer
-                                                                                                                               focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                                                                                                                       file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
+                                                                                                                                       file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
+                                                                                                                                       hover:file:bg-gray-200 file:transition cursor-pointer
+                                                                                                                                       focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                                         <p class="text-xs text-gray-400 mt-1.5">
                                             {{ $existing ? 'Pilih file baru untuk mengganti.' : 'PDF, JPG, atau PNG.' }}
                                         </p>
