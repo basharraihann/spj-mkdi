@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Database\Seeders\PegawaiSeeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,13 +21,18 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Administrator',
                 'username' => 'admin',
-                'password' => \Hash::make('password'),
+                'password' => Hash::make('password'),
                 'role' => User::ROLE_ADMIN,
             ]
         );
 
         $this->call([
             PegawaiSeeder::class,
+            KabupatenKotaSeeder::class,
+            MakOptionSeeder::class,
+            SbmRateSeeder::class,
+            SbmFlatRateSeeder::class,
+            PengRiilRateSeeder::class,
         ]);
     }
 }
