@@ -195,6 +195,9 @@
                 ->filter()
                 ->implode(', '),
         );
+
+        // Format nominal: kalau kosong/null/0 tampil "-", selain itu format angka.
+        $formatNominal = fn($nilai) => ($nilai ?? 0) > 0 ? number_format($nilai) : '-';
     @endphp
 
     <table>
@@ -293,9 +296,9 @@
                         {{ $agenda->tanggal_selesai->translatedFormat('d F Y') }}
                     </td>
                     @foreach ($kolomAktif as $key)
-                        <td class="text-right">{{ number_format($p->pivot->{$key} ?? 0) }}</td>
+                        <td class="text-right">{{ $formatNominal($p->pivot->{$key} ?? 0) }}</td>
                     @endforeach
-                    <td class="text-right">{{ number_format($jumlah) }}</td>
+                    <td class="text-right">{{ $formatNominal($jumlah) }}</td>
                     @if ($ketRender[$i] ?? true)
                         <td class="ket-col" align="center" rowspan="{{ $ketRowspan[$i] ?? 1 }}">
                             <div class="ket-inner">{{ $ketList[$i] }}</div>
@@ -312,9 +315,9 @@
             <tr>
                 <td colspan="7"><strong>Jumlah</strong></td>
                 @foreach ($kolomAktif as $key)
-                    <td class="text-right"><strong>{{ number_format($totals[$key]) }}</strong></td>
+                    <td class="text-right"><strong>{{ $formatNominal($totals[$key]) }}</strong></td>
                 @endforeach
-                <td class="text-right"><strong>{{ number_format($totals['jumlah']) }}</strong></td>
+                <td class="text-right"><strong>{{ $formatNominal($totals['jumlah']) }}</strong></td>
                 <td></td>
             </tr>
         </tbody>
