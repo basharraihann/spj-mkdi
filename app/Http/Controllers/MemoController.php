@@ -205,21 +205,14 @@ class MemoController extends Controller
     {
         if (str_starts_with($id, 'agenda-')) {
             $parts = explode('-', $id, 3);
-            $agendaId = $parts[1] ?? null;
-            $tipe = $parts[2] ?? null;
+            $agenda = Agenda::findOrFail($parts[1] ?? null);
 
-            $agenda = Agenda::findOrFail($agendaId);
-
-            if ($tipe === 'pns') {
-                $agenda->update(['nomor_memo_pns' => null]);
-            } elseif ($tipe === 'non_pns') {
-                $agenda->update(['nomor_memo_non_pns' => null]);
-            } else {
-                abort(404);
-            }
+            // Agenda dan nomor memonya satu kesatuan: hapus agendanya,
+            // memo PNS dan Non-PNS yang nempel ikut hilang.
+            $agenda->delete();
 
             return redirect()->route('memo.index')
-                ->with('success', 'Nomor memo pada agenda berhasil dikosongkan.');
+                ->with('success', 'Agenda beserta nomor memonya berhasil dihapus.');
         }
 
         if (str_starts_with($id, 'entry-')) {
@@ -234,7 +227,6 @@ class MemoController extends Controller
 
         abort(404);
     }
-
     public function pdf(MemoEntry $memo)
     {
         $memo->load(['pic', 'ppk', 'bendahara', 'penanggungJawab', 'petugasVerifikasi']);
