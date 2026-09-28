@@ -11,88 +11,47 @@
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="font-sans text-gray-900 antialiased">
-    @isset($background)
-        <div class="min-h-screen lg:grid lg:grid-cols-5">
+    @if ($attributes->get('scene'))
+        <div class="relative min-h-screen overflow-hidden bg-indigo-50 flex flex-col items-center px-4">
 
-            <div class="hidden lg:block lg:col-span-3 relative bg-gray-800 overflow-hidden">
-                {{-- Normal --}}
-                <div class="absolute inset-0 bg-cover bg-[center_15%]" style="background-image: url('{{ $background }}')">
-                </div>
+            {{-- Background SVG --}}
+            <x-login-scene class="absolute inset-0 w-full h-full" />
 
-                {{-- Lirik --}}
-                <div data-pose="lirik"
-                    class="pose absolute inset-0 bg-cover bg-[center_15%] opacity-0 transition-opacity duration-300"
-                    style="background-image: url('{{ asset('images/login-bg-lirik.webp') }}')"></div>
+            {{-- Logo tengah atas --}}
+            <a href="/" class="relative z-10 mt-8 sm:mt-10">
+                <img src="{{ asset('images/logoheader.png') }}" alt="Logo"
+                    class="h-12 sm:h-14 lg:h-16 w-auto object-contain">
+            </a>
 
-                {{-- Senyum --}}
-                <div data-pose="senyum"
-                    class="pose absolute inset-0 bg-cover bg-[center_15%] opacity-0 transition-opacity duration-300"
-                    style="background-image: url('{{ asset('images/login-bg-senyum.webp') }}')"></div>
-
-                {{-- Teks putih di bawah --}}
-                <div class="absolute inset-x-0 bottom-0 p-10 pt-24 bg-gradient-to-t from-black/75 to-transparent">
-                    <p class="text-white text-3xl font-bold leading-snug">CEPETAN BIKIN SPJ JANGAN LAMAAA</p>
-                </div>
-            </div>
-
-            {{-- KANAN: satu kolom bertumpuk: logo, tagline, card --}}
-            <div class="lg:col-span-2 min-h-screen bg-gray-100 flex items-center justify-center px-6 py-10">
-                <div class="w-full max-w-md flex flex-col items-center">
-
-                    <a href="/">
-                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="w-24 h-24 object-contain">
-                    </a>
+            {{-- Card login --}}
+            <main class="relative z-10 flex w-full flex-1 items-center justify-center py-8">
+                <div class="w-full max-w-sm rounded-lg border border-indigo-100 bg-white/70 backdrop-blur-md
+                               shadow-xl shadow-indigo-900/5 p-6 sm:p-7">
 
                     @isset($tagline)
-                        <h1 class="mt-5 text-center text-2xl font-bold text-gray-800 leading-snug">
+                        <h1 class="text-lg font-bold text-gray-900 leading-snug">
                             {{ $tagline }}
                         </h1>
                     @endisset
 
-                    <div class="w-full mt-6 px-6 py-6 bg-white shadow-md rounded-lg">
+                    <div class="mt-5">
                         {{ $slot }}
                     </div>
                 </div>
-            </div>
+            </main>
+
+            {{-- Footer --}}
+            <footer class="relative z-10 pb-6 text-xs text-gray-600">
+                &copy; {{ date('Y') }} {{ config('app.name', 'Laravel') }}
+            </footer>
         </div>
-        <script>
-            const pw = document.getElementById('password');
-            const form = document.querySelector('form');
-            const poses = document.querySelectorAll('.pose');
-            let submitting = false;
-
-            // Preload supaya nggak kedip pas ganti foto
-            poses.forEach(p => {
-                const url = p.style.backgroundImage.slice(5, -2);
-                new Image().src = url;
-            });
-
-            function setPose(name) {
-                poses.forEach(p => p.classList.toggle('opacity-0', p.dataset.pose !== name));
-            }
-
-            if (pw) {
-                pw.addEventListener('focus', () => { if (!submitting) setPose('lirik'); });
-                pw.addEventListener('blur', () => { if (!submitting) setPose(null); });
-            }
-
-            if (form) {
-                form.addEventListener('submit', (e) => {
-                    if (submitting) return;
-                    e.preventDefault();
-                    submitting = true;
-                    setPose('senyum');
-                    setTimeout(() => form.submit(), 700); // kasih waktu senyumnya kelihatan
-                });
-            }
-        </script>
     @else
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
@@ -104,7 +63,7 @@
                 {{ $slot }}
             </div>
         </div>
-    @endisset
+    @endif
 </body>
 
 </html>
