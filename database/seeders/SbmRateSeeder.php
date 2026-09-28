@@ -8,69 +8,66 @@ use Illuminate\Database\Seeder;
 class SbmRateSeeder extends Seeder
 {
     /**
-     * UH Biasa = kolom "Luar Kota" dari SBM (bukan "Dalam Kota >8 Jam" atau "Diklat",
-     * itu di luar scope chip yang ada sekarang).
-     *
-     * Peng. Riil MASIH NULL SEMUA — data "Uang Representasi"-nya belum dikirim.
-     * Update array di bawah begitu datanya ada (dari halaman yang sama di dokumen
-     * SBM, biasanya section berikutnya setelah tabel Uang Harian).
+     * UH Biasa = kolom "Luar Kota" dari SBM (bukan "Dalam Kota >8 Jam" atau "Diklat").
      *
      * Catatan:
      * - Nama provinsi di sini HARUS SAMA PERSIS dengan yang dipakai di dropdown
      *   "Tujuan" (agendas/create & edit), karena pencocokan rate pakai string
      *   match langsung ke kolom `provinsi`, bukan ID.
-     * - UH Biasa 60% TIDAK perlu diisi di sini — otomatis dihitung 60% dari
+     * - UH Biasa 60% TIDAK perlu diisi di sini, otomatis dihitung 60% dari
      *   uh_biasa (lihat SbmRate::getUhBiasa60Attribute()).
-     * - UH Fullday (95.000) & UH FullBoard (130.000) juga TIDAK di sini — itu
-     *   flat nasional, diisi lewat SbmFlatRateSeeder.
+     * - UH Fullday (95.000) & UH FullBoard (130.000) flat nasional, diisi lewat
+     *   SbmFlatRateSeeder.
+     * - Pengeluaran riil sudah dipindah ke tabel peng_riil_rates
+     *   (lihat PengRiilRateSeeder).
      */
     private const RATES = [
-        'Aceh' => ['uh_biasa' => 360000, 'peng_riil' => null],
-        'Sumatera Utara' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Riau' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Kepulauan Riau' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Jambi' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Sumatera Barat' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Sumatera Selatan' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Lampung' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Bengkulu' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Bangka Belitung' => ['uh_biasa' => 410000, 'peng_riil' => null],
-        'Banten' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Jawa Barat' => ['uh_biasa' => 430000, 'peng_riil' => null],
-        'DKI Jakarta' => ['uh_biasa' => 530000, 'peng_riil' => null],
-        'Jawa Tengah' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'DI Yogyakarta' => ['uh_biasa' => 420000, 'peng_riil' => null],
-        'Jawa Timur' => ['uh_biasa' => 410000, 'peng_riil' => null],
-        'Bali' => ['uh_biasa' => 480000, 'peng_riil' => null],
-        'Nusa Tenggara Barat' => ['uh_biasa' => 440000, 'peng_riil' => null],
-        'Nusa Tenggara Timur' => ['uh_biasa' => 430000, 'peng_riil' => null],
-        'Kalimantan Barat' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Kalimantan Tengah' => ['uh_biasa' => 360000, 'peng_riil' => null],
-        'Kalimantan Selatan' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Kalimantan Timur' => ['uh_biasa' => 430000, 'peng_riil' => null],
-        'Kalimantan Utara' => ['uh_biasa' => 430000, 'peng_riil' => null],
-        'Sulawesi Utara' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Gorontalo' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Sulawesi Barat' => ['uh_biasa' => 410000, 'peng_riil' => null],
-        'Sulawesi Selatan' => ['uh_biasa' => 430000, 'peng_riil' => null],
-        'Sulawesi Tengah' => ['uh_biasa' => 370000, 'peng_riil' => null],
-        'Sulawesi Tenggara' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Maluku' => ['uh_biasa' => 380000, 'peng_riil' => null],
-        'Maluku Utara' => ['uh_biasa' => 430000, 'peng_riil' => null],
-        'Papua' => ['uh_biasa' => 580000, 'peng_riil' => null],
-        'Papua Barat' => ['uh_biasa' => 480000, 'peng_riil' => null],
-        'Papua Barat Daya' => ['uh_biasa' => 480000, 'peng_riil' => null],
-        'Papua Tengah' => ['uh_biasa' => 580000, 'peng_riil' => null],
-        'Papua Selatan' => ['uh_biasa' => 580000, 'peng_riil' => null],
-        'Papua Pegunungan' => ['uh_biasa' => 580000, 'peng_riil' => null],
+        'Aceh' => 360000,
+        'Sumatera Utara' => 370000,
+        'Riau' => 370000,
+        'Kepulauan Riau' => 370000,
+        'Jambi' => 370000,
+        'Sumatera Barat' => 380000,
+        'Sumatera Selatan' => 380000,
+        'Lampung' => 380000,
+        'Bengkulu' => 380000,
+        'Bangka Belitung' => 410000,
+        'Banten' => 370000,
+        'Jawa Barat' => 430000,
+        'DKI Jakarta' => 530000,
+        'Jawa Tengah' => 370000,
+        'DI Yogyakarta' => 420000,
+        'Jawa Timur' => 410000,
+        'Bali' => 480000,
+        'Nusa Tenggara Barat' => 440000,
+        'Nusa Tenggara Timur' => 430000,
+        'Kalimantan Barat' => 380000,
+        'Kalimantan Tengah' => 360000,
+        'Kalimantan Selatan' => 380000,
+        'Kalimantan Timur' => 430000,
+        'Kalimantan Utara' => 430000,
+        'Sulawesi Utara' => 370000,
+        'Gorontalo' => 370000,
+        'Sulawesi Barat' => 410000,
+        'Sulawesi Selatan' => 430000,
+        'Sulawesi Tengah' => 370000,
+        'Sulawesi Tenggara' => 380000,
+        'Maluku' => 380000,
+        'Maluku Utara' => 430000,
+        'Papua' => 580000,
+        'Papua Barat' => 480000,
+        'Papua Barat Daya' => 480000,
+        'Papua Tengah' => 580000,
+        'Papua Selatan' => 580000,
+        'Papua Pegunungan' => 580000,
     ];
 
     public function run(): void
     {
-        foreach (self::RATES as $provinsi => $rate) {
+        foreach (self::RATES as $provinsi => $uhBiasa) {
             SbmRate::updateOrCreate(
                 ['provinsi' => $provinsi],
-                ['uh_biasa' => $rate['uh_biasa'], 'peng_riil' => $rate['peng_riil'] ?? null]
+                ['uh_biasa' => $uhBiasa]
             );
         }
     }
