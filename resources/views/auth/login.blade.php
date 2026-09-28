@@ -1,38 +1,35 @@
-<x-guest-layout title="Login" :scene="true">
+<x-guest-layout title="Login" :split="true">
 
-    <x-slot name="tagline">
-        MAUUU BIKIN SPJ KANN?
-        <span class="block text-sm font-normal text-gray-500 mt-1">
-            YAUDAH LOGIN DULU YAK DIMARI...
-        </span>
-    </x-slot>
+
+
+    <h2 class="text-center text-xl font-semibold text-gray-800">Login</h2>
 
     <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <x-auth-session-status class="mt-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}" class="space-y-4">
+    <form method="POST" action="{{ route('login') }}" class="mt-8 space-y-6">
         @csrf
 
         <!-- Username -->
         <div>
-            <label for="username" class="block text-sm font-medium text-gray-800">{{ __('Username') }}</label>
+            <label for="username" class="block text-sm font-semibold text-gray-800">{{ __('Username') }}</label>
             <input id="username" type="text" name="username" value="{{ old('username') }}"
-                placeholder="Masukkan username" required autofocus autocomplete="username" class="mt-1.5 block w-full rounded-md border border-indigo-100 bg-white px-3 py-2.5 text-sm text-gray-900
-                       placeholder-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200" />
+                placeholder="Masukkan username" required autofocus autocomplete="username" class="mt-1 block w-full border-0 border-b-2 border-blue-200 bg-transparent px-0 py-2 text-sm text-gray-900
+                       placeholder-gray-400 focus:border-blue-600 focus:outline-none focus:ring-0" />
             <x-input-error :messages="$errors->get('username')" class="mt-2" />
         </div>
 
         <!-- Password -->
         <div x-data="{ show: false }">
-            <label for="password" class="block text-sm font-medium text-gray-800">{{ __('Password') }}</label>
-            <div class="relative mt-1.5">
+            <label for="password" class="block text-sm font-semibold text-gray-800">{{ __('Password') }}</label>
+            <div class="relative">
                 <input id="password" type="password" x-bind:type="show ? 'text' : 'password'" name="password"
-                    placeholder="Masukkan password" required autocomplete="current-password" class="block w-full rounded-md border border-indigo-100 bg-white py-2.5 pl-3 pr-11 text-sm text-gray-900
-                           placeholder-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200" />
+                    placeholder="Masukkan password" required autocomplete="current-password" class="mt-1 block w-full border-0 border-b-2 border-blue-200 bg-transparent py-2 pl-0 pr-10 text-sm text-gray-900
+                           placeholder-gray-400 focus:border-blue-600 focus:outline-none focus:ring-0" />
 
                 <button type="button" @click="show = !show"
                     x-bind:aria-label="show ? 'Sembunyikan password' : 'Tampilkan password'"
-                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-700 focus:outline-none">
+                    class="absolute inset-y-0 right-0 flex items-center text-gray-400 hover:text-blue-700 focus:outline-none">
                     <svg x-show="!show" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none"
                         viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -49,29 +46,15 @@
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
-        <!-- Remember me (toggle switch) -->
-        <label for="remember_me" class="inline-flex cursor-pointer items-center gap-3">
-            <input id="remember_me" type="checkbox" name="remember" class="peer sr-only">
-            <span class="relative h-5 w-9 rounded-full bg-indigo-100 transition
-                       after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white
-                       after:shadow after:transition after:content-['']
-                       peer-checked:bg-indigo-600 peer-checked:after:translate-x-4
-                       peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400"></span>
-            <span class="text-sm text-gray-700">{{ __('Remember me') }}</span>
-        </label>
 
         <!-- Tombol -->
-        <button type="submit" class="w-full rounded-md bg-gradient-to-b from-indigo-500 to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white
-                   shadow-md shadow-indigo-900/20 hover:from-indigo-600 hover:to-indigo-800
-                   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
-            {{ __('Log in') }}
-        </button>
+        <div class="flex items-center gap-3 pt-1">
+            <button type="submit" class="rounded-full bg-gradient-to-b from-blue-500 to-blue-700 px-8 py-2.5 text-sm font-semibold text-white
+                       shadow-lg shadow-blue-900/25 transition hover:from-blue-600 hover:to-blue-800
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                {{ __('Log in') }}
+            </button>
 
-        @if (Route::has('password.request'))
-            <a class="block text-sm text-gray-800 hover:text-indigo-700 hover:underline"
-                href="{{ route('password.request') }}">
-                {{ __('Forgot your password?') }}
-            </a>
-        @endif
+        </div>
     </form>
 </x-guest-layout>
