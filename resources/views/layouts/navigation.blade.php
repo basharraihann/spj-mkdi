@@ -83,7 +83,7 @@
                     <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                     </svg>
-                    <span x-show="!sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
+                    <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
                 </a>
             @endforeach
         </nav>
@@ -95,7 +95,7 @@
                     class="h-9 w-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold shrink-0">
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                 </div>
-                <div class="min-w-0 flex-1" x-show="!sidebarCollapsed" x-cloak>
+                <div class="min-w-0 flex-1" x-show="sidebarOpen || !sidebarCollapsed" x-cloak>
                     <div class="flex items-center justify-between gap-1">
                         <div class="text-sm font-medium text-gray-800 truncate">{{ Auth::user()->name }}</div>
                         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 {{ Auth::user()->isAdmin() ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700' }}">
@@ -113,7 +113,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span x-show="!sidebarCollapsed" x-cloak>{{ __('Profile') }}</span>
+                <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ __('Profile') }}</span>
             </a>
 
             <form method="POST" action="{{ route('logout') }}">
@@ -126,7 +126,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    <span x-show="!sidebarCollapsed" x-cloak>{{ __('Log Out') }}</span>
+                    <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ __('Log Out') }}</span>
                 </a>
             </form>
         </div>
