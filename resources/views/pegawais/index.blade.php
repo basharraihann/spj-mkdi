@@ -26,21 +26,21 @@
 
                 {{-- Search & filter bar: instan via JS, tidak reload halaman --}}
                 <div class="flex flex-wrap items-end gap-3">
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 w-full sm:w-auto">
                         <label class="text-xs font-semibold text-gray-500">Nama / NIP</label>
                         <input type="text" id="pegawai-search-q" placeholder="Cari nama atau NIP..." autocomplete="off"
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-56 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-56 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                     </div>
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 w-full sm:w-auto">
                         <label class="text-xs font-semibold text-gray-500">Jabatan</label>
                         <input type="text" id="pegawai-search-jabatan" placeholder="Ketik jabatan..." autocomplete="off"
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-52 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-52 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                     </div>
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1 w-full sm:w-auto">
                         <label class="text-xs font-semibold text-gray-500">Status</label>
                         <div class="relative">
                             <select id="pegawai-search-status"
-                                class="appearance-none border border-gray-200 rounded-lg pl-3.5 pr-8 py-2 text-sm w-36 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white text-gray-600">
+                                class="appearance-none border border-gray-200 rounded-lg pl-3.5 pr-8 py-2 text-sm w-full sm:w-36 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white text-gray-600">
                                 <option value="">Semua Status</option>
                                 @foreach (\App\Models\Pegawai::STATUS_KEPEGAWAIAN as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
@@ -55,14 +55,14 @@
                     </div>
 
                     <button type="button" id="pegawai-search-reset"
-                        class="text-sm text-gray-400 hover:text-gray-600 transition px-1">
+                        class="text-sm text-gray-400 hover:text-gray-600 transition px-1 py-2 sm:py-0">
                         Reset
                     </button>
 
-                    <div class="flex-1"></div>
+                    <div class="hidden sm:block flex-1"></div>
 
                     <a href="{{ route('pegawais.create') }}"
-                        class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
+                        class="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />

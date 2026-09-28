@@ -22,8 +22,8 @@
                 </span>
             </div>
 
-            <div class="flex items-center justify-between gap-4 mb-6">
-                <div class="relative flex-1 max-w-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div class="relative flex-1 w-full sm:max-w-sm">
                     <svg class="h-4 w-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -33,7 +33,7 @@
                         class="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2.5 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <button type="button" onclick="document.getElementById('modal-create').classList.remove('hidden')"
-                    class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 shrink-0 transition">
+                    class="inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 shrink-0 transition">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
@@ -60,49 +60,51 @@
                             <p class="text-xs text-gray-500">{{ $first->uraian_komponen ?: '-' }} — {{ $first->uraian_akun_ap ?: '-' }}</p>
                         </div>
 
-                        <table class="min-w-full text-sm">
-                            <tbody class="divide-y divide-gray-50">
-                                @foreach ($items as $item)
-                                    @php $rowSearch = strtolower($item->mak . ' ' . $item->uraian_belanja); @endphp
-                                    <tr class="js-mak-row hover:bg-gray-50/60 transition" data-search="{{ $rowSearch }}">
-                                        <td class="py-2.5 pl-10 pr-4 w-40">
-                                            <span class="font-mono text-xs text-gray-500">
-                                                {{ \Illuminate\Support\Str::afterLast($item->mak, '.') }}
-                                            </span>
-                                        </td>
-                                        <td class="py-2.5 px-4 text-gray-600">
-                                            {{ $item->uraian_belanja ?: '-' }}
-                                        </td>
-                                        <td class="py-2.5 px-4 text-right whitespace-nowrap w-28">
-                                            <button type="button"
-                                                onclick="document.getElementById('modal-edit-{{ $item->id }}').classList.remove('hidden')"
-                                                class="text-indigo-600 hover:text-indigo-800 font-medium text-xs mr-3">Edit</button>
-                                            <x-delete-button
-                                                :action="route('mak-options.destroy', $item)"
-                                                :label="'nomor MAK ' . $item->mak"
-                                                :id="'mak-option-' . $item->id"
-                                                class="text-red-500 hover:text-red-700 font-medium text-xs" />
-                                        </td>
-                                    </tr>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <tbody class="divide-y divide-gray-50">
+                                    @foreach ($items as $item)
+                                        @php $rowSearch = strtolower($item->mak . ' ' . $item->uraian_belanja); @endphp
+                                        <tr class="js-mak-row hover:bg-gray-50/60 transition" data-search="{{ $rowSearch }}">
+                                            <td class="py-2.5 pl-4 sm:pl-10 pr-4 w-32 sm:w-40">
+                                                <span class="font-mono text-xs text-gray-500">
+                                                    {{ \Illuminate\Support\Str::afterLast($item->mak, '.') }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-4 text-gray-600">
+                                                {{ $item->uraian_belanja ?: '-' }}
+                                            </td>
+                                            <td class="py-2.5 px-4 text-right whitespace-nowrap w-28">
+                                                <button type="button"
+                                                    onclick="document.getElementById('modal-edit-{{ $item->id }}').classList.remove('hidden')"
+                                                    class="text-indigo-600 hover:text-indigo-800 font-medium text-xs mr-3">Edit</button>
+                                                <x-delete-button
+                                                    :action="route('mak-options.destroy', $item)"
+                                                    :label="'nomor MAK ' . $item->mak"
+                                                    :id="'mak-option-' . $item->id"
+                                                    class="text-red-500 hover:text-red-700 font-medium text-xs" />
+                                            </td>
+                                        </tr>
 
-                                    <div id="modal-edit-{{ $item->id }}" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-                                        <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
-                                            <h3 class="font-semibold text-gray-900 mb-4">Edit Nomor MAK</h3>
-                                        <form action="{{ route('mak-options.update', $item) }}" method="POST" class="space-y-4">
-    @csrf @method('PUT')
-    <input type="hidden" name="_form" value="edit-{{ $item->id }}">
-    @include('mak-options._fields', ['item' => $item])
-                                                <div class="flex justify-end gap-2 mt-2">
-                                                    <button type="button" onclick="document.getElementById('modal-edit-{{ $item->id }}').classList.add('hidden')"
-                                                        class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-50">Batal</button>
-                                                    <button type="submit" class="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700">Simpan</button>
-                                                </div>
-                                            </form>
+                                        <div id="modal-edit-{{ $item->id }}" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+                                            <div class="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
+                                                <h3 class="font-semibold text-gray-900 mb-4">Edit Nomor MAK</h3>
+                                            <form action="{{ route('mak-options.update', $item) }}" method="POST" class="space-y-4">
+        @csrf @method('PUT')
+        <input type="hidden" name="_form" value="edit-{{ $item->id }}">
+        @include('mak-options._fields', ['item' => $item])
+                                                    <div class="flex justify-end gap-2 mt-2">
+                                                        <button type="button" onclick="document.getElementById('modal-edit-{{ $item->id }}').classList.add('hidden')"
+                                                            class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-50">Batal</button>
+                                                        <button type="submit" class="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700">Simpan</button>
+                                                    </div>
+                                                </form>
+                                            </div>
                                         </div>
-                                    </div>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 @empty
                     <div class="py-10 text-center text-gray-400 text-sm">Belum ada data.</div>
@@ -114,9 +116,9 @@
             </p>
         </div>
 
-        <!-- Modal Create tetap sama -->
+        <!-- Modal Create -->
         <div id="modal-create" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-            <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+            <div class="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
                 <h3 class="font-semibold text-gray-900 mb-4">Tambah Nomor MAK</h3>
 <form action="{{ route('mak-options.store') }}" method="POST" class="space-y-4">
     @csrf

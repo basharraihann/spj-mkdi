@@ -51,7 +51,7 @@
                 {{-- Breakdown dana LS per jenis --}}
                 <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-5">
                     <p class="text-sm text-gray-400 mb-3">Breakdown Dana LS Bulan Ini</p>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-2">
                         <div class="min-w-0">
                             <p class="text-[11px] text-gray-400">Perdin</p>
                             <p class="text-sm font-semibold text-gray-700 break-words">

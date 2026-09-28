@@ -122,17 +122,17 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm table-fixed">
+                    <table class="w-full text-sm min-w-[850px]">
                         <colgroup>
-                            <col style="width: 3%">
-                            <col style="width: 12%">
-                            <col style="width: 11%">
-                            <col style="width: 9%">
-                            <col style="width: 22%">
-                            <col style="width: 11%">
+                            <col style="width: 4%">
+                            <col style="width: 14%">
                             <col style="width: 11%">
                             <col style="width: 10%">
+                            <col style="width: 21%">
                             <col style="width: 11%">
+                            <col style="width: 10%">
+                            <col style="width: 10%">
+                            <col style="width: 9%">
                         </colgroup>
                         <thead>
                             <tr class="bg-gray-50/80 text-gray-500 text-left border-b border-gray-100">
