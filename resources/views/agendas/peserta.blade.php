@@ -1,36 +1,87 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight break-words">
             Input Peserta — {{ $agenda->uraian_kegiatan }}
         </h2>
     </x-slot>
 
+    {{-- Responsif: tabel input biaya lebarnya banyak (bisa sampai 11 kolom), jadi di bawah
+    1024px tabel bisa digeser ke samping dan kolom Nama dikunci (sticky) di kiri.
+    Di desktop (>=1024px) tampilan tetap seperti semula. --}}
+    <style>
+        @media (max-width: 1023px) {
+            .peserta-scroll table {
+                width: max-content;
+                min-width: 100%;
+            }
+
+            .peserta-scroll th[data-col],
+            .peserta-scroll td[data-col] {
+                min-width: 7.5rem;
+            }
+
+            .peserta-scroll th[data-col="lumpsum"],
+            .peserta-scroll td[data-col="lumpsum"] {
+                min-width: 11rem;
+            }
+
+            .peserta-scroll thead th:first-child,
+            .peserta-scroll tbody td:first-child:not(.cell-empty),
+            .peserta-scroll tfoot td:first-child {
+                position: sticky;
+                left: 0;
+                z-index: 1;
+                width: 6.5rem;
+                min-width: 6.5rem;
+                max-width: 6.5rem;
+                box-shadow: 1px 0 0 #e5e7eb;
+            }
+
+            .peserta-scroll thead th:first-child,
+            .peserta-scroll tfoot td:first-child {
+                background: #f9fafb;
+            }
+
+            .peserta-scroll tbody td:first-child:not(.cell-empty) {
+                background: #fff;
+            }
+
+            /* nama boleh turun baris di HP, tidak dipotong "..." */
+            .peserta-scroll tbody td:first-child span {
+                white-space: normal;
+                word-break: break-word;
+                font-size: 11px;
+                line-height: 1.3;
+            }
+        }
+    </style>
+
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- Step indicator --}}
             <div class="flex items-center gap-3 px-1">
                 <div class="flex items-center gap-2">
                     <span
-                        class="h-6 w-6 rounded-full bg-green-100 text-green-600 text-xs font-bold flex items-center justify-center">
+                        class="h-6 w-6 rounded-full bg-green-100 text-green-600 text-xs font-bold flex items-center justify-center flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                     </span>
-                    <span class="text-sm font-medium text-gray-500">Detail Agenda & Peserta</span>
+                    <span class="hidden sm:inline text-sm font-medium text-gray-500">Detail Agenda & Peserta</span>
                 </div>
                 <div class="flex-1 h-px bg-gray-200"></div>
                 <div class="flex items-center gap-2">
                     <span
-                        class="h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+                        class="h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
                     <span class="text-sm font-semibold text-gray-700">Rincian Biaya</span>
                 </div>
             </div>
 
             {{-- Banner info --}}
             <div
-                class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl px-5 py-4 flex items-start gap-3">
+                class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl px-4 sm:px-5 py-4 flex items-start gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none"
                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -122,13 +173,13 @@
             @endphp
 
             @if (!$sbmRate && in_array('lumpsum', $selectedKomponen))
-                <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-xs text-amber-800 mb-4">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 sm:px-5 py-3 text-xs text-amber-800 mb-4">
                     Rate SBM untuk provinsi "<strong>{{ $agenda->tujuan }}</strong>" belum ada di master data.
                     Uang Harian sementara bernilai Rp 0 sampai datanya dilengkapi.
                 </div>
             @endif
             @if ($pengRiilRates->isEmpty() && in_array('peng_riil', $selectedKomponen))
-                <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-xs text-amber-800 mb-4">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 sm:px-5 py-3 text-xs text-amber-800 mb-4">
                     Master rate Peng. Riil (transportasi) belum di-seed. Opsi "SBM" di popup Peng. Riil belum ada
                     pilihannya — isi manual (at cost) dulu.
                 </div>
@@ -150,7 +201,7 @@
                     <div class="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden mb-6">
                         {{-- Header grup --}}
                         <div
-                            class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-{{ $group['accent'] }}-50/60">
+                            class="px-4 sm:px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-{{ $group['accent'] }}-50/60">
                             <div class="flex items-center gap-2.5">
                                 <span
                                     class="flex items-center justify-center h-7 w-7 rounded-full bg-{{ $group['accent'] }}-100 text-{{ $group['accent'] }}-600">
@@ -165,174 +216,180 @@
                                     <span class="text-xs text-gray-400">{{ $group['list']->count() }} orang</span>
                                 </div>
                             </div>
+                            {{-- Petunjuk geser: hanya di HP/tablet --}}
+                            <span class="lg:hidden text-[11px] text-gray-400">Geser tabel ke samping →</span>
                         </div>
 
-                        <table class="w-full table-auto text-sm">
-                            <thead>
-                                <tr class="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500">
-                                    <th class="px-3 py-2.5 text-left font-medium">Nama</th>
-                                    @foreach ($simpleKomponen as $key => $label)
-                                        <th class="px-2 py-2.5 text-center font-medium {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
-                                            data-col="{{ $key }}">
-                                            {{ $label }}
-                                            @if ($key === 'peng_riil')
-                                                <div class="text-[9px] font-normal normal-case text-gray-400">SBM / Manual</div>
-                                            @endif
-                                        </th>
-                                    @endforeach
-                                    <th class="px-2 py-2.5 text-center font-medium {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
-                                        data-col="lumpsum">Uang Harian (Lumpsum)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                @forelse ($group['list'] as $p)
-                                    @php
-                                        $pivot = $p->pivot;
-                                        $nama = $p->nama_gelar ?? $p->nama;
-                                        $lumpsumAwal = 0;
-                                        foreach ($uhFieldMap as $f) {
-                                            $lumpsumAwal += ($pivot->{$f['hari']} ?? 0) * ($pivot->{$f['rate']} ?? 0);
-                                        }
-                                    @endphp
-                                    <tr class="peserta-row hover:bg-gray-50/60 transition" data-group="{{ $group['key'] }}">
-                                        <td class="px-3 py-2 overflow-hidden">
-                                            <span class="font-medium text-gray-800 text-sm truncate block"
-                                                title="{{ $nama }}">{{ $nama }}</span>
-                                        </td>
-
+                        {{-- Pembungkus scroll horizontal (HP/tablet). Di desktop tidak ada efek. --}}
+                        <div class="peserta-scroll overflow-x-auto">
+                            <table class="w-full table-auto text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500">
+                                        <th class="px-3 py-2.5 text-left font-medium">Nama</th>
                                         @foreach ($simpleKomponen as $key => $label)
-                                            @if ($key === 'peng_riil')
-                                                @php
-                                                    // ==== Peng. Riil sekarang mendukung multi-entry ====
-                                                    // Disimpan sebagai JSON array di kolom pivot `peng_riil_detail`,
-                                                    // tiap entry: {mode, value, rate_id, tujuan, keterangan}.
-                                                    // NB: kolom `peng_riil_detail` (TEXT/JSON, nullable) perlu
-                                                    // ditambahkan ke tabel pivot via migration kalau belum ada,
-                                                    // dan controller perlu decode/encode field ini saat simpan & load.
-                                                    $pengRiilDetailRaw = $pivot->peng_riil_detail ?? null;
-                                                    $pengRiilEntries = [];
-                                                    if ($pengRiilDetailRaw) {
-                                                        $decoded = is_string($pengRiilDetailRaw)
-                                                            ? json_decode($pengRiilDetailRaw, true)
-                                                            : $pengRiilDetailRaw;
-                                                        if (is_array($decoded)) {
-                                                            $pengRiilEntries = $decoded;
+                                            <th class="px-2 py-2.5 text-center font-medium {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
+                                                data-col="{{ $key }}">
+                                                {{ $label }}
+                                                @if ($key === 'peng_riil')
+                                                    <div class="text-[9px] font-normal normal-case text-gray-400">SBM / Manual</div>
+                                                @endif
+                                            </th>
+                                        @endforeach
+                                        <th class="px-2 py-2.5 text-center font-medium {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
+                                            data-col="lumpsum">Uang Harian (Lumpsum)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @forelse ($group['list'] as $p)
+                                        @php
+                                            $pivot = $p->pivot;
+                                            $nama = $p->nama_gelar ?? $p->nama;
+                                            $lumpsumAwal = 0;
+                                            foreach ($uhFieldMap as $f) {
+                                                $lumpsumAwal += ($pivot->{$f['hari']} ?? 0) * ($pivot->{$f['rate']} ?? 0);
+                                            }
+                                        @endphp
+                                        <tr class="peserta-row hover:bg-gray-50/60 transition" data-group="{{ $group['key'] }}">
+                                            <td class="px-3 py-2 overflow-hidden">
+                                                <span class="font-medium text-gray-800 text-sm truncate block"
+                                                    title="{{ $nama }}">{{ $nama }}</span>
+                                            </td>
+
+                                            @foreach ($simpleKomponen as $key => $label)
+                                                @if ($key === 'peng_riil')
+                                                    @php
+                                                        // ==== Peng. Riil sekarang mendukung multi-entry ====
+                                                        // Disimpan sebagai JSON array di kolom pivot `peng_riil_detail`,
+                                                        // tiap entry: {mode, value, rate_id, tujuan, keterangan}.
+                                                        // NB: kolom `peng_riil_detail` (TEXT/JSON, nullable) perlu
+                                                        // ditambahkan ke tabel pivot via migration kalau belum ada,
+                                                        // dan controller perlu decode/encode field ini saat simpan & load.
+                                                        $pengRiilDetailRaw = $pivot->peng_riil_detail ?? null;
+                                                        $pengRiilEntries = [];
+                                                        if ($pengRiilDetailRaw) {
+                                                            $decoded = is_string($pengRiilDetailRaw)
+                                                                ? json_decode($pengRiilDetailRaw, true)
+                                                                : $pengRiilDetailRaw;
+                                                            if (is_array($decoded)) {
+                                                                $pengRiilEntries = $decoded;
+                                                            }
                                                         }
-                                                    }
-                                                    // Fallback: migrasikan data lama (single mode/value) jadi 1 entry,
-                                                    // supaya data yang sudah kesimpan sebelum fitur ini gak hilang.
-                                                    if (empty($pengRiilEntries) && ($pivot->peng_riil ?? 0) > 0) {
-                                                        $oldMode = $pivot->peng_riil_mode ?? 'manual';
-                                                        $oldRateId = $pivot->peng_riil_rate_id ?? '';
-                                                        $pengRiilEntries = [
-                                                            [
-                                                                'mode' => $oldMode,
-                                                                'value' => (int) ($pivot->peng_riil ?? 0),
-                                                                'rate_id' => $oldRateId,
-                                                                'tujuan' => $pengRiilRateNameById[$oldRateId] ?? '',
-                                                                'keterangan' => '',
-                                                            ]
-                                                        ];
-                                                    }
-                                                    $pengRiilTotal = collect($pengRiilEntries)->sum(fn($e) => (int) ($e['value'] ?? 0));
-                                                    $pengRiilCount = count($pengRiilEntries);
-                                                @endphp
-                                                <td class="px-2 py-2 {{ in_array('peng_riil', $selectedKomponen) ? '' : 'hidden' }}"
-                                                    data-col="peng_riil">
-                                                    <button type="button"
-                                                        class="peng-riil-open-btn w-full border border-dashed border-gray-300 rounded-md px-2 py-1.5 text-[11px] text-gray-600 hover:border-{{ $group['accent'] }}-400 hover:text-{{ $group['accent'] }}-600 transition text-center"
-                                                        data-pegawai-id="{{ $p->id }}" data-nama="{{ $nama }}"
-                                                        data-detail='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
-                                                        <span class="peng-riil-display font-semibold text-gray-700 block">
-                                                            {{ $pengRiilTotal ? 'Rp ' . number_format($pengRiilTotal) : 'Isi Peng. Riil' }}
-                                                        </span>
-                                                        <span class="peng-riil-sub block text-[9px] text-gray-400">
-                                                            @if ($pengRiilCount > 1)
-                                                                {{ $pengRiilCount }} item
-                                                            @elseif ($pengRiilCount === 1)
-                                                                {{ $pengRiilEntries[0]['mode'] === 'sbm' ? 'SBM' : 'Manual' }}
-                                                            @endif
-                                                        </span>
-                                                    </button>
+                                                        // Fallback: migrasikan data lama (single mode/value) jadi 1 entry,
+                                                        // supaya data yang sudah kesimpan sebelum fitur ini gak hilang.
+                                                        if (empty($pengRiilEntries) && ($pivot->peng_riil ?? 0) > 0) {
+                                                            $oldMode = $pivot->peng_riil_mode ?? 'manual';
+                                                            $oldRateId = $pivot->peng_riil_rate_id ?? '';
+                                                            $pengRiilEntries = [
+                                                                [
+                                                                    'mode' => $oldMode,
+                                                                    'value' => (int) ($pivot->peng_riil ?? 0),
+                                                                    'rate_id' => $oldRateId,
+                                                                    'tujuan' => $pengRiilRateNameById[$oldRateId] ?? '',
+                                                                    'keterangan' => '',
+                                                                ]
+                                                            ];
+                                                        }
+                                                        $pengRiilTotal = collect($pengRiilEntries)->sum(fn($e) => (int) ($e['value'] ?? 0));
+                                                        $pengRiilCount = count($pengRiilEntries);
+                                                    @endphp
+                                                    <td class="px-2 py-2 {{ in_array('peng_riil', $selectedKomponen) ? '' : 'hidden' }}"
+                                                        data-col="peng_riil">
+                                                        <button type="button"
+                                                            class="peng-riil-open-btn w-full border border-dashed border-gray-300 rounded-md px-2 py-1.5 text-[11px] text-gray-600 hover:border-{{ $group['accent'] }}-400 hover:text-{{ $group['accent'] }}-600 transition text-center"
+                                                            data-pegawai-id="{{ $p->id }}" data-nama="{{ $nama }}"
+                                                            data-detail='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
+                                                            <span class="peng-riil-display font-semibold text-gray-700 block">
+                                                                {{ $pengRiilTotal ? 'Rp ' . number_format($pengRiilTotal) : 'Isi Peng. Riil' }}
+                                                            </span>
+                                                            <span class="peng-riil-sub block text-[9px] text-gray-400">
+                                                                @if ($pengRiilCount > 1)
+                                                                    {{ $pengRiilCount }} item
+                                                                @elseif ($pengRiilCount === 1)
+                                                                    {{ $pengRiilEntries[0]['mode'] === 'sbm' ? 'SBM' : 'Manual' }}
+                                                                @endif
+                                                            </span>
+                                                        </button>
 
-                                                    <input type="hidden" class="col-peng_riil" name="peng_riil[{{ $p->id }}]"
-                                                        data-group="{{ $group['key'] }}" value="{{ $pengRiilTotal }}">
-                                                    <input type="hidden" class="peng-riil-detail-field"
-                                                        name="peng_riil_detail[{{ $p->id }}]"
-                                                        value='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
-                                                </td>
-                                            @else
-                                                <td class="px-2 py-2 {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
-                                                    data-col="{{ $key }}">
-                                                    <input type="text" inputmode="numeric" name="{{ $key }}[{{ $p->id }}]"
-                                                        placeholder="0"
-                                                        class="rupiah-input col-{{ $key }} w-full border border-gray-200 rounded-md px-2 py-1.5 text-center text-xs focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
-                                                        data-group="{{ $group['key'] }}"
-                                                        value="{{ $cleanNum($pivot->{$key} ?? null) }}">
-                                                </td>
-                                            @endif
-                                        @endforeach
+                                                        <input type="hidden" class="col-peng_riil" name="peng_riil[{{ $p->id }}]"
+                                                            data-group="{{ $group['key'] }}" value="{{ $pengRiilTotal }}">
+                                                        <input type="hidden" class="peng-riil-detail-field"
+                                                            name="peng_riil_detail[{{ $p->id }}]"
+                                                            value='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
+                                                    </td>
+                                                @else
+                                                    <td class="px-2 py-2 {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
+                                                        data-col="{{ $key }}">
+                                                        <input type="text" inputmode="numeric" name="{{ $key }}[{{ $p->id }}]"
+                                                            placeholder="0"
+                                                            class="rupiah-input col-{{ $key }} w-full border border-gray-200 rounded-md px-2 py-1.5 text-center text-xs focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
+                                                            data-group="{{ $group['key'] }}"
+                                                            value="{{ $cleanNum($pivot->{$key} ?? null) }}">
+                                                    </td>
+                                                @endif
+                                            @endforeach
 
-                                        <td class="px-2 py-2 {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
-                                            data-col="lumpsum">
-                                            <div class="space-y-1">
-                                                @foreach ($uhFieldMap as $uhKey => $f)
-                                                    <div class="{{ in_array($uhKey, $selectedUh) ? '' : 'hidden' }}"
-                                                        data-uh="{{ $uhKey }}">
-                                                        <div class="text-[9px] text-gray-400 leading-tight">{{ $f['label'] }}</div>
-                                                        <div class="flex items-center gap-1">
-                                                            <input type="text" inputmode="numeric"
-                                                                name="{{ $f['hari'] }}[{{ $p->id }}]" placeholder="hr"
-                                                                class="hari-input col-{{ $f['hari'] }} w-9 flex-shrink-0 border border-gray-200 rounded-md px-1 py-1.5 text-center text-[11px] focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
-                                                                data-group="{{ $group['key'] }}"
-                                                                value="{{ $pivot->{$f['hari']} ?? '' }}">
-                                                            <span class="text-[10px] text-gray-300 flex-shrink-0">x</span>
-                                                            <input type="text" inputmode="numeric" readonly
-                                                                name="{{ $f['rate'] }}[{{ $p->id }}]" placeholder="0"
-                                                                class="rupiah-input col-{{ $f['rate'] }} w-full border border-gray-200 bg-gray-50 rounded-md px-1.5 py-1.5 text-center text-[11px] text-gray-500 cursor-not-allowed outline-none"
-                                                                data-group="{{ $group['key'] }}"
-                                                                title="Dipatok dari SBM sesuai tujuan agenda"
-                                                                value="{{ $uhRates[$uhKey] }}">
+                                            <td class="px-2 py-2 {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
+                                                data-col="lumpsum">
+                                                <div class="space-y-1">
+                                                    @foreach ($uhFieldMap as $uhKey => $f)
+                                                        <div class="{{ in_array($uhKey, $selectedUh) ? '' : 'hidden' }}"
+                                                            data-uh="{{ $uhKey }}">
+                                                            <div class="text-[9px] text-gray-400 leading-tight">{{ $f['label'] }}
+                                                            </div>
+                                                            <div class="flex items-center gap-1">
+                                                                <input type="text" inputmode="numeric"
+                                                                    name="{{ $f['hari'] }}[{{ $p->id }}]" placeholder="hr"
+                                                                    class="hari-input col-{{ $f['hari'] }} w-9 flex-shrink-0 border border-gray-200 rounded-md px-1 py-1.5 text-center text-[11px] focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
+                                                                    data-group="{{ $group['key'] }}"
+                                                                    value="{{ $pivot->{$f['hari']} ?? '' }}">
+                                                                <span class="text-[10px] text-gray-300 flex-shrink-0">x</span>
+                                                                <input type="text" inputmode="numeric" readonly
+                                                                    name="{{ $f['rate'] }}[{{ $p->id }}]" placeholder="0"
+                                                                    class="rupiah-input col-{{ $f['rate'] }} w-full border border-gray-200 bg-gray-50 rounded-md px-1.5 py-1.5 text-center text-[11px] text-gray-500 cursor-not-allowed outline-none"
+                                                                    data-group="{{ $group['key'] }}"
+                                                                    title="Dipatok dari SBM sesuai tujuan agenda"
+                                                                    value="{{ $uhRates[$uhKey] }}">
+                                                            </div>
                                                         </div>
+                                                    @endforeach
+                                                    <div
+                                                        class="text-[10px] text-gray-500 text-center pt-0.5 border-t border-gray-100">
+                                                        Total: <span class="row-lumpsum-total font-semibold">Rp
+                                                            {{ number_format($lumpsumAwal) }}</span>
                                                     </div>
-                                                @endforeach
-                                                <div
-                                                    class="text-[10px] text-gray-500 text-center pt-0.5 border-t border-gray-100">
-                                                    Total: <span class="row-lumpsum-total font-semibold">Rp
-                                                        {{ number_format($lumpsumAwal) }}</span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="100%" class="px-4 py-6 text-center text-gray-400">
-                                            Belum ada peserta di kategori ini. Kembali ke halaman "Buat Agenda" untuk
-                                            menambahkan.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                            @if ($group['list']->isNotEmpty())
-                                <tfoot>
-                                    <tr class="bg-gray-50 border-t border-gray-200 font-semibold text-gray-700 text-xs">
-                                        <td class="px-3 py-2.5">Subtotal</td>
-                                        @foreach ($simpleKomponen as $key => $label)
-                                            <td class="px-2 py-2.5 text-center total-{{ $key }} {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
-                                                data-group="{{ $group['key'] }}" data-col="{{ $key }}">Rp 0</td>
-                                        @endforeach
-                                        <td class="px-2 py-2.5 text-center total-lumpsum {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
-                                            data-group="{{ $group['key'] }}" data-col="lumpsum">Rp 0</td>
-                                    </tr>
-                                </tfoot>
-                            @endif
-                        </table>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="100%" class="cell-empty px-4 py-6 text-center text-gray-400">
+                                                Belum ada peserta di kategori ini. Kembali ke halaman "Buat Agenda" untuk
+                                                menambahkan.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                                @if ($group['list']->isNotEmpty())
+                                    <tfoot>
+                                        <tr class="bg-gray-50 border-t border-gray-200 font-semibold text-gray-700 text-xs">
+                                            <td class="px-3 py-2.5">Subtotal</td>
+                                            @foreach ($simpleKomponen as $key => $label)
+                                                <td class="px-2 py-2.5 text-center total-{{ $key }} {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
+                                                    data-group="{{ $group['key'] }}" data-col="{{ $key }}">Rp 0</td>
+                                            @endforeach
+                                            <td class="px-2 py-2.5 text-center total-lumpsum {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
+                                                data-group="{{ $group['key'] }}" data-col="lumpsum">Rp 0</td>
+                                        </tr>
+                                    </tfoot>
+                                @endif
+                            </table>
+                        </div>
                     </div>
                 @endforeach
 
                 <div class="sticky bottom-4 flex justify-end">
                     <button type="submit"
-                        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-lg shadow-blue-600/25 transition">
+                        class="w-full sm:w-auto justify-center inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-lg shadow-blue-600/25 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -352,14 +409,14 @@
                         <div class="flex items-center justify-between">
                             <h3 class="font-semibold text-gray-800">Isi Peng. Riil</h3>
                             <button type="button" id="peng-riil-modal-close"
-                                class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                                class="text-gray-400 hover:text-gray-600 text-xl leading-none px-2 -mr-2">&times;</button>
                         </div>
                         <p class="text-xs text-gray-500" id="peng-riil-modal-nama"></p>
 
                         <div id="peng-riil-modal-entries" class="space-y-3"></div>
 
                         <button type="button" id="peng-riil-modal-add"
-                            class="w-full text-xs font-medium text-blue-600 hover:text-blue-700 border border-dashed border-blue-300 hover:border-blue-400 rounded-lg py-2 transition">
+                            class="w-full text-xs font-medium text-blue-600 hover:text-blue-700 border border-dashed border-blue-300 hover:border-blue-400 rounded-lg py-2.5 sm:py-2 transition">
                             + Tambah
                         </button>
 
@@ -379,9 +436,9 @@
                     <template id="peng-riil-entry-template">
                         <div class="peng-riil-entry border border-gray-200 rounded-lg p-3 space-y-2.5 relative">
                             <button type="button"
-                                class="peng-riil-entry-remove absolute top-2 right-2 text-gray-300 hover:text-red-500 text-sm leading-none w-5 h-5 flex items-center justify-center">&times;</button>
+                                class="peng-riil-entry-remove absolute top-1.5 right-1.5 text-gray-300 hover:text-red-500 text-lg sm:text-sm leading-none w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center">&times;</button>
 
-                            <div class="flex gap-4 text-xs">
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs pr-7">
                                 <label class="inline-flex items-center gap-1.5 cursor-pointer">
                                     <input type="radio" class="entry-mode-radio" value="manual" checked>
                                     Manual (At Cost)
