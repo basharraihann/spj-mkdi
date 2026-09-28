@@ -6,21 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     /**
-     * Master rate SBM per provinsi. Dipakai buat auto-patok:
-     * - UH Biasa (uh_biasa) -> UH Biasa 60% dihitung 60% dari nilai ini, gak disimpan
-     *   terpisah (lihat SbmRate::uhBiasa60()).
-     * - Peng. Riil (peng_riil) -> dipakai kalau mode-nya "sbm" di agenda_pegawai,
-     *   kalau "manual"/at cost, nominal diisi bebas per peserta.
-     *
-     * UH Fullday & UH FullBoard TIDAK ada di sini karena flat sama di semua
-     * provinsi (lihat tabel sbm_flat_rates).
+     * Rate flat nasional (sama di semua provinsi): UH Fullday & UH FullBoard.
+     * Satu baris saja (id = 1), diisi lewat SbmFlatRateSeeder.
      */
     public function up(): void
     {
         Schema::create('sbm_flat_rates', function (Blueprint $table) {
             $table->id();
-            $table->string('kategori')->unique();
-            $table->decimal('nominal', 12, 2);
+            $table->decimal('uh_fullday', 12, 2);
+            $table->decimal('uh_fullboard', 12, 2);
             $table->timestamps();
         });
     }
