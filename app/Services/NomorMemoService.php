@@ -17,9 +17,13 @@ use Illuminate\Support\Collection;
  */
 class NomorMemoService
 {
+    /** Nomor memo pertama yang boleh keluar. */
+    private const NOMOR_AWAL = 385;
+
     /**
-     * Nomor urut terbesar yang pernah dipakai dari kedua sumber. 363 kalau
-     * belum ada nomor memo sama sekali (jadi nomor berikutnya mulai dari 364).
+     * Nomor urut terbesar yang pernah dipakai dari kedua sumber. Kalau
+     * belum ada nomor memo sama sekali, hasilnya NOMOR_AWAL - 1 (jadi nomor
+     * berikutnya mulai dari NOMOR_AWAL).
      */
     public static function nomorTerbesar(): int
     {
@@ -30,7 +34,7 @@ class NomorMemoService
 
         $dariEntries = MemoEntry::max('nomor_urut');
 
-        return max((int) $dariAgenda, (int) $dariEntries, 363); // nomor awal - 1
+        return max((int) $dariAgenda, (int) $dariEntries, self::NOMOR_AWAL - 1);
     }
 
     public static function nomorBerikutnya(): int
