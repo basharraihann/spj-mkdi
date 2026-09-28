@@ -9,12 +9,16 @@ class SbmFlatRateSeeder extends Seeder
 {
     public function run(): void
     {
-        SbmFlatRate::updateOrCreate(
-            ['id' => 1],
-            [
-                'uh_fullday' => 95000,
-                'uh_fullboard' => 130000,
-            ]
-        );
+        $rates = [
+            'uh_fullday' => 95000,
+            'uh_fullboard' => 130000,
+        ];
+
+        foreach ($rates as $kategori => $nominal) {
+            SbmFlatRate::updateOrCreate(
+                ['kategori' => $kategori],
+                ['nominal' => $nominal]
+            );
+        }
     }
 }
