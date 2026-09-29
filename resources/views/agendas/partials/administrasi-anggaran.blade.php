@@ -84,7 +84,8 @@
                                     <div class="text-xs font-semibold text-gray-700 mt-1 truncate"
                                         title="{{ $first->uraian_giat }}">{{ $first->uraian_giat }}</div>
                                     <div class="text-[11px] text-gray-500 truncate" title="{{ $first->uraian_komponen }}">
-                                        {{ $first->uraian_komponen }}</div>
+                                        {{ $first->uraian_komponen }}
+                                    </div>
                                 </div>
 
                                 {{-- Item dijorok + garis vertikal tipis supaya kelihatan anak dari header --}}
@@ -511,15 +512,15 @@
         const inputNonPns = document.getElementById('nomor-memo-non-pns-input');
         if (!btnPns && !btnNonPns) return;
 
-        let sesiUrutan = null;
+        let sesiUrutan = null;   // urutan tertinggi yang sudah dibagikan di form ini
         let sesiEkor = '';
+        const nomorPerInput = new Map(); // input -> urutan miliknya
 
         async function ambilNomorBerikutnya() {
             if (sesiUrutan !== null) {
                 sesiUrutan += 1;
                 return { urutan: sesiUrutan, ekor: sesiEkor };
             }
-
             const res = await fetch('{{ route('memo.nomor-berikutnya') }}');
             const data = await res.json();
             sesiUrutan = data.urutan;
@@ -529,11 +530,20 @@
 
         async function isiInput(input, btn) {
             if (!input || !btn) return;
+
+            // Kolom ini sudah punya nomor: pakai lagi, jangan naikkan counter
+            if (nomorPerInput.has(input)) {
+                input.value = nomorPerInput.get(input) + sesiEkor;
+                input.dispatchEvent(new Event('input'));
+                return;
+            }
+
             const teksAsli = btn.textContent;
             btn.disabled = true;
             btn.textContent = '...';
             try {
                 const { urutan, ekor } = await ambilNomorBerikutnya();
+                nomorPerInput.set(input, urutan);
                 input.value = urutan + ekor;
                 input.dispatchEvent(new Event('input'));
             } catch (e) {

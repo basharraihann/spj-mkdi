@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
+
 class AgendaController extends Controller
 {
     /**
@@ -88,6 +89,7 @@ class AgendaController extends Controller
 
         return view('agendas.index', compact('agendas', 'totalDokumenKategori'));
     }
+
     public function create()
     {
         $pegawaiList = Pegawai::orderBy('nama')->get();
@@ -145,6 +147,10 @@ class AgendaController extends Controller
 
         // Nomor Memo PNS/Non PNS wajib sesuai status peserta yang dipilih.
         $this->ensureNomorMemoFilled($pegawaiIds, $adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null);
+
+        // Nomor Memo harus unik antar agenda (cegah nomor kembar kalau ada
+        // beberapa orang input bersamaan).
+        $this->ensureNomorMemoUnique($adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null);
 
         $agenda = Agenda::create(array_merge($validated, $adminData));
 
@@ -251,6 +257,9 @@ class AgendaController extends Controller
 
         $this->ensureNomorStKaroFilled($pegawaiIds->all(), $validated['nomor_st_karo'] ?? null);
         $this->ensureNomorMemoFilled($pegawaiIds->all(), $adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null);
+
+        // Unik antar agenda; agenda ini sendiri dikecualikan lewat $agenda->id.
+        $this->ensureNomorMemoUnique($adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null, $agenda->id);
 
         $agenda->update(array_merge($validated, $adminData));
 
@@ -604,17 +613,6 @@ class AgendaController extends Controller
     }
 
     /**
-     * Field administrasi/anggaran yang dipakai bersama PNS & Non-PNS (dulu diisi
-     * di halaman Memorandum tiap generate PDF per status, sekarang diisi sekali
-     * di form Buat/Edit Agenda biar gak double pengisian). Semua opsional — boleh
-     * dikosongin dulu pas bikin agenda, dilengkapi belakangan lewat edit.
-     *
-     * $uraianKegiatan dipakai buat nyusun otomatis uraian_memo_pns/non_pns —
-     * gak ada input terpisah buat itu, biar gak diketik ulang.
-     *
-     * Dipakai bareng oleh store() & update().
-     */
-    /**
      * Nomor Memo PNS cuma wajib kalau ada peserta berstatus PNS di antara yang
      * dipilih; Nomor Memo Non PNS cuma wajib kalau ada peserta Non PNS. Kalau
      * dua-duanya ada, dua-duanya wajib. Sama kayak ensureNomorStKaroFilled(),
@@ -633,6 +631,44 @@ class AgendaController extends Controller
         }
         if ($adaNonPns && empty($nomorMemoNonPns)) {
             $errors['nomor_memo_non_pns'] = 'Nomor Memo (Non PNS) wajib diisi karena ada peserta Non PNS di agenda ini.';
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * Nomor memo (PNS / Non PNS) harus unik antar agenda. $ignoreId dipakai saat
+     * update supaya agenda itu sendiri tidak dianggap bentrok dengan dirinya.
+     * Kalau bentrok, user diminta klik "Ambil Nomor" lagi untuk dapat nomor baru.
+     */
+    private function ensureNomorMemoUnique(?string $nomorMemoPns, ?string $nomorMemoNonPns, ?int $ignoreId = null): void
+    {
+        $cek = [
+            'nomor_memo_pns' => ['label' => 'Nomor Memo (PNS)', 'nilai' => $nomorMemoPns],
+            'nomor_memo_non_pns' => ['label' => 'Nomor Memo (Non PNS)', 'nilai' => $nomorMemoNonPns],
+        ];
+
+        $errors = [];
+
+        foreach ($cek as $kolom => $item) {
+            if (empty($item['nilai'])) {
+                continue;
+            }
+
+            $dipakai = Agenda::where($kolom, $item['nilai'])
+                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->exists();
+
+            if ($dipakai) {
+                $errors[$kolom] = $item['label'] . ' ini sudah dipakai agenda lain. Klik "Ambil Nomor" lagi untuk dapat nomor terbaru.';
+            }
+        }
+
+        // Kasus khusus: PNS dan Non PNS diisi nomor yang sama di form yang sama
+        if (!empty($nomorMemoPns) && $nomorMemoPns === $nomorMemoNonPns) {
+            $errors['nomor_memo_non_pns'] = 'Nomor Memo (Non PNS) tidak boleh sama dengan Nomor Memo (PNS).';
         }
 
         if ($errors) {
@@ -660,6 +696,17 @@ class AgendaController extends Controller
         }
     }
 
+    /**
+     * Field administrasi/anggaran yang dipakai bersama PNS & Non-PNS (dulu diisi
+     * di halaman Memorandum tiap generate PDF per status, sekarang diisi sekali
+     * di form Buat/Edit Agenda biar gak double pengisian). Semua opsional — boleh
+     * dikosongin dulu pas bikin agenda, dilengkapi belakangan lewat edit.
+     *
+     * $uraianKegiatan dipakai buat nyusun otomatis uraian_memo_pns/non_pns —
+     * gak ada input terpisah buat itu, biar gak diketik ulang.
+     *
+     * Dipakai bareng oleh store() & update().
+     */
     private function validateAdministrasiFields(Request $request, string $uraianKegiatan): array
     {
         $validated = $request->validate([
@@ -678,6 +725,7 @@ class AgendaController extends Controller
             // Non PNS 324) — bukan berarti sama.
             // Wajib/enggaknya tergantung status peserta yang dipilih (PNS/Non PNS) —
             // dicek terpisah di ensureNomorMemoFilled(), bukan di sini.
+            // Keunikan dicek di ensureNomorMemoUnique().
             'nomor_memo_pns' => 'nullable|string',
             'nomor_memo_non_pns' => 'nullable|string',
 
