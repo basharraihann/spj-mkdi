@@ -17,7 +17,7 @@
                 Kembali ke User Manajemen
             </a>
             <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Edit Data User</h1>
-            <p class="text-sm text-gray-500 mt-1">Perbarui data profil, email, role, atau ubah password user</p>
+            <p class="text-sm text-gray-500 mt-1">Perbarui data profil, email, unit, role, atau ubah password user</p>
         </div>
 
         <!-- Form Card -->
@@ -66,6 +66,25 @@
                         placeholder="user@mkdi.go.id"
                         class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('email') border-rose-500 @enderror">
                     @error('email')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Unit -->
+                <div>
+                    <label for="unit_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        Unit
+                    </label>
+                    <select name="unit_id" id="unit_id"
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('unit_id') border-rose-500 @enderror">
+                        <option value="">-- Pilih Unit --</option>
+                        @foreach ($units as $unit)
+                            <option value="{{ $unit->id }}" @selected(old('unit_id', $user->unit_id) == $unit->id)>
+                                {{ $unit->kode }} - {{ $unit->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('unit_id')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
                 </div>

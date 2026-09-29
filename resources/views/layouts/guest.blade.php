@@ -25,7 +25,7 @@
 
                 {{-- Panel biru --}}
                 <section class="relative flex flex-col items-center justify-center bg-gradient-to-b from-blue-500 to-blue-800
-                                    px-8 pb-24 pt-12 text-center text-white md:w-1/2 md:pb-12">
+                                        px-8 pb-24 pt-12 text-center text-white md:w-1/2 md:pb-12">
                     <p class="text-xl font-semibold md:text-2xl">Selamat datang pikmin</p>
 
                     @isset($tagline)
@@ -78,7 +78,7 @@
 
             <main class="relative z-10 flex w-full flex-1 items-center justify-center py-8">
                 <div class="w-full max-w-sm rounded-lg border border-indigo-100 bg-white/70 backdrop-blur-md
-                                shadow-xl shadow-indigo-900/5 p-6 sm:p-7">
+                                    shadow-xl shadow-indigo-900/5 p-6 sm:p-7">
                     @isset($tagline)
                         <h1 class="text-lg font-bold text-gray-900 leading-snug">{{ $tagline }}</h1>
                     @endisset
