@@ -269,7 +269,8 @@ class MemoController extends Controller
             'totalBiaya' => $memo->nominal,
             'rincianBiaya' => [],
             'terbilang' => null,
-            'halMemo' => $halMemo, // <-- tambahan ini
+            'halMemo' => $halMemo,
+            'lampiranMemo' => '1 (satu) Berkas', // tambahan
         ])->setPaper('a4', 'portrait');
 
         $namaFile = 'Memorandum-' . str_replace(['/', '\\'], '-', $memo->nomor_memo) . '.pdf';

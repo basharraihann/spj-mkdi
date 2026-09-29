@@ -270,9 +270,13 @@
             <td class="label">Lampiran</td>
             <td class="colon">:</td>
             <td>
-                1. Surat Keputusan<br>
-                2. Rincian Biaya Kegiatan<br>
-                3. Daftar Nominatif
+                @if (!empty($lampiranMemo))
+                    {{ $lampiranMemo }}
+                @else
+                    1. Surat Keputusan<br>
+                    2. Rincian Biaya Kegiatan<br>
+                    3. Daftar Nominatif
+                @endif
             </td>
         </tr>
         <tr>

@@ -51,6 +51,13 @@
                     ],
 
                     [
+                        'route' => 'nominatif.index',
+                        'active' => request()->routeIs('nominatif.*'),
+                        'label' => __('Nominatif'),
+                        'icon' => 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'
+                    ],
+
+                    [
                         'route' => 'pegawais.index',
                         'active' => request()->routeIs('pegawais.*'),
                         'label' => __('Pegawai'),
@@ -78,7 +85,7 @@
             @foreach ($items as $item)
                 <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                     class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                                        {{ $item['active'] ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800' }}"
+                                                            {{ $item['active'] ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800' }}"
                     :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                     <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
@@ -98,7 +105,8 @@
                 <div class="min-w-0 flex-1" x-show="sidebarOpen || !sidebarCollapsed" x-cloak>
                     <div class="flex items-center justify-between gap-1">
                         <div class="text-sm font-medium text-gray-800 truncate">{{ Auth::user()->name }}</div>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 {{ Auth::user()->isAdmin() ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700' }}">
+                        <span
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 {{ Auth::user()->isAdmin() ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700' }}">
                             {{ Auth::user()->isAdmin() ? 'Admin' : 'Staf' }}
                         </span>
                     </div>

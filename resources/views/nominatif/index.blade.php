@@ -1,0 +1,231 @@
+<x-app-layout title="Nominatif">
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Dashboard') }}
+        </h2>
+    </x-slot>
+
+    <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+
+        @if (session('success'))
+            <div class="flex gap-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-xl">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        <!-- Header & aksi -->
+        <div
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Nominatif</h1>
+                    <span
+                        class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-indigo-100">
+                        {{ $rows->count() }} dokumen
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Nominatif perjalanan dinas dari agenda, dan daftar honorarium
+                    narasumber
+                    yang dibuat mandiri tanpa agenda.</p>
+            </div>
+            <div>
+                <a href="{{ route('nominatif.create') }}"
+                    class="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow-sm transition duration-150 ease-in-out hover:shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Buat Nominatif
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter (instan, tanpa reload) -->
+        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1 relative">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" id="nom-filter-q" autocomplete="off"
+                        placeholder="Cari uraian kegiatan atau tujuan..."
+                        class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                </div>
+
+                <div class="sm:w-48">
+                    <select id="nom-filter-sumber"
+                        class="w-full py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        <option value="">-- Semua Sumber --</option>
+                        <option value="agenda">Dari Agenda</option>
+                        <option value="mandiri">Mandiri</option>
+                    </select>
+                </div>
+
+                <div class="sm:w-44">
+                    <select id="nom-filter-status"
+                        class="w-full py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        <option value="">-- Semua Status --</option>
+                        <option value="PNS">PNS</option>
+                        <option value="Non PNS">Non PNS</option>
+                        <option value="Honorarium">Honorarium Narasumber</option>
+                    </select>
+                </div>
+
+                <button type="button" id="nom-filter-reset"
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabel -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-6 pt-5">
+                <span class="text-xs font-semibold text-gray-400">
+                    <span id="nom-visible-count">{{ $rows->count() }}</span> dari {{ $rows->count() }} dokumen
+                </span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-600">
+                    <thead class="bg-gray-50/70 border-b border-gray-100 text-xs font-semibold uppercase text-gray-500">
+                        <tr>
+                            <th class="px-6 py-4">Uraian Kegiatan</th>
+                            <th class="px-6 py-4">Tujuan</th>
+                            <th class="px-6 py-4">Tanggal</th>
+                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4 text-center">Orang</th>
+                            <th class="px-6 py-4 text-right">Total</th>
+                            <th class="px-6 py-4">Sumber</th>
+                            <th class="px-6 py-4 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($rows as $r)
+                            <tr class="js-nom-row hover:bg-gray-50/50 transition"
+                                data-search="{{ strtolower($r['uraian_kegiatan'] . ' ' . $r['tujuan']) }}"
+                                data-sumber="{{ $r['sumber'] }}" data-status="{{ $r['status'] }}">
+                                <td class="px-6 py-4 font-medium text-gray-900 max-w-xs">
+                                    <div class="line-clamp-2">{{ $r['uraian_kegiatan'] }}</div>
+                                </td>
+                                <td class="px-6 py-4">{{ $r['tujuan'] }}</td>
+                                <td class="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">{{ $r['tanggal'] }}</td>
+                                <td class="px-6 py-4">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $r['status'] === 'PNS' ? 'bg-blue-50 text-blue-700 border-blue-200/60' : ($r['status'] === 'Honorarium' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' : 'bg-amber-50 text-amber-700 border-amber-200/60') }}">
+                                        {{ $r['status'] }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">{{ $r['jumlah_peserta'] }}</td>
+                                <td class="px-6 py-4 text-right whitespace-nowrap">Rp
+                                    {{ number_format($r['total'], 0, ',', '.') }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if ($r['sumber'] === 'agenda')
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">Dari
+                                            Agenda</span>
+                                    @else
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">Mandiri</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <a href="{{ $r['pdf_url'] }}" target="_blank"
+                                            class="px-3 py-1.5 text-xs font-semibold text-indigo-600 border border-indigo-200 hover:bg-indigo-50 rounded-lg transition"
+                                            title="Buka PDF">
+                                            PDF
+                                        </a>
+
+                                        @if ($r['edit_url'])
+                                            <a href="{{ $r['edit_url'] }}"
+                                                class="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                                title="Edit">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </a>
+                                        @endif
+
+                                        @if ($r['delete_url'])
+                                            <form method="POST" action="{{ $r['delete_url'] }}"
+                                                onsubmit="return confirm('Hapus nominatif ini beserta seluruh pesertanya?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                                    title="Hapus">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="px-6 py-12 text-center text-gray-400">
+                                    <p class="text-sm font-medium">Belum ada nominatif.</p>
+                                    <p class="text-xs mt-1">Klik "Buat Nominatif" untuk membuat yang pertama.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+
+                <div id="nom-no-result" class="hidden px-6 py-12 text-center text-gray-400">
+                    <p class="text-sm font-medium">Tidak ada nominatif yang cocok dengan filter.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const qInput = document.getElementById('nom-filter-q');
+            const sumberSelect = document.getElementById('nom-filter-sumber');
+            const statusSelect = document.getElementById('nom-filter-status');
+            const resetBtn = document.getElementById('nom-filter-reset');
+            const rows = Array.from(document.querySelectorAll('.js-nom-row'));
+            const noResult = document.getElementById('nom-no-result');
+            const table = document.querySelector('.overflow-x-auto table');
+            const countEl = document.getElementById('nom-visible-count');
+
+            if (rows.length === 0) return;
+
+            function applyFilter() {
+                const q = qInput.value.trim().toLowerCase();
+                const sumber = sumberSelect.value;
+                const status = statusSelect.value;
+                let visible = 0;
+
+                rows.forEach(function (row) {
+                    const ok = (q === '' || row.dataset.search.includes(q))
+                        && (sumber === '' || row.dataset.sumber === sumber)
+                        && (status === '' || row.dataset.status === status);
+                    row.style.display = ok ? '' : 'none';
+                    if (ok) visible++;
+                });
+
+                countEl.textContent = visible;
+                noResult.classList.toggle('hidden', visible > 0);
+                table.style.display = visible > 0 ? '' : 'none';
+            }
+
+            qInput.addEventListener('input', applyFilter);
+            sumberSelect.addEventListener('change', applyFilter);
+            statusSelect.addEventListener('change', applyFilter);
+            resetBtn.addEventListener('click', function () {
+                qInput.value = '';
+                sumberSelect.value = '';
+                statusSelect.value = '';
+                applyFilter();
+            });
+        })();
+    </script>
+</x-app-layout>

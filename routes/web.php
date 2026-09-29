@@ -4,6 +4,7 @@ use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AgendaPdfController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemoController;
+use App\Http\Controllers\NominatifController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
@@ -85,6 +86,20 @@ Route::middleware('auth')->group(function () {
             Route::put('{memo}', 'update')->name('update');
             Route::delete('{memo}', 'destroy')->name('destroy');
             Route::get('{memo}/pdf', 'pdf')->name('pdf');
+        });
+
+    // Rekap nominatif (dari agenda + nominatif mandiri tanpa agenda)
+    Route::controller(NominatifController::class)
+        ->prefix('nominatif')
+        ->name('nominatif.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('create', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('{nominatif}/edit', 'edit')->name('edit');
+            Route::put('{nominatif}', 'update')->name('update');
+            Route::delete('{nominatif}', 'destroy')->name('destroy');
+            Route::get('{nominatif}/pdf', 'pdf')->name('pdf');
         });
 
     Route::middleware(['auth'])->group(function () {
