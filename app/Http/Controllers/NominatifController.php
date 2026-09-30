@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agenda;
+use App\Models\KabupatenKota;
 use App\Models\NominatifEntry;
 use App\Models\Pegawai;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -57,11 +58,13 @@ class NominatifController extends Controller
         }
 
         foreach (NominatifEntry::with('peserta')->get() as $entry) {
+            $tujuan = collect([$entry->kota ?? null, $entry->provinsi ?? null])->filter()->implode(', ');
+
             $rows->push([
                 'id' => 'entry-' . $entry->id,
                 'sumber' => 'mandiri',
                 'uraian_kegiatan' => $entry->uraian_kegiatan,
-                'tujuan' => '-',
+                'tujuan' => $tujuan ?: '-',
                 'tanggal' => $this->labelTanggal($entry->tanggal, null),
                 'sort' => optional($entry->tanggal)->timestamp ?? 0,
                 'status' => 'Honorarium',
@@ -80,9 +83,12 @@ class NominatifController extends Controller
 
     public function create()
     {
+        $kabKotaMap = KabupatenKota::orderBy('nama')->get()->groupBy('provinsi')->map(fn($group) => $group->pluck('nama')->values());
+
         return view('nominatif.create', [
             'nominatif' => null,
             'pegawaiList' => Pegawai::orderBy('nama')->get(),
+            'kabKotaMap' => $kabKotaMap,
         ]);
     }
 
@@ -103,9 +109,12 @@ class NominatifController extends Controller
     {
         $nominatif->load('peserta');
 
+        $kabKotaMap = KabupatenKota::orderBy('nama')->get()->groupBy('provinsi')->map(fn($group) => $group->pluck('nama')->values());
+
         return view('nominatif.edit', [
             'nominatif' => $nominatif,
             'pegawaiList' => Pegawai::orderBy('nama')->get(),
+            'kabKotaMap' => $kabKotaMap,
         ]);
     }
 
@@ -164,13 +173,14 @@ class NominatifController extends Controller
             'peserta.*.sebagai' => 'nullable|string|max:100',
             'peserta.*.instansi' => 'nullable|string|max:255',
             'peserta.*.golongan' => 'nullable|string|max:50',
-            'peserta.*.jabatan' => 'nullable|string|max:255',
+            'peserta.*.jabatan' => 'required|string|max:255',
             'peserta.*.honor' => 'required|string',
             'peserta.*.oj' => 'required|integer|min:1',
             'peserta.*.pajak_persen' => 'nullable|numeric|min:0|max:100',
         ], [
             'peserta.required' => 'Tambahkan minimal satu narasumber.',
             'peserta.*.nama.required' => 'Nama narasumber wajib diisi.',
+            'peserta.*.jabatan.required' => 'Jabatan narasumber wajib diisi.',
             'peserta.*.honor.required' => 'Honor narasumber wajib diisi.',
             'peserta.*.oj.required' => 'Jumlah OJ wajib diisi.',
             'peserta.*.oj.min' => 'Jumlah OJ minimal 1.',

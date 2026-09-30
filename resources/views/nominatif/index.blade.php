@@ -53,15 +53,6 @@
                         class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
                 </div>
 
-                <div class="sm:w-48">
-                    <select id="nom-filter-sumber"
-                        class="w-full py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
-                        <option value="">-- Semua Sumber --</option>
-                        <option value="agenda">Dari Agenda</option>
-                        <option value="mandiri">Mandiri</option>
-                    </select>
-                </div>
-
                 <div class="sm:w-44">
                     <select id="nom-filter-status"
                         class="w-full py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
@@ -96,7 +87,6 @@
                             <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4 text-center">Orang</th>
                             <th class="px-6 py-4 text-right">Total</th>
-                            <th class="px-6 py-4">Sumber</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -104,7 +94,7 @@
                         @forelse ($rows as $r)
                             <tr class="js-nom-row hover:bg-gray-50/50 transition"
                                 data-search="{{ strtolower($r['uraian_kegiatan'] . ' ' . $r['tujuan']) }}"
-                                data-sumber="{{ $r['sumber'] }}" data-status="{{ $r['status'] }}">
+                                data-status="{{ $r['status'] }}">
                                 <td class="px-6 py-4 font-medium text-gray-900 max-w-xs">
                                     <div class="line-clamp-2">{{ $r['uraian_kegiatan'] }}</div>
                                 </td>
@@ -119,16 +109,6 @@
                                 <td class="px-6 py-4 text-center">{{ $r['jumlah_peserta'] }}</td>
                                 <td class="px-6 py-4 text-right whitespace-nowrap">Rp
                                     {{ number_format($r['total'], 0, ',', '.') }}
-                                </td>
-                                <td class="px-6 py-4">
-                                    @if ($r['sumber'] === 'agenda')
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">Dari
-                                            Agenda</span>
-                                    @else
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">Mandiri</span>
-                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-1">
@@ -169,7 +149,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-gray-400">
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-400">
                                     <p class="text-sm font-medium">Belum ada nominatif.</p>
                                     <p class="text-xs mt-1">Klik "Buat Nominatif" untuk membuat yang pertama.</p>
                                 </td>
@@ -188,7 +168,6 @@
     <script>
         (function () {
             const qInput = document.getElementById('nom-filter-q');
-            const sumberSelect = document.getElementById('nom-filter-sumber');
             const statusSelect = document.getElementById('nom-filter-status');
             const resetBtn = document.getElementById('nom-filter-reset');
             const rows = Array.from(document.querySelectorAll('.js-nom-row'));
@@ -200,13 +179,11 @@
 
             function applyFilter() {
                 const q = qInput.value.trim().toLowerCase();
-                const sumber = sumberSelect.value;
                 const status = statusSelect.value;
                 let visible = 0;
 
                 rows.forEach(function (row) {
                     const ok = (q === '' || row.dataset.search.includes(q))
-                        && (sumber === '' || row.dataset.sumber === sumber)
                         && (status === '' || row.dataset.status === status);
                     row.style.display = ok ? '' : 'none';
                     if (ok) visible++;
@@ -218,11 +195,9 @@
             }
 
             qInput.addEventListener('input', applyFilter);
-            sumberSelect.addEventListener('change', applyFilter);
             statusSelect.addEventListener('change', applyFilter);
             resetBtn.addEventListener('click', function () {
                 qInput.value = '';
-                sumberSelect.value = '';
                 statusSelect.value = '';
                 applyFilter();
             });
