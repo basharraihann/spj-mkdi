@@ -385,9 +385,9 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                                 x-text="'Rp ' + rupiah(sum('pajak'))"></div>
                         </div>
 
-                        <div class="bg-gray-900 border border-gray-800 text-white rounded-xl px-5 py-4">
+                        <div class="bg-white border border-gray-100 rounded-xl px-5 py-4">
                             <div class="text-xs text-gray-400 mb-1.5">Total netto</div>
-                            <div class="text-lg font-bold text-white tabular-nums"
+                            <div class="text-lg font-semibold text-gray-900 tabular-nums"
                                 x-text="'Rp ' + rupiah(sum('netto'))"></div>
                         </div>
                     </div>
