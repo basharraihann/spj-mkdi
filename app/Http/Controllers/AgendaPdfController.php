@@ -63,7 +63,11 @@ class AgendaPdfController extends Controller
         // filter cuma pegawai dengan status yang sesuai
         $pegawaiFiltered = $agenda->pegawai->where('status_kepegawaian', $statusLabel)->values();
 
-        $pdf = Pdf::loadView('pdf.nominatif', [
+        // Tujuan Jakarta pakai format nominatif khusus (pdf.nominatif-jakarta),
+        // selain itu pakai format biasa (pdf.nominatif).
+        $view = $this->isTujuanJakarta($agenda) ? 'pdf.nominatif-jakarta' : 'pdf.nominatif';
+
+        $pdf = Pdf::loadView($view, [
             'agenda' => $agenda,
             'pegawaiList' => $pegawaiFiltered,
             'statusLabel' => $statusLabel,
@@ -246,5 +250,15 @@ class AgendaPdfController extends Controller
     private function validateMemoStatus(string $status): void
     {
         abort_unless(in_array($status, ['pns', 'non-pns']), 404);
+    }
+
+    /**
+     * True kalau tujuan agenda (provinsi atau kab/kota) mengandung kata "jakarta".
+     * Dipakai buat milih format PDF khusus Jakarta.
+     */
+    private function isTujuanJakarta(Agenda $agenda): bool
+    {
+        return str_contains(strtolower($agenda->tujuan ?? ''), 'jakarta')
+            || str_contains(strtolower($agenda->kota_tujuan ?? ''), 'jakarta');
     }
 }
