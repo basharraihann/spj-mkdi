@@ -1,10 +1,6 @@
 <x-app-layout title="Memorandum">
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot> <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Memorandum') }}
         </h2>
     </x-slot>
@@ -116,162 +112,183 @@
                         <h3 class="text-lg font-semibold text-gray-800">Daftar Nomor Memo</h3>
                         <p class="text-sm text-gray-400 mt-1.5">
                             Diurutkan dari nomor memo terbaru. Menampilkan
-                            <span id="memo-visible-count">{{ $memos->count() }}</span> dari {{ $memos->count() }} entri.
+                            <span id="memo-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }} kegiatan.
                         </p>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm min-w-[850px]">
-                        <colgroup>
-                            <col style="width: 4%">
-                            <col style="width: 14%">
-                            <col style="width: 11%">
-                            <col style="width: 10%">
-                            <col style="width: 21%">
-                            <col style="width: 11%">
-                            <col style="width: 10%">
-                            <col style="width: 10%">
-                            <col style="width: 9%">
-                        </colgroup>
+                <div>
+                    <table id="memo-table" class="w-full table-fixed text-sm">
                         <thead>
                             <tr class="bg-gray-50/80 text-gray-500 text-left border-b border-gray-100">
-                                <th class="px-3 py-3.5 font-medium">No</th>
-                                <th class="px-3 py-3.5 font-medium">Nomor Memo</th>
-                                <th class="px-3 py-3.5 font-medium">Jenis</th>
-                                <th class="px-3 py-3.5 font-medium">Tanggal</th>
+                                <th class="px-3 py-3.5 font-medium w-10">No</th>
+                                <th class="px-3 py-3.5 font-medium w-44">Nomor Memo</th>
+                                <th class="px-3 py-3.5 font-medium w-28">Jenis</th>
+                                <th class="px-3 py-3.5 font-medium w-24">Tanggal</th>
                                 <th class="px-3 py-3.5 font-medium">Nama Kegiatan</th>
-                                <th class="px-3 py-3.5 font-medium">PIC</th>
-                                <th class="px-3 py-3.5 font-medium">MAK</th>
-                                <th class="px-3 py-3.5 font-medium text-right">Nominal</th>
-                                <th class="px-3 py-3.5 font-medium text-center">Aksi</th>
+                                <th class="px-3 py-3.5 font-medium w-28">PIC</th>
+                                <th class="px-3 py-3.5 font-medium w-28">MAK</th>
+                                <th class="px-3 py-3.5 font-medium text-right w-28">Nominal</th>
+                                <th class="px-3 py-3.5 font-medium text-center w-24">Aksi</th>
+                                <th class="px-3 py-3.5 font-medium text-center w-16">Hapus</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100" id="memo-table-body">
-                            @forelse ($memos as $i => $memo)
-                                @php
-                                    $tanggalIso = optional($memo['tanggal_memo'])->format('Y-m-d');
-                                    $tanggalTampil = optional($memo['tanggal_memo'])->translatedFormat('d M Y');
-                                    $tanggalTampilLengkap = optional($memo['tanggal_memo'])->translatedFormat('d F Y');
 
-                                    $searchBlob = strtolower(collect([
-                                        $memo['nomor_memo'] ?? '',
-                                        $memo['uraian_kegiatan'] ?? '',
-                                        $memo['pic'] ?? '',
-                                        $tanggalIso,
-                                        $tanggalTampil,
-                                        $tanggalTampilLengkap,
-                                    ])->filter()->implode(' '));
-                                @endphp
-                                <tr class="js-memo-row hover:bg-gray-50/70 transition align-top"
-                                    data-search="{{ $searchBlob }}" data-jenis="{{ $memo['jenis'] }}"
-                                    data-pic="{{ $memo['pic'] }}" data-tanggal="{{ $tanggalIso }}">
-                                    <td class="px-3 py-5 text-gray-400 js-memo-number">{{ $i + 1 }}</td>
-                                    <td class="px-3 py-5">
-                                        @if ($memo['agenda_id'])
-                                            <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
-                                                class="font-semibold text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
-                                                {{ $memo['nomor_memo'] }}
-                                            </a>
-                                        @else
-                                            <span class="font-semibold text-gray-800 tabular-nums break-all">
-                                                {{ $memo['nomor_memo'] }}
-                                            </span>
+                        @forelse ($groups as $g)
+                            @php
+                                $tanggalIso = optional($g['tanggal_memo'])->format('Y-m-d');
+                                $tanggalTampil = optional($g['tanggal_memo'])->translatedFormat('d M Y');
+                                $tanggalTampilLengkap = optional($g['tanggal_memo'])->translatedFormat('d F Y');
+                                $n = count($g['items']);
+
+                                $searchBlob = strtolower(collect([
+                                    collect($g['items'])->pluck('nomor_memo')->implode(' '),
+                                    $g['uraian_kegiatan'] ?? '',
+                                    $g['pic'] ?? '',
+                                    $tanggalIso,
+                                    $tanggalTampil,
+                                    $tanggalTampilLengkap,
+                                ])->filter()->implode(' '));
+
+                                $jenisClass = match ($g['jenis']) {
+                                    'perdin' => 'bg-indigo-50 text-indigo-600',
+                                    'konsumsi' => 'bg-emerald-50 text-emerald-600',
+                                    default => 'bg-amber-50 text-amber-600',
+                                };
+
+                                $deleteLabel = $g['agenda_id']
+                                    ? 'agenda ini beserta seluruh nomor memonya (PNS dan Non PNS)'
+                                    : 'nomor memo ini';
+                            @endphp
+
+                            {{-- Satu tbody = satu kegiatan (bisa 2 baris memo: PNS + Non PNS) --}}
+                            <tbody class="js-memo-group border-t border-gray-100 hover:bg-gray-50/70 transition"
+                                data-search="{{ $searchBlob }}" data-jenis="{{ $g['jenis'] }}"
+                                data-pic="{{ $g['pic'] }}" data-tanggal="{{ $tanggalIso }}">
+                                @foreach ($g['items'] as $memo)
+                                    <tr class="align-top {{ $loop->first ? '' : 'border-t border-dashed border-gray-100' }}">
+                                        @if ($loop->first)
+                                            <td rowspan="{{ $n }}"
+                                                class="px-3 py-4 text-gray-400 js-memo-number">{{ $loop->parent->iteration }}</td>
                                         @endif
-                                    </td>
-                                    <td class="px-3 py-5">
-                                        <div class="flex flex-col items-start gap-1.5">
-                                            <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                            @class([
-                                                'bg-indigo-50 text-indigo-600' => $memo['jenis'] === 'perdin',
-                                                'bg-emerald-50 text-emerald-600' => $memo['jenis'] === 'konsumsi',
-                                                'bg-amber-50 text-amber-600' => $memo['jenis'] === 'honorarium',
-                                            ])">
-                                                {{ $memo['jenis_label'] }}
-                                            </span>
 
-                                            @if ($memo['status'])
+                                        {{-- Nomor memo + status (per memo) --}}
+                                        <td class="px-3 py-4">
+                                            <div class="flex flex-col items-start gap-1.5">
+                                                @if ($memo['agenda_id'])
+                                                    <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
+                                                        class="font-semibold text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
+                                                        {{ $memo['nomor_memo'] }}
+                                                    </a>
+                                                @else
+                                                    <span class="font-semibold text-gray-800 tabular-nums break-all">
+                                                        {{ $memo['nomor_memo'] }}
+                                                    </span>
+                                                @endif
+
+                                                @if ($memo['status'])
+                                                    <span
+                                                        class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
+                                                        {{ $memo['status'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+
+                                        @if ($loop->first)
+                                            <td rowspan="{{ $n }}" class="px-3 py-4">
                                                 <span
-                                                    class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full
-                                                            {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
-                                                    {{ $memo['status'] }}
+                                                    class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $jenisClass }}">
+                                                    {{ $g['jenis_label'] }}
                                                 </span>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="px-3 py-5 text-gray-500 whitespace-nowrap">
-                                        {{ optional($memo['tanggal_memo'])->translatedFormat('d M Y') }}
-                                    </td>
-                                    <td class="px-3 py-5 text-gray-700 leading-relaxed">
-                                        <p class="uraian-text line-clamp-2">
-                                            {{ $memo['uraian_kegiatan'] ?? '-' }}
-                                        </p>
-                                        @if (strlen($memo['uraian_kegiatan'] ?? '') > 90)
-                                            <button type="button"
-                                                class="toggle-uraian text-xs font-medium text-blue-600 hover:text-blue-700 mt-1">
-                                                Selengkapnya
-                                            </button>
+                                            </td>
+                                            <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-500 text-xs">
+                                                {{ $tanggalTampil }}
+                                            </td>
+                                            <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-700 leading-relaxed">
+                                                <p class="uraian-text line-clamp-2">
+                                                    {{ $g['uraian_kegiatan'] ?? '-' }}
+                                                </p>
+                                                @if (strlen($g['uraian_kegiatan'] ?? '') > 90)
+                                                    <button type="button"
+                                                        class="toggle-uraian text-xs font-medium text-blue-600 hover:text-blue-700 mt-1">
+                                                        Selengkapnya
+                                                    </button>
+                                                @endif
+                                            </td>
+                                            <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-600 break-words">
+                                                {{ $g['pic'] }}
+                                            </td>
+                                            <td rowspan="{{ $n }}"
+                                                class="px-3 py-4 text-gray-500 text-xs font-mono break-all">
+                                                {{ $g['mak'] ?? '-' }}
+                                            </td>
                                         @endif
-                                    </td>
-                                    <td class="px-3 py-5 text-gray-600 truncate" title="{{ $memo['pic'] }}">
-                                        {{ $memo['pic'] }}
-                                    </td>
-                                    <td class="px-3 py-5 text-gray-500 text-xs font-mono truncate"
-                                        title="{{ $memo['mak'] ?? '-' }}">
-                                        {{ $memo['mak'] ?? '-' }}
-                                    </td>
-                                    <td class="px-3 py-5 text-gray-900 font-semibold text-right tabular-nums">
-                                        Rp{{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
-                                    </td>
-                                    <td class="px-3 py-5">
-                                        <div class="flex flex-col items-stretch gap-1">
-                                            <a href="{{ $memo['pdf_url'] }}" target="_blank"
-                                                class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                                PDF
-                                            </a>
 
-                                            @if ($memo['editable'])
-                                                <a href="{{ $memo['edit_url'] }}"
-                                                    class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition">
+                                        {{-- Nominal (per memo) --}}
+                                        <td class="px-3 py-4 text-gray-900 font-semibold text-right tabular-nums">
+                                            Rp{{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
+                                        </td>
+
+                                        {{-- PDF / Edit (per memo) --}}
+                                        <td class="px-3 py-3">
+                                            <div class="flex flex-col items-stretch gap-1">
+                                                <a href="{{ $memo['pdf_url'] }}" target="_blank"
+                                                    title="Buka PDF {{ $memo['status'] ?? '' }}"
+                                                    class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
-                                                    Edit
+                                                    PDF
                                                 </a>
-                                            @endif
 
-                                            <form action="{{ route('memo.destroy', $memo['id']) }}" method="POST"
-                                                class="delete-memo-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="w-full inline-flex items-center justify-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                    Hapus
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
+                                                @if ($memo['editable'])
+                                                    <a href="{{ $memo['edit_url'] }}"
+                                                        class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                            stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                        Edit
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        </td>
+
+                                        {{-- Hapus (satu per kegiatan) --}}
+                                        @if ($loop->first)
+                                            <td rowspan="{{ $n }}" class="px-3 py-3 text-center">
+                                                <form action="{{ route('memo.destroy', $g['delete_id']) }}" method="POST"
+                                                    class="delete-memo-form inline-flex" data-label="{{ $deleteLabel }}">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" title="Hapus {{ $deleteLabel }}"
+                                                        class="inline-flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        @endif
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        @empty
+                            <tbody>
                                 <tr>
-                                    <td colspan="9" class="px-6 py-16 text-center text-gray-400">
+                                    <td colspan="10" class="px-6 py-16 text-center text-gray-400">
                                         Belum ada nomor memo.
                                     </td>
                                 </tr>
-                            @endforelse
-                        </tbody>
+                            </tbody>
+                        @endforelse
                     </table>
 
                     <p id="memo-no-result" class="hidden px-6 py-16 text-center text-gray-400">
@@ -317,45 +334,46 @@
             const sampaiInput = document.getElementById('memo-filter-sampai');
             const resetBtn = document.getElementById('memo-filter-reset');
 
-            const rows = Array.from(document.querySelectorAll('.js-memo-row'));
+            const groups = Array.from(document.querySelectorAll('.js-memo-group'));
             const noResult = document.getElementById('memo-no-result');
-            const tableBody = document.getElementById('memo-table-body');
+            const table = document.getElementById('memo-table');
             const visibleCountEl = document.getElementById('memo-visible-count');
 
-            if (rows.length === 0) return; // belum ada data, gak perlu filter
+            if (groups.length === 0) return; // belum ada data, gak perlu filter
 
             function applyFilter() {
                 const cari = cariInput.value.trim().toLowerCase();
                 const jenis = jenisSelect.value;
                 const pic = picSelect.value;
-                const dari = dariInput.value; // format YYYY-MM-DD, cocok buat compare string
+                const dari = dariInput.value; // YYYY-MM-DD, cocok buat compare string
                 const sampai = sampaiInput.value;
 
                 let visibleCount = 0;
 
-                rows.forEach(function (row, idx) {
-                    const matchCari = cari === '' || row.dataset.search.includes(cari);
-                    const matchJenis = jenis === 'semua' || row.dataset.jenis === jenis;
-                    const matchPic = pic === '' || row.dataset.pic === pic;
+                groups.forEach(function (g) {
+                    const matchCari = cari === '' || g.dataset.search.includes(cari);
+                    const matchJenis = jenis === 'semua' || g.dataset.jenis === jenis;
+                    const matchPic = pic === '' || g.dataset.pic === pic;
 
-                    const tgl = row.dataset.tanggal || '';
+                    const tgl = g.dataset.tanggal || '';
                     const matchDari = dari === '' || (tgl !== '' && tgl >= dari);
                     const matchSampai = sampai === '' || (tgl !== '' && tgl <= sampai);
 
                     const visible = matchCari && matchJenis && matchPic && matchDari && matchSampai;
 
-                    row.style.display = visible ? '' : 'none';
+                    g.style.display = visible ? '' : 'none';
 
                     if (visible) {
                         visibleCount++;
-                        const numberCell = row.querySelector('.js-memo-number');
+                        const numberCell = g.querySelector('.js-memo-number');
                         if (numberCell) numberCell.textContent = visibleCount;
                     }
                 });
 
                 if (visibleCountEl) visibleCountEl.textContent = visibleCount;
                 if (noResult) noResult.classList.toggle('hidden', visibleCount > 0);
-                if (tableBody) tableBody.style.display = visibleCount > 0 ? '' : 'none';
+                // sembunyikan seluruh tabel (termasuk header) kalau tidak ada hasil
+                if (table) table.style.display = visibleCount > 0 ? '' : 'none';
             }
 
             cariInput.addEventListener('input', applyFilter);

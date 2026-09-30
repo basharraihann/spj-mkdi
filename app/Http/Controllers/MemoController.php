@@ -14,14 +14,11 @@ class MemoController extends Controller
 {
     /**
      * Daftar semua nomor memo, gabungan dari dua sumber:
-     * - agendas.nomor_memo_pns / nomor_memo_non_pns (nomor yang nempel ke agenda,
-     *   1 agenda bisa nyumbang 1 atau 2 baris) -> jenis "perdin"
-     * - memo_entries (nomor yang dibuat mandiri lewat halaman "Buat Nomor Memo",
-     *   gak nempel ke agenda manapun) -> jenis "konsumsi" / "honorarium"
+     * - agendas.nomor_memo_pns / nomor_memo_non_pns -> jenis "perdin"
+     * - memo_entries (dibuat mandiri) -> jenis "konsumsi" / "honorarium"
      *
-     * Urutan ditentukan dari nomor_urut (angka di depan nomor memo), terbesar
-     * di atas. Mendukung filter lewat query string: jenis, pic, cari,
-     * dari_tanggal, sampai_tanggal.
+     * Ditampilkan satu baris per agenda: memo PNS dan Non PNS dari agenda yang
+     * sama digabung. Memo mandiri tetap satu grup satu item.
      */
     public function index(Request $request)
     {
@@ -41,6 +38,7 @@ class MemoController extends Controller
             if (!empty($agenda->nomor_memo_pns)) {
                 $memos->push([
                     'id' => 'agenda-' . $agenda->id . '-pns',
+                    'group_key' => 'agenda-' . $agenda->id,
                     'agenda_id' => $agenda->id,
                     'nomor_memo' => $agenda->nomor_memo_pns,
                     'nomor_urut' => NomorMemoService::ekstrakUrutan($agenda->nomor_memo_pns) ?? 0,
@@ -61,6 +59,7 @@ class MemoController extends Controller
             if (!empty($agenda->nomor_memo_non_pns)) {
                 $memos->push([
                     'id' => 'agenda-' . $agenda->id . '-non_pns',
+                    'group_key' => 'agenda-' . $agenda->id,
                     'agenda_id' => $agenda->id,
                     'nomor_memo' => $agenda->nomor_memo_non_pns,
                     'nomor_urut' => NomorMemoService::ekstrakUrutan($agenda->nomor_memo_non_pns) ?? 0,
@@ -82,6 +81,7 @@ class MemoController extends Controller
         foreach (MemoEntry::with('pic')->get() as $entry) {
             $memos->push([
                 'id' => 'entry-' . $entry->id,
+                'group_key' => 'entry-' . $entry->id,
                 'agenda_id' => null,
                 'nomor_memo' => $entry->nomor_memo,
                 'nomor_urut' => $entry->nomor_urut ?? NomorMemoService::ekstrakUrutan($entry->nomor_memo) ?? 0,
@@ -101,15 +101,39 @@ class MemoController extends Controller
             ]);
         }
 
-        // Opsi PIC buat dropdown filter, diambil dari data yang benar-benar ada
+        // Opsi PIC buat dropdown filter
         $picOptions = $memos->pluck('pic')->unique()->sort()->values();
 
         // Urutan: nomor memo terbesar (terbaru) di atas
         $memos = $memos->sortByDesc('nomor_urut')->values();
 
+        // Satu grup = satu agenda (atau satu memo mandiri).
+        // groupBy mempertahankan urutan kemunculan pertama, jadi urutan nomor tetap.
+        $groups = $memos
+            ->groupBy('group_key')
+            ->map(function ($items) {
+                $items = $items
+                    ->sortBy(fn($i) => $i['status'] === 'Non PNS' ? 1 : 0) // PNS di atas
+                    ->values();
+                $first = $items->first();
+
+                return [
+                    'agenda_id' => $first['agenda_id'],
+                    'delete_id' => $first['id'], // untuk agenda, destroy() menghapus agenda + kedua memonya
+                    'jenis' => $first['jenis'],
+                    'jenis_label' => $first['jenis_label'],
+                    'tanggal_memo' => $first['tanggal_memo'],
+                    'uraian_kegiatan' => $first['uraian_kegiatan'],
+                    'pic' => $first['pic'],
+                    'mak' => $first['mak'],
+                    'items' => $items->all(),
+                ];
+            })
+            ->values();
+
         $nomorBerikutnya = NomorMemoService::dataBerikutnya();
 
-        return view('memo.index', compact('memos', 'nomorBerikutnya', 'picOptions'));
+        return view('memo.index', compact('groups', 'nomorBerikutnya', 'picOptions'));
     }
 
     /**
@@ -197,9 +221,9 @@ class MemoController extends Controller
     /**
      * Hapus nomor memo. $id di sini bukan primary key murni, tapi id komposit
      * yang dibentuk di index():
-     * - "agenda-{agenda_id}-pns"     -> kosongkan kolom nomor_memo_pns di agenda
-     * - "agenda-{agenda_id}-non_pns" -> kosongkan kolom nomor_memo_non_pns di agenda
-     * - "entry-{memo_entry_id}"      -> hapus baris di memo_entries
+     * - "agenda-{agenda_id}-pns" / "agenda-{agenda_id}-non_pns" -> hapus agenda
+     *   (memo PNS dan Non PNS yang nempel ikut hilang)
+     * - "entry-{memo_entry_id}" -> hapus baris di memo_entries
      */
     public function destroy(string $id)
     {
@@ -227,6 +251,7 @@ class MemoController extends Controller
 
         abort(404);
     }
+
     public function pdf(MemoEntry $memo)
     {
         $memo->load(['pic', 'ppk', 'bendahara', 'penanggungJawab', 'petugasVerifikasi']);
