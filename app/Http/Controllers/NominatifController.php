@@ -17,6 +17,8 @@ class NominatifController extends Controller
      * Daftar nominatif, gabungan dua sumber:
      * - agenda: nominatif perjalanan dinas (PNS / Non PNS), hanya yang ada pesertanya
      * - nominatif_entries: Daftar Honorarium Narasumber yang dibuat mandiri tanpa agenda
+     *
+     * Ditampilkan satu baris per agenda (nomi PNS dan Non PNS digabung).
      */
     public function index()
     {
@@ -42,6 +44,7 @@ class NominatifController extends Controller
 
                 $rows->push([
                     'id' => 'agenda-' . $agenda->id . '-' . $slug,
+                    'group_key' => 'agenda-' . $agenda->id,
                     'sumber' => 'agenda',
                     'uraian_kegiatan' => $agenda->uraian_kegiatan,
                     'tujuan' => $tujuan ?: '-',
@@ -62,6 +65,7 @@ class NominatifController extends Controller
 
             $rows->push([
                 'id' => 'entry-' . $entry->id,
+                'group_key' => 'entry-' . $entry->id,
                 'sumber' => 'mandiri',
                 'uraian_kegiatan' => $entry->uraian_kegiatan,
                 'tujuan' => $tujuan ?: '-',
@@ -78,7 +82,27 @@ class NominatifController extends Controller
 
         $rows = $rows->sortByDesc('sort')->values();
 
-        return view('nominatif.index', compact('rows'));
+        // Satu grup = satu agenda (atau satu honorarium mandiri).
+        // groupBy mempertahankan urutan kemunculan pertama, jadi urutan tanggal tetap.
+        $groups = $rows
+            ->groupBy('group_key')
+            ->map(function ($items) {
+                $first = $items->first();
+
+                return [
+                    'uraian_kegiatan' => $first['uraian_kegiatan'],
+                    'tujuan' => $first['tujuan'],
+                    'tanggal' => $first['tanggal'],
+                    // PNS di atas, Non PNS di bawah
+                    'items' => $items
+                        ->sortBy(fn($i) => $i['status'] === 'PNS' ? 0 : 1)
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->values();
+
+        return view('nominatif.index', compact('groups'));
     }
 
     public function create()

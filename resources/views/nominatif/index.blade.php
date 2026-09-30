@@ -21,7 +21,7 @@
                     <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Nominatif</h1>
                     <span
                         class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-indigo-100">
-                        {{ $rows->count() }} dokumen
+                        {{ $groups->count() }} kegiatan
                     </span>
                 </div>
                 <p class="text-sm text-gray-500 mt-1">Nominatif perjalanan dinas dari agenda, dan daftar honorarium
@@ -74,84 +74,123 @@
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div class="flex items-center justify-between px-6 pt-5">
                 <span class="text-xs font-semibold text-gray-400">
-                    <span id="nom-visible-count">{{ $rows->count() }}</span> dari {{ $rows->count() }} dokumen
+                    <span id="nom-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }} kegiatan
                 </span>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-gray-600">
+            <div>
+                <table id="nom-table" class="w-full table-fixed text-left text-sm text-gray-600">
                     <thead class="bg-gray-50/70 border-b border-gray-100 text-xs font-semibold uppercase text-gray-500">
                         <tr>
-                            <th class="px-4 py-4 text-center w-12">No</th>
-                            <th class="px-6 py-4">Uraian Kegiatan</th>
-                            <th class="px-6 py-4">Tujuan</th>
-                            <th class="px-6 py-4">Tanggal</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4 text-center">Orang</th>
-                            <th class="px-6 py-4 text-right">Total</th>
-                            <th class="px-6 py-4 text-right">Aksi</th>
+                            <th class="px-3 py-4 text-center w-12">No</th>
+                            <th class="px-3 py-4">Uraian Kegiatan</th>
+                            <th class="px-3 py-4 w-40">Tujuan</th>
+                            <th class="px-3 py-4 w-32">Tanggal</th>
+                            <th class="px-3 py-4 w-32">Status</th>
+                            <th class="px-3 py-4 text-center w-16">Orang</th>
+                            <th class="px-3 py-4 text-right w-32">Total</th>
+                            <th class="px-3 py-4 text-right w-44">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @forelse ($rows as $r)
-                            <tr class="js-nom-row hover:bg-gray-50/50 transition"
-                                data-search="{{ strtolower($r['uraian_kegiatan'] . ' ' . $r['tujuan'] . ' ' . $r['status'] . ($r['status'] === 'Honorarium' ? ' narasumber' : '')) }}"
-                                data-status="{{ $r['status'] }}">
+                        @forelse ($groups as $g)
+                            @php
+                                $statuses = '|' . collect($g['items'])->pluck('status')->implode('|') . '|';
+                                $search = strtolower(
+                                    $g['uraian_kegiatan'] . ' ' . $g['tujuan'] . ' ' .
+                                    collect($g['items'])->map(fn ($i) => $i['status'] . ($i['status'] === 'Honorarium' ? ' narasumber' : ''))->implode(' ')
+                                );
+                            @endphp
+                            <tr class="js-nom-row hover:bg-gray-50/50 transition align-top"
+                                data-search="{{ $search }}" data-status="{{ $statuses }}">
                                 <td class="px-4 py-4 text-center text-xs font-semibold text-gray-400 tabular-nums">
                                     <span class="js-nom-number">{{ $loop->iteration }}</span>
                                 </td>
-                                <td class="px-6 py-4 font-medium text-gray-900 max-w-xs">
-                                    <div class="line-clamp-2">{{ $r['uraian_kegiatan'] }}</div>
+                                <td class="px-3 py-4 font-medium text-gray-900 max-w-xs">
+                                    <div class="line-clamp-2">{{ $g['uraian_kegiatan'] }}</div>
                                 </td>
-                                <td class="px-6 py-4">{{ $r['tujuan'] }}</td>
-                                <td class="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">{{ $r['tanggal'] }}</td>
-                                <td class="px-6 py-4">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $r['status'] === 'PNS' ? 'bg-blue-50 text-blue-700 border-blue-200/60' : ($r['status'] === 'Honorarium' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' : 'bg-amber-50 text-amber-700 border-amber-200/60') }}">
-                                        {{ $r['status'] }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-center">{{ $r['jumlah_peserta'] }}</td>
-                                <td class="px-6 py-4 text-right whitespace-nowrap">Rp
-                                    {{ number_format($r['total'], 0, ',', '.') }}
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-1.5">
-                                        <a href="{{ $r['pdf_url'] }}" target="_blank"
-                                            class="inline-flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition"
-                                            title="Buka / Unduh PDF">
-                                            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                            </svg>
-                                            <span>PDF</span>
-                                        </a>
+                                <td class="px-3 py-4">{{ $g['tujuan'] }}</td>
+                                <td class="px-3 py-4 text-xs text-gray-500">{{ $g['tanggal'] }}</td>
 
-                                        @if ($r['edit_url'])
-                                            <a href="{{ $r['edit_url'] }}"
-                                                class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 rounded-lg transition"
-                                                title="Edit Nominatif">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                </svg>
-                                            </a>
-                                        @endif
+                                {{-- Status --}}
+                                <td class="px-3 py-4">
+                                    <div class="flex flex-col gap-1.5">
+                                        @foreach ($g['items'] as $r)
+                                            <div class="h-8 flex items-center">
+                                                <span
+                                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $r['status'] === 'PNS' ? 'bg-blue-50 text-blue-700 border-blue-200/60' : ($r['status'] === 'Honorarium' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60' : 'bg-amber-50 text-amber-700 border-amber-200/60') }}">
+                                                    {{ $r['status'] }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
 
-                                        @if ($r['delete_url'])
-                                            <form method="POST" action="{{ $r['delete_url'] }}" class="inline-flex m-0"
-                                                onsubmit="return confirm('Hapus nominatif ini beserta seluruh pesertanya?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-rose-600 bg-gray-50 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 rounded-lg transition cursor-pointer"
-                                                    title="Hapus Nominatif">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {{-- Orang --}}
+                                <td class="px-3 py-4 text-center">
+                                    <div class="flex flex-col gap-1.5">
+                                        @foreach ($g['items'] as $r)
+                                            <div class="h-8 flex items-center justify-center">{{ $r['jumlah_peserta'] }}</div>
+                                        @endforeach
+                                    </div>
+                                </td>
+
+                                {{-- Total --}}
+                                <td class="px-3 py-4 text-right whitespace-nowrap">
+                                    <div class="flex flex-col gap-1.5">
+                                        @foreach ($g['items'] as $r)
+                                            <div class="h-8 flex items-center justify-end">
+                                                Rp {{ number_format($r['total'], 0, ',', '.') }}
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+
+                                {{-- Aksi --}}
+                                <td class="px-3 py-4 text-right">
+                                    <div class="flex flex-col gap-1.5 items-end">
+                                        @foreach ($g['items'] as $r)
+                                            <div class="h-8 flex items-center justify-end gap-1.5">
+                                                <a href="{{ $r['pdf_url'] }}" target="_blank"
+                                                    class="inline-flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition"
+                                                    title="Buka / Unduh PDF {{ $r['status'] }}">
+                                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                                     </svg>
-                                                </button>
-                                            </form>
-                                        @endif
+                                                    <span>PDF</span>
+                                                </a>
+
+                                                @if ($r['edit_url'])
+                                                    <a href="{{ $r['edit_url'] }}"
+                                                        class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 rounded-lg transition"
+                                                        title="Edit Nominatif {{ $r['status'] }}">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                    </a>
+                                                @endif
+
+                                                @if ($r['delete_url'])
+                                                    <form method="POST" action="{{ $r['delete_url'] }}" class="inline-flex m-0"
+                                                        onsubmit="return confirm('Hapus nominatif {{ $r['status'] }} ini beserta seluruh pesertanya?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit"
+                                                            class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-rose-600 bg-gray-50 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 rounded-lg transition cursor-pointer"
+                                                            title="Hapus Nominatif {{ $r['status'] }}">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                                viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </td>
                             </tr>
@@ -180,7 +219,7 @@
             const resetBtn = document.getElementById('nom-filter-reset');
             const rows = Array.from(document.querySelectorAll('.js-nom-row'));
             const noResult = document.getElementById('nom-no-result');
-            const table = document.querySelector('.overflow-x-auto table');
+            const table = document.getElementById('nom-table');
             const countEl = document.getElementById('nom-visible-count');
 
             if (rows.length === 0) return;
@@ -192,7 +231,8 @@
 
                 rows.forEach(function (row) {
                     const matchesQuery = (q === '' || row.dataset.search.includes(q));
-                    const matchesStatus = (status === '' || row.dataset.status === status);
+                    // data-status berformat "|PNS|Non PNS|" supaya "Non PNS" tidak bentrok dengan "PNS"
+                    const matchesStatus = (status === '' || row.dataset.status.includes('|' + status + '|'));
                     const ok = matchesQuery && matchesStatus;
 
                     row.style.display = ok ? '' : 'none';
