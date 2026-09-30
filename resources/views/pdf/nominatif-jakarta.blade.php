@@ -15,6 +15,13 @@
             font-size: 11px;
         }
 
+        h3.judul {
+            text-align: center;
+            font-size: 12px;
+            margin: 0 0 10px 0;
+            text-decoration: underline;
+        }
+
         table.data {
             width: 100%;
             border-collapse: collapse;
@@ -34,10 +41,6 @@
         table.data th {
             background: #eee;
             font-weight: normal;
-        }
-
-        .idx td {
-            font-size: 10px;
         }
 
         .text-left {
@@ -79,7 +82,7 @@
         }
 
         .ttd-space {
-            height: 60px;
+            height: 80px;
             display: block;
         }
     </style>
@@ -87,22 +90,42 @@
 
 <body>
     @php
-        $rupiah = fn($n) => 'Rp' . number_format($n ?? 0);
+        // Nilai 0 / kosong ditampilkan sebagai "-"
+        $rupiah = fn($n) => (float) ($n ?? 0) == 0 ? '-' : 'Rp' . number_format($n);
+        $angka = fn($n) => (float) ($n ?? 0) == 0 ? '-' : number_format($n);
 
-        $komponen = [
-            'tiket',
-            'lumpsum',
-            'dukungan_transportasi',
-            'transportasi_darat',
-            'transportasi_lokal',
-            'hotel',
-            'penginapan_30',
-            'peng_riil',
-            'representatif',
-            'belanja_bahan',
-            'honor_narsum',
+        // Urutan + label kolom untuk tiap komponen biaya.
+        $labelKomponen = [
+            'tiket' => 'Tiket',
+            'lumpsum' => 'Uang Harian',
+            'dukungan_transportasi' => 'Dukungan Transportasi',
+            'transportasi_darat' => 'Transportasi Darat',
+            'transportasi_lokal' => 'Transportasi Lokal',
+            'hotel' => 'Hotel',
+            'penginapan_30' => 'Penginapan 30%',
+            'peng_riil' => 'Pengeluaran Riil',
+            'representatif' => 'Representatif',
+            'belanja_bahan' => 'Belanja Bahan',
+            'honor_narsum' => 'Honor Narasumber',
         ];
-        $aktif = array_intersect($komponen, $agenda->komponen_biaya ?? []);
+
+        // Hanya komponen yang dipilih di agenda ini, urutan mengikuti $labelKomponen.
+        $aktif = array_values(array_intersect(array_keys($labelKomponen), $agenda->komponen_biaya ?? []));
+        $nKomp = count($aktif);
+        $tampilJumlah = $nKomp > 1; // kolom Jumlah per orang hanya kalau komponennya lebih dari satu
+
+        // Hitung lebar kolom (dalam %) supaya total selalu 100%.
+        $wNo = 3;
+        $wNama = 15;
+        $wGol = 4;
+        $wTtd = 16; // 2 kolom x 8%
+        $wKet = $nKomp <= 2 ? 22 : 14;
+        $wJumlah = $tampilJumlah ? 9 : 0;
+        $sisa = 100 - ($wNo + $wNama + $wGol + $wTtd + $wKet + $wJumlah);
+        $wKomp = $nKomp > 0 ? round($sisa / $nKomp, 2) : 0;
+
+        // Total kolom di tabel: No, Nama, Gol + komponen + (Jumlah) + Keterangan + 2 TTD
+        $totalKolom = 3 + $nKomp + ($tampilJumlah ? 1 : 0) + 1 + 2;
 
         $pegawaiList = $pegawaiList->sort(function ($a, $b) {
             $urutanA = $a->urutan ?? PHP_INT_MAX;
@@ -111,55 +134,73 @@
         })->values();
 
         $grandTotal = 0;
+        $totalPerKomp = array_fill_keys($aktif, 0);
     @endphp
+
+    <h3 class="judul">DAFTAR PENERIMAAN UANG TRANSPORT</h3>
 
     <table class="data">
         <thead>
             <tr>
-                <th style="width:4%">No</th>
-                <th style="width:20%">NAMA</th>
-                <th style="width:6%">Gol.</th>
-                <th style="width:11%">Transport</th>
-                <th style="width:35%">Keterangan</th>
-                <th colspan="2" style="width:24%">TANDA TANGAN</th>
-            </tr>
-            <tr class="idx">
-                <td>(a)</td>
-                <td>(b)</td>
-                <td>(c)</td>
-                <td>(d)</td>
-                <td>(e)</td>
-                <td colspan="2">(f)</td>
+                <th style="width:{{ $wNo }}%">No</th>
+                <th style="width:{{ $wNama }}%">NAMA</th>
+                <th style="width:{{ $wGol }}%">Gol.</th>
+                @foreach ($aktif as $key)
+                    <th style="width:{{ $wKomp }}%">{{ $labelKomponen[$key] }}</th>
+                @endforeach
+                @if ($tampilJumlah)
+                    <th style="width:{{ $wJumlah }}%">Jumlah</th>
+                @endif
+                <th style="width:{{ $wKet }}%">Keterangan</th>
+                <th colspan="2" style="width:{{ $wTtd }}%">TANDA TANGAN</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($pegawaiList as $i => $p)
                 @php
                     $jumlah = 0;
+                    $nilai = [];
                     foreach ($aktif as $key) {
-                        $jumlah += (float) ($p->pivot->{$key} ?? 0);
+                        $v = (float) ($p->pivot->{$key} ?? 0);
+                        $nilai[$key] = $v;
+                        $totalPerKomp[$key] += $v;
+                        $jumlah += $v;
                     }
                     $grandTotal += $jumlah;
                     $no = $i + 1;
                     $ket = $p->pivot->keterangan ?? $agenda->uraian_kegiatan;
+                    $ket = trim((string) $ket) !== '' ? $ket : '-';
                 @endphp
                 <tr>
                     <td>{{ $no }}</td>
                     <td class="text-left">{{ $p->nama_gelar ?? $p->nama }}</td>
                     <td>{{ $p->golongan ?? '-' }}</td>
-                    <td class="text-right">{{ $rupiah($jumlah) }}</td>
+                    @foreach ($aktif as $key)
+                        <td class="{{ $nilai[$key] == 0 ? '' : 'text-right' }}">{{ $rupiah($nilai[$key]) }}</td>
+                    @endforeach
+                    @if ($tampilJumlah)
+                        <td class="{{ $jumlah == 0 ? '' : 'text-right' }}">{{ $rupiah($jumlah) }}</td>
+                    @endif
                     <td class="text-left">{{ $ket }}</td>
-                    <td class="ttd-cell">{{ $no % 2 === 1 ? $no : '' }}</td>
-                    <td class="ttd-cell">{{ $no % 2 === 0 ? $no : '' }}</td>
+                    <td class="ttd-cell">{{ $no % 2 === 1 ? $no . '.' : '' }}</td>
+                    <td class="ttd-cell">{{ $no % 2 === 0 ? $no . '.' : '' }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-left">Tidak ada peserta {{ $statusLabel }} pada agenda ini.</td>
+                    <td colspan="{{ $totalKolom }}" class="text-left">Tidak ada peserta {{ $statusLabel }} pada agenda ini.
+                    </td>
                 </tr>
             @endforelse
             <tr>
                 <td colspan="3"><strong>JUMLAH</strong></td>
-                <td class="text-right"><strong>{{ number_format($grandTotal) }}</strong></td>
+                @foreach ($aktif as $key)
+                    <td class="{{ $totalPerKomp[$key] == 0 ? '' : 'text-right' }}">
+                        <strong>{{ $angka($totalPerKomp[$key]) }}</strong>
+                    </td>
+                @endforeach
+                @if ($tampilJumlah)
+                    <td class="{{ $grandTotal == 0 ? '' : 'text-right' }}"><strong>{{ $angka($grandTotal) }}</strong></td>
+                @endif
                 <td></td>
                 <td></td>
                 <td></td>
@@ -191,6 +232,7 @@
                 </td>
                 <td width="33%">
                     <div class="ttd-header">
+                        Jakarta, {{ now()->locale('id')->translatedFormat('d F Y') }}<br>
                         Penanggung Jawab Kegiatan
                     </div>
                     <div class="ttd-space"></div>
