@@ -104,12 +104,26 @@
             padding: 0;
         }
 
+        table.ttd-indiv {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        table.ttd-indiv td {
+            border: none;
+            vertical-align: top;
+            font-size: 10.5px;
+            line-height: 1.6;
+            padding: 0;
+        }
+
         .ttd-space {
-            height: 48px;
+            height: 58px;
         }
 
         .ttd-space-sm {
-            height: 38px;
+            height: 58px;
         }
 
         .page-break {
@@ -117,7 +131,7 @@
         }
 
         .section-gap {
-            margin-top: 24px;
+            margin-top: 42px;
         }
     </style>
 </head>
@@ -255,18 +269,26 @@
         </table>
 
         {{-- Tanda tangan 2 Kolom: Bendahara (Kiri) & PPK (Kanan) --}}
-        <table class="ttd">
+        <table class="ttd-indiv">
             <tr>
-                <td style="width:35%;">
+                <td style="width:35%; vertical-align: bottom;">
+                    &nbsp;<br>
                     Bendahara Pengeluaran
+                </td>
+                <td style="width:30%;"></td>
+                <td style="width:35%; vertical-align: bottom;">
+                    Jakarta, {{ $tanggalTtd }}<br>
+                    Pejabat Pembuat Komitmen
+                </td>
+            </tr>
+            <tr>
+                <td style="width:35%; vertical-align: top;">
                     <div class="ttd-space-sm"></div>
                     <strong>{{ $bendahara->nama ?? 'Raka Panji Wibowo' }}</strong><br>
                     NIP. {{ $formatNipDot($bendahara->nip ?? null) }}
                 </td>
                 <td style="width:30%;"></td>
-                <td style="width:35%;">
-                    Jakarta, {{ $tanggalTtd }}<br>
-                    Pejabat Pembuat Komitmen
+                <td style="width:35%; vertical-align: top;">
                     <div class="ttd-space-sm"></div>
                     <strong>{{ $ppk->nama ?? 'Arif Wibowo, SH, MH' }}</strong><br>
                     NIP. {{ $formatNipDot($ppk->nip ?? null) }}

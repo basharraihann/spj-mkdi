@@ -49,11 +49,11 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input type="text" id="nom-filter-q" autocomplete="off"
-                        placeholder="Cari uraian kegiatan atau tujuan..."
+                        placeholder="Cari uraian kegiatan, tujuan, atau status..."
                         class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
                 </div>
 
-                <div class="sm:w-44">
+                <div class="sm:w-48">
                     <select id="nom-filter-status"
                         class="w-full py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
                         <option value="">-- Semua Status --</option>
@@ -64,7 +64,7 @@
                 </div>
 
                 <button type="button" id="nom-filter-reset"
-                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition">
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition cursor-pointer">
                     Reset
                 </button>
             </div>
@@ -81,6 +81,7 @@
                 <table class="w-full text-left text-sm text-gray-600">
                     <thead class="bg-gray-50/70 border-b border-gray-100 text-xs font-semibold uppercase text-gray-500">
                         <tr>
+                            <th class="px-4 py-4 text-center w-12">No</th>
                             <th class="px-6 py-4">Uraian Kegiatan</th>
                             <th class="px-6 py-4">Tujuan</th>
                             <th class="px-6 py-4">Tanggal</th>
@@ -93,8 +94,11 @@
                     <tbody class="divide-y divide-gray-100">
                         @forelse ($rows as $r)
                             <tr class="js-nom-row hover:bg-gray-50/50 transition"
-                                data-search="{{ strtolower($r['uraian_kegiatan'] . ' ' . $r['tujuan']) }}"
+                                data-search="{{ strtolower($r['uraian_kegiatan'] . ' ' . $r['tujuan'] . ' ' . $r['status'] . ($r['status'] === 'Honorarium' ? ' narasumber' : '')) }}"
                                 data-status="{{ $r['status'] }}">
+                                <td class="px-4 py-4 text-center text-xs font-semibold text-gray-400 tabular-nums">
+                                    <span class="js-nom-number">{{ $loop->iteration }}</span>
+                                </td>
                                 <td class="px-6 py-4 font-medium text-gray-900 max-w-xs">
                                     <div class="line-clamp-2">{{ $r['uraian_kegiatan'] }}</div>
                                 </td>
@@ -111,17 +115,21 @@
                                     {{ number_format($r['total'], 0, ',', '.') }}
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-1">
+                                    <div class="flex items-center justify-end gap-1.5">
                                         <a href="{{ $r['pdf_url'] }}" target="_blank"
-                                            class="px-3 py-1.5 text-xs font-semibold text-indigo-600 border border-indigo-200 hover:bg-indigo-50 rounded-lg transition"
-                                            title="Buka PDF">
-                                            PDF
+                                            class="inline-flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition"
+                                            title="Buka / Unduh PDF">
+                                            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                            <span>PDF</span>
                                         </a>
 
                                         @if ($r['edit_url'])
                                             <a href="{{ $r['edit_url'] }}"
-                                                class="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                                                title="Edit">
+                                                class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 rounded-lg transition"
+                                                title="Edit Nominatif">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -130,13 +138,13 @@
                                         @endif
 
                                         @if ($r['delete_url'])
-                                            <form method="POST" action="{{ $r['delete_url'] }}"
+                                            <form method="POST" action="{{ $r['delete_url'] }}" class="inline-flex m-0"
                                                 onsubmit="return confirm('Hapus nominatif ini beserta seluruh pesertanya?');">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"
-                                                    class="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                                                    title="Hapus">
+                                                    class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-rose-600 bg-gray-50 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 rounded-lg transition cursor-pointer"
+                                                    title="Hapus Nominatif">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -149,7 +157,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center text-gray-400">
+                                <td colspan="8" class="px-6 py-12 text-center text-gray-400">
                                     <p class="text-sm font-medium">Belum ada nominatif.</p>
                                     <p class="text-xs mt-1">Klik "Buat Nominatif" untuk membuat yang pertama.</p>
                                 </td>
@@ -183,10 +191,16 @@
                 let visible = 0;
 
                 rows.forEach(function (row) {
-                    const ok = (q === '' || row.dataset.search.includes(q))
-                        && (status === '' || row.dataset.status === status);
+                    const matchesQuery = (q === '' || row.dataset.search.includes(q));
+                    const matchesStatus = (status === '' || row.dataset.status === status);
+                    const ok = matchesQuery && matchesStatus;
+
                     row.style.display = ok ? '' : 'none';
-                    if (ok) visible++;
+                    if (ok) {
+                        visible++;
+                        const numEl = row.querySelector('.js-nom-number');
+                        if (numEl) numEl.textContent = visible;
+                    }
                 });
 
                 countEl.textContent = visible;
