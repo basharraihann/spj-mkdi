@@ -7,7 +7,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 14mm 14mm;
+            margin: 12mm 14mm;
         }
 
         body {
@@ -19,23 +19,35 @@
         .judul {
             text-align: center;
             font-weight: bold;
-            font-size: 12px;
-            line-height: 1.7;
+            font-size: 11.5px;
+            line-height: 1.6;
+        }
+
+        .judul-upper {
+            text-align: center;
+            font-weight: bold;
+            font-size: 11.5px;
+            line-height: 1.6;
+            text-transform: uppercase;
         }
 
         table.data {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            margin-top: 14px;
+            margin-top: 10px;
         }
 
         table.data th,
         table.data td {
             border: 1px solid #000;
-            padding: 3px 5px;
+            padding: 4px 5px;
             vertical-align: middle;
-            font-size: 11px;
+            font-size: 10.5px;
+        }
+
+        table.data td.col-no {
+            padding: 4px 2px;
         }
 
         table.data th {
@@ -45,12 +57,12 @@
 
         /* Tinggi baris halaman 1 (2 baris teks: nama dan NPWP) */
         table.data td.row-p1 {
-            height: 34px;
+            height: 32px;
         }
 
-        /* Tinggi baris halaman 2 (ruang tanda tangan) */
-        table.data td.row-tall {
-            height: 50px;
+        /* Tinggi baris halaman per narasumber */
+        table.data td.row-indiv {
+            height: 40px;
         }
 
         .c {
@@ -70,7 +82,8 @@
         table.data table.acc td {
             border: none;
             padding: 0;
-            font-size: 11px;
+            font-size: 10.5px;
+            white-space: nowrap;
         }
 
         table.data table.acc td.num {
@@ -80,23 +93,31 @@
         table.ttd {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 26px;
+            margin-top: 20px;
         }
 
         table.ttd td {
             border: none;
             vertical-align: top;
-            font-size: 11px;
-            line-height: 1.7;
+            font-size: 10.5px;
+            line-height: 1.6;
             padding: 0;
         }
 
         .ttd-space {
-            height: 50px;
+            height: 48px;
+        }
+
+        .ttd-space-sm {
+            height: 38px;
         }
 
         .page-break {
             page-break-after: always;
+        }
+
+        .section-gap {
+            margin-top: 24px;
         }
     </style>
 </head>
@@ -107,7 +128,7 @@
         $rp = fn($n) => '<table class="acc"><tr><td>Rp</td><td class="num">' . number_format((int) $n, 0, '.', ',') . '</td></tr></table>';
 
         // NIP 18 digit ditulis berkelompok: 19870212 201402 1 001
-        $formatNip = function ($nip) {
+        $formatNipSpace = function ($nip) {
             $d = preg_replace('/\D/', '', (string) $nip);
 
             return strlen($d) === 18
@@ -115,47 +136,43 @@
                 : ($nip ?: '-');
         };
 
+        // NIP format tanpa spasi: 199504082020121001
+        $formatNipDot = fn($nip) => $nip ? preg_replace('/\D/', '', (string) $nip) : '-';
+
         $tanggal = $entry->tanggal;
-        $tanggalJudul = 'Jakarta, ' . $tanggal->translatedFormat('j F Y');
-        $bulanTahun = $tanggal->translatedFormat('F Y');
+        $kota = $entry->kota ?: 'Jakarta';
+        $kotaTanggalJudul = $kota . ', ' . ($tanggal ? $tanggal->translatedFormat('j F Y') : '');
+        $kotaTanggalUpper = mb_strtoupper($kota . ', ' . ($tanggal ? $tanggal->translatedFormat('d F Y') : ''));
+        $tanggalTtd = ($tanggal ?? $entry->created_at ?? now())->translatedFormat('d F Y');
+        $bulanTahun = $tanggal ? $tanggal->translatedFormat('F Y') : now()->translatedFormat('F Y');
 
         $totalBruto = $peserta->sum(fn($p) => $p->bruto);
         $totalPajak = $peserta->sum(fn($p) => $p->pajak);
         $totalNetto = $totalBruto - $totalPajak;
     @endphp
 
-    {{-- ================= HALAMAN 1: DAFTAR HONORARIUM NARASUMBER ================= --}}
+    {{-- ================= HALAMAN 1: DAFTAR HONORARIUM NARASUMBER (REKAP KOLEKTIF) ================= --}}
     <div class="judul">DAFTAR HONORARIUM NARASUMBER</div>
     <div class="judul">{{ $entry->uraian_kegiatan }}</div>
-    <div class="judul">{{ $tanggalJudul }}</div>
+    <div class="judul">{{ $kotaTanggalJudul }}</div>
 
     <table class="data">
-        <colgroup>
-            <col style="width:3%">
-            <col style="width:22%">
-            <col style="width:12%">
-            <col style="width:15%">
-            <col style="width:7%">
-            <col style="width:13.5%">
-            <col style="width:14%">
-            <col style="width:13.5%">
-        </colgroup>
         <thead>
             <tr>
-                <th>No</th>
-                <th>Nama</th>
-                <th>Sebagai</th>
-                <th>Tarif</th>
-                <th>Jam</th>
-                <th>Bruto</th>
-                <th>Pajak</th>
-                <th>Netto</th>
+                <th style="width:3%">No</th>
+                <th style="width:35%">Nama</th>
+                <th style="width:8%">Sebagai</th>
+                <th style="width:11%">Tarif</th>
+                <th style="width:4%">Jam</th>
+                <th style="width:13%">Bruto</th>
+                <th style="width:13%">Pajak</th>
+                <th style="width:13%">Netto</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($peserta as $i => $p)
                 <tr>
-                    <td class="c row-p1">{{ $i + 1 }}</td>
+                    <td class="c col-no row-p1">{{ $i + 1 }}</td>
                     <td class="l">
                         {{ $p->nama }}
                         @if (!empty($p->npwp))
@@ -171,70 +188,119 @@
                 </tr>
             @endforeach
 
-            @if ($peserta->count() > 1)
-                <tr>
-                    <td colspan="5" class="c"><strong>Jumlah</strong></td>
-                    <td><strong>{!! $rp($totalBruto) !!}</strong></td>
-                    <td><strong>{!! $rp($totalPajak) !!}</strong></td>
-                    <td><strong>{!! $rp($totalNetto) !!}</strong></td>
-                </tr>
-            @endif
+            <tr>
+                <td colspan="5" class="c"><strong>Jumlah</strong></td>
+                <td><strong>{!! $rp($totalBruto) !!}</strong></td>
+                <td><strong>{!! $rp($totalPajak) !!}</strong></td>
+                <td><strong>{!! $rp($totalNetto) !!}</strong></td>
+            </tr>
         </tbody>
     </table>
 
     {{-- Tanda tangan: hanya PPK, blok di sisi kanan --}}
     <table class="ttd">
         <tr>
-            <td style="width:72%;"></td>
-            <td style="width:28%;">
-                Jakarta,&nbsp;&nbsp;&nbsp;&nbsp;{{ $bulanTahun }}<br>
-                Pejabat Pembuat Komitmen<br>
-                Biro Manajemen Kinerja, Data,<br>
-                dan Informasi
+            <td style="width:70%;"></td>
+            <td style="width:30%;">
+                Jakarta, {{ $tanggalTtd }}<br>
+                Pejabat Pembuat Komitmen
                 <div class="ttd-space"></div>
-                {{ $ppk->nama ?? '(...........................)' }}<br>
-                NIP&nbsp;&nbsp;{{ $formatNip($ppk->nip ?? null) }}
+                <strong>{{ $ppk->nama ?? '(...........................)' }}</strong><br>
+                NIP {{ $formatNipSpace($ppk->nip ?? null) }}
             </td>
         </tr>
     </table>
 
-    <div class="page-break"></div>
+    {{-- ================= HALAMAN 2 DAN SETERUSNYA: LEMBAR INDIVIDUAL PER NARASUMBER ================= --}}
+    @foreach ($peserta as $i => $p)
+        <div class="page-break"></div>
 
-    {{-- ================= HALAMAN 2: DAFTAR HADIR NARASUMBER ================= --}}
-    <div class="judul">DAFTAR HADIR NARASUMBER</div>
+        {{-- BAGIAN ATAS: DAFTAR HONORARIUM NARASUMBER --}}
+        <div class="judul-upper">DAFTAR HONORARIUM NARASUMBER</div>
+        <div class="judul-upper">{{ mb_strtoupper($entry->uraian_kegiatan) }}</div>
+        <div class="judul-upper">{{ $kotaTanggalUpper }}</div>
 
-    <table class="data">
-        <colgroup>
-            <col style="width:4%">
-            <col style="width:26%">
-            <col style="width:22%">
-            <col style="width:6%">
-            <col style="width:22%">
-            <col style="width:20%">
-        </colgroup>
-        <thead>
-            <tr>
-                <th>No</th>
-                <th>Nama</th>
-                <th>Instansi</th>
-                <th>Gol</th>
-                <th>Jabatan</th>
-                <th>Tanda Tangan</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($peserta as $i => $p)
+        <table class="data">
+            <thead>
                 <tr>
-                    <td class="c row-tall">{{ $i + 1 }}</td>
+                    <th style="width:3%">No</th>
+                    <th style="width:26%">Nama</th>
+                    <th style="width:8%">Sebagai</th>
+                    <th style="width:4%">OJ</th>
+                    <th style="width:11%">Honor</th>
+                    <th style="width:11%">Bruto</th>
+                    <th style="width:10%">Pajak</th>
+                    <th style="width:11%">Netto</th>
+                    <th style="width:16%">Tanda Tangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="c col-no row-indiv">{{ $i + 1 }}</td>
+                    <td class="l">
+                        {{ $p->nama }}
+                        @if (!empty($p->npwp))
+                            <br>NPWP: {{ $p->npwp }}
+                        @endif
+                    </td>
+                    <td class="c">{{ $p->sebagai ?: 'Narasumber' }}</td>
+                    <td class="c">{{ $p->oj }}</td>
+                    <td>{!! $rp($p->honor) !!}</td>
+                    <td>{!! $rp($p->bruto) !!}</td>
+                    <td>{!! $rp($p->pajak) !!}</td>
+                    <td>{!! $rp($p->netto) !!}</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        {{-- Tanda tangan 2 Kolom: Bendahara (Kiri) & PPK (Kanan) --}}
+        <table class="ttd">
+            <tr>
+                <td style="width:35%;">
+                    Bendahara Pengeluaran
+                    <div class="ttd-space-sm"></div>
+                    <strong>{{ $bendahara->nama ?? 'Raka Panji Wibowo' }}</strong><br>
+                    NIP. {{ $formatNipDot($bendahara->nip ?? null) }}
+                </td>
+                <td style="width:30%;"></td>
+                <td style="width:35%;">
+                    Jakarta, {{ $tanggalTtd }}<br>
+                    Pejabat Pembuat Komitmen
+                    <div class="ttd-space-sm"></div>
+                    <strong>{{ $ppk->nama ?? 'Arif Wibowo, SH, MH' }}</strong><br>
+                    NIP. {{ $formatNipDot($ppk->nip ?? null) }}
+                </td>
+            </tr>
+        </table>
+
+        {{-- BAGIAN BAWAH: DAFTAR HADIR NARASUMBER --}}
+        <div class="section-gap"></div>
+        <div class="judul-upper">DAFTAR HADIR NARASUMBER</div>
+
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width:3%">No</th>
+                    <th style="width:27%">Nama</th>
+                    <th style="width:18%">Instansi</th>
+                    <th style="width:5%">Gol</th>
+                    <th style="width:20%">Jabatan</th>
+                    <th style="width:27%">Tanda Tangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="c col-no row-indiv">{{ $i + 1 }}</td>
                     <td class="l">{{ $p->nama }}</td>
                     <td class="c">{{ $p->instansi ?: '-' }}</td>
                     <td class="c">{{ $p->golongan ?: '-' }}</td>
                     <td class="c">{{ $p->jabatan ?: '-' }}</td>
                     <td></td>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    @endforeach
 </body>
 
 </html>

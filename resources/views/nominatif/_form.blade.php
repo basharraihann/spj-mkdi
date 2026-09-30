@@ -1,12 +1,20 @@
 {{--
 Form bersama untuk Buat & Edit Nominatif Honorarium Narasumber.
-Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiList
+Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiList, $kabKotaMap
 --}}
 @php
     $nominatif = $nominatif ?? null;
+    $kabKotaMap = $kabKotaMap ?? [];
 
     $ppkList = $pegawaiList->filter(fn($p) => str_contains($p->role_penandatangan ?? '', 'PPK'))->values();
+    if ($ppkList->isEmpty()) {
+        $ppkList = $pegawaiList;
+    }
+
     $bendaharaList = $pegawaiList->filter(fn($p) => str_contains($p->role_penandatangan ?? '', 'Bendahara'))->values();
+    if ($bendaharaList->isEmpty()) {
+        $bendaharaList = $pegawaiList;
+    }
 
     // Narasumber awal: dari old() kalau validasi gagal, dari database kalau edit, atau satu baris kosong
     $rows = old('peserta');
@@ -17,6 +25,7 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 'nama' => $p->nama,
                 'npwp' => $p->npwp,
                 'instansi' => $p->instansi,
+                'jabatan' => $p->jabatan,
                 'golongan' => $p->golongan,
                 'honor' => $p->honor,
                 'oj' => $p->oj,
@@ -37,23 +46,10 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
         'eselon3' => ['label' => 'Pejabat Eselon III ke bawah/yang disetarakan', 'honor' => 900000],
     ];
 
-    // Warna aksen per kartu narasumber (bergantian). Class ditulis lengkap supaya terbaca Tailwind.
-    $warnaKartu = [
-        ['card' => 'border-l-blue-400 bg-blue-50/50', 'badge' => 'bg-blue-100 text-blue-700', 'netto' => 'text-blue-600'],
-        ['card' => 'border-l-emerald-400 bg-emerald-50/50', 'badge' => 'bg-emerald-100 text-emerald-700', 'netto' => 'text-emerald-600'],
-        ['card' => 'border-l-amber-400 bg-amber-50/60', 'badge' => 'bg-amber-100 text-amber-700', 'netto' => 'text-amber-600'],
-        ['card' => 'border-l-violet-400 bg-violet-50/50', 'badge' => 'bg-violet-100 text-violet-700', 'netto' => 'text-violet-600'],
-        ['card' => 'border-l-rose-400 bg-rose-50/50', 'badge' => 'bg-rose-100 text-rose-700', 'netto' => 'text-rose-600'],
-    ];
-
-    // Cadangan kalau API wilayah tidak bisa diakses
-    $provinsiCadangan = ['Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau', 'Jambi', 'Sumatera Selatan', 'Kepulauan Bangka Belitung', 'Bengkulu', 'Lampung', 'DKI Jakarta', 'Banten', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur', 'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara', 'Sulawesi Utara', 'Gorontalo', 'Sulawesi Tengah', 'Sulawesi Barat', 'Sulawesi Selatan', 'Sulawesi Tenggara', 'Maluku', 'Maluku Utara', 'Papua', 'Papua Barat', 'Papua Barat Daya', 'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan'];
-
     $formConfig = [
         'rows' => array_values($rows),
         'baru' => $rowsBaru,
         'tarif' => array_values($tarifSbm),
-        'warna' => $warnaKartu,
     ];
 
     $inputClass = 'w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition placeholder:text-gray-300';
@@ -61,6 +57,15 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
     $labelClass = 'block text-xs font-semibold text-gray-500 mb-1.5 tracking-wide uppercase';
     $subLabel = 'block text-xs text-gray-400 mb-1.5';
     $chevron = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>';
+
+    $provinsiCadangan = ['Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau', 'Jambi', 'Sumatera Selatan', 'Kepulauan Bangka Belitung', 'Bengkulu', 'Lampung', 'DKI Jakarta', 'Banten', 'Jawa Barat', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur', 'Bali', 'Nusa Tenggara Barat', 'Nusa Tenggara Timur', 'Kalimantan Barat', 'Kalimantan Tengah', 'Kalimantan Selatan', 'Kalimantan Timur', 'Kalimantan Utara', 'Sulawesi Utara', 'Gorontalo', 'Sulawesi Tengah', 'Sulawesi Barat', 'Sulawesi Selatan', 'Sulawesi Tenggara', 'Maluku', 'Maluku Utara', 'Papua', 'Papua Barat', 'Papua Barat Daya', 'Papua Selatan', 'Papua Tengah', 'Papua Pegunungan'];
+
+    $mapArr = is_array($kabKotaMap) ? $kabKotaMap : (method_exists($kabKotaMap, 'toArray') ? $kabKotaMap->toArray() : []);
+    $provinsiList = array_keys($mapArr);
+    if (empty($provinsiList)) {
+        $provinsiList = $provinsiCadangan;
+    }
+    sort($provinsiList);
 @endphp
 
 <div class="py-8 bg-gradient-to-b from-gray-50/70 to-white min-h-full">
@@ -81,17 +86,6 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 </ul>
             </div>
         @endif
-
-        <div
-            class="flex gap-2.5 bg-blue-50/70 border border-blue-100 text-blue-700 text-xs sm:text-sm px-4 py-3 rounded-xl mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-            </svg>
-            <p>Hasilnya PDF 2 halaman: halaman 1 Daftar Honorarium Narasumber (rincian honor, pajak, netto, dan
-                tanda tangan PPK), halaman 2 Daftar Hadir Narasumber.</p>
-        </div>
 
         <form action="{{ $action }}" method="POST" class="space-y-5" x-data="nominatifForm(@js($formConfig))">
             @csrf
@@ -133,31 +127,36 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"
-                    x-data="lokasi(@js(['provinsi' => old('provinsi', $nominatif->provinsi ?? ''), 'kota' => old('kota', $nominatif->kota ?? ''), 'cadangan' => $provinsiCadangan]))">
+                    x-data="lokasi(@js(['provinsi' => old('provinsi', $nominatif->provinsi ?? ''), 'kota' => old('kota', $nominatif->kota ?? ''), 'map' => $kabKotaMap]))">
                     <div>
                         <label class="{{ $labelClass }}">Provinsi <span class="text-red-400">*</span></label>
-                        <input type="text" name="provinsi" list="daftar-provinsi" autocomplete="off" x-model="provinsi"
-                            @input="ubahProvinsi()" required placeholder="Ketik atau pilih provinsi"
-                            class="{{ $inputClass }}">
+                        <div class="relative">
+                            <select name="provinsi" x-model="provinsi" @change="ubahProvinsi()" required
+                                class="js-searchable {{ $selectClass }}" data-placeholder="Cari provinsi...">
+                                <option value="" disabled {{ old('provinsi', $nominatif->provinsi ?? '') ? '' : 'selected' }}>— Pilih Provinsi —</option>
+                                @foreach ($provinsiList as $p)
+                                    <option value="{{ $p }}" @selected(old('provinsi', $nominatif->provinsi ?? '') === $p)>
+                                        {{ $p }}</option>
+                                @endforeach
+                            </select>
+                            {!! $chevron !!}
+                        </div>
                     </div>
                     <div>
                         <label class="{{ $labelClass }}">Kota/Kabupaten <span class="text-red-400">*</span></label>
-                        <input type="text" name="kota" list="daftar-kota" autocomplete="off" x-model="kota" required
-                            :disabled="!provinsi"
-                            :placeholder="!provinsi ? 'Pilih provinsi dulu' : (loadingKota ? 'Memuat...' : 'Ketik atau pilih kota/kabupaten')"
-                            class="{{ $inputClass }} disabled:bg-gray-50 disabled:cursor-not-allowed">
+                        <div class="relative">
+                            <select name="kota" x-model="kota" required :disabled="!provinsi"
+                                class="js-searchable {{ $selectClass }} disabled:bg-gray-50 disabled:cursor-not-allowed"
+                                data-placeholder="Cari kota/kabupaten...">
+                                <option value="" disabled selected
+                                    x-text="!provinsi ? 'Pilih provinsi dulu' : '— Pilih Kota/Kabupaten —'"></option>
+                                <template x-for="k in daftarKota" :key="k">
+                                    <option :value="k" x-text="k" :selected="kota === k"></option>
+                                </template>
+                            </select>
+                            {!! $chevron !!}
+                        </div>
                     </div>
-
-                    <datalist id="daftar-provinsi">
-                        <template x-for="p in daftarProvinsi" :key="p.name">
-                            <option :value="p.name"></option>
-                        </template>
-                    </datalist>
-                    <datalist id="daftar-kota">
-                        <template x-for="k in daftarKota" :key="k">
-                            <option :value="k"></option>
-                        </template>
-                    </datalist>
                 </div>
             </div>
 
@@ -240,14 +239,14 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
 
                 <div class="space-y-4">
                     <template x-for="(row, i) in rows" :key="row.k">
-                        <div class="border border-gray-100 border-l-4 rounded-xl p-4 sm:p-5 space-y-4 shadow-sm"
-                            :class="warna[i % warna.length].card">
-                            <div class="flex items-center justify-between gap-3">
+                        <div
+                            class="border border-gray-200 border-l-4 border-l-gray-400 rounded-xl p-4 sm:p-5 space-y-4 shadow-sm bg-white hover:border-gray-300 transition-all">
+                            <div class="flex items-center justify-between gap-3 pb-2 border-b border-gray-100">
                                 <div class="flex items-center gap-2.5 min-w-0">
                                     <span
-                                        class="h-7 w-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0"
-                                        :class="warna[i % warna.length].badge" x-text="i + 1"></span>
-                                    <span class="text-sm font-semibold text-gray-700 truncate"
+                                        class="h-7 w-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0 bg-gray-100 text-gray-700 border border-gray-200"
+                                        x-text="i + 1"></span>
+                                    <span class="text-sm font-semibold text-gray-800 truncate"
                                         x-text="row.nama || ('Narasumber ' + (i + 1))"></span>
                                 </div>
                                 <button type="button" @click="removeRow(i)" x-show="rows.length > 1"
@@ -269,10 +268,16 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div class="sm:col-span-2">
+                                <div>
                                     <label class="{{ $subLabel }}">Instansi <span class="text-red-400">*</span></label>
                                     <input type="text" :name="'peserta[' + i + '][instansi]'" x-model="row.instansi"
                                         required placeholder="Biro Perencanaan, Kementerian ..."
+                                        class="{{ $inputClass }} bg-white">
+                                </div>
+                                <div>
+                                    <label class="{{ $subLabel }}">Jabatan <span class="text-red-400">*</span></label>
+                                    <input type="text" :name="'peserta[' + i + '][jabatan]'" x-model="row.jabatan"
+                                        required placeholder="Kepala Biro / Analis..."
                                         class="{{ $inputClass }} bg-white">
                                 </div>
                                 <div>
@@ -347,7 +352,7 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                                 </div>
                                 <div>
                                     <div class="text-gray-400">Netto</div>
-                                    <div class="mt-0.5 text-sm font-semibold" :class="warna[i % warna.length].netto"
+                                    <div class="mt-0.5 text-sm font-semibold text-gray-900"
                                         x-text="'Rp ' + rupiah(netto(row))"></div>
                                 </div>
                             </div>
@@ -356,7 +361,7 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 </div>
 
                 <button type="button" @click="addRow()"
-                    class="mt-4 w-full inline-flex items-center justify-center gap-1.5 border border-dashed border-blue-200 text-blue-600 hover:bg-blue-50 active:scale-[0.99] font-semibold px-3.5 py-3 rounded-xl text-xs transition-all">
+                    class="mt-4 w-full inline-flex items-center justify-center gap-1.5 border border-dashed border-gray-300 text-gray-700 hover:bg-gray-50 active:scale-[0.99] font-semibold px-3.5 py-3 rounded-xl text-xs transition-all">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
@@ -380,9 +385,9 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                                 x-text="'Rp ' + rupiah(sum('pajak'))"></div>
                         </div>
 
-                        <div class="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4">
-                            <div class="text-xs text-blue-500 mb-1.5">Total netto</div>
-                            <div class="text-lg font-bold text-blue-700 tabular-nums"
+                        <div class="bg-gray-900 border border-gray-800 text-white rounded-xl px-5 py-4">
+                            <div class="text-xs text-gray-400 mb-1.5">Total netto</div>
+                            <div class="text-lg font-bold text-white tabular-nums"
                                 x-text="'Rp ' + rupiah(sum('netto'))"></div>
                         </div>
                     </div>
@@ -447,56 +452,33 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
 
 <script>
     document.addEventListener('alpine:init', function () {
-        // ===== Provinsi -> Kota/Kabupaten (data dari API wilayah Indonesia) =====
-        // Kalau API tidak bisa diakses, provinsi pakai daftar cadangan dan kota bisa diketik bebas.
         Alpine.data('lokasi', function (cfg) {
-            const API = 'https://emsifa.github.io/api-wilayah-indonesia/api';
             return {
                 provinsi: cfg.provinsi || '',
                 kota: cfg.kota || '',
-                daftarProvinsi: cfg.cadangan.map(function (n) { return { id: null, name: n }; }),
-                daftarKota: [],
-                loadingKota: false,
+                map: cfg.map || {},
 
-                async init() {
-                    try {
-                        const res = await fetch(API + '/provinces.json');
-                        const data = await res.json();
-                        this.daftarProvinsi = data.map((p) => ({ id: p.id, name: this.judul(p.name) }));
-                    } catch (e) { /* pakai daftar cadangan */ }
-                    // Mode edit: muat kota untuk provinsi tersimpan, kota lama tetap dipertahankan
-                    if (this.provinsi) await this.muatKota(true);
-                },
-
-                // "KOTA JAKARTA PUSAT" -> "Kota Jakarta Pusat", singkatan tetap kapital
-                judul(s) {
-                    return String(s).toLowerCase()
-                        .replace(/\b\w/g, function (c) { return c.toUpperCase(); })
-                        .replace(/\bDki\b/, 'DKI').replace(/\bDi\b/, 'DI');
-                },
-
-                async ubahProvinsi() {
-                    await this.muatKota(false);
-                },
-
-                async muatKota(pertahankan) {
-                    const p = this.daftarProvinsi.find((x) =>
-                        x.id && x.name.toLowerCase() === this.provinsi.trim().toLowerCase());
-                    if (!p) {
-                        this.daftarKota = [];
-                        return;
+                get daftarProvinsi() {
+                    const list = Object.keys(this.map).sort();
+                    if (this.provinsi && !list.includes(this.provinsi)) {
+                        return [this.provinsi, ...list];
                     }
-                    this.loadingKota = true;
-                    try {
-                        const res = await fetch(API + '/regencies/' + p.id + '.json');
-                        const data = await res.json();
-                        this.daftarKota = data.map((k) => this.judul(k.name));
-                        // Ganti provinsi -> kosongkan kota kalau tidak ada di provinsi baru
-                        if (!pertahankan && !this.daftarKota.includes(this.kota)) this.kota = '';
-                    } catch (e) {
-                        this.daftarKota = [];
+                    return list;
+                },
+
+                get daftarKota() {
+                    if (!this.provinsi) return [];
+                    let list = (this.map[this.provinsi] || []).slice().sort();
+                    if (this.kota && !list.includes(this.kota)) {
+                        list = [this.kota, ...list];
                     }
-                    this.loadingKota = false;
+                    return list;
+                },
+
+                ubahProvinsi() {
+                    if (!this.daftarKota.includes(this.kota)) {
+                        this.kota = '';
+                    }
                 },
             };
         });
@@ -506,7 +488,6 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 seq: 0,
                 rows: [],
                 tarif: cfg.tarif,
-                warna: cfg.warna,
 
                 init() {
                     this.rows = cfg.rows.map((r) => this.baris(r, cfg.baru));
@@ -521,6 +502,7 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                         nama: r.nama || '',
                         npwp: r.npwp || '',
                         instansi: r.instansi || '',
+                        jabatan: r.jabatan || '',
                         golongan: r.golongan || '',
                         honor: this.digits(r.honor),
                         oj: (r.oj === undefined || r.oj === null || r.oj === '') ? 1 : r.oj,
@@ -592,26 +574,37 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
         });
     });
 
-    // ===== Searchable select: ubah <select> jadi input yang bisa diketik untuk filter opsi =====
+    // ===== Searchable select: ubah <select class="js-searchable"> jadi input yang bisa diketik =====
     (function () {
-        function enhance(select) {
-            if (!select || select.dataset.enhanced) return;
-            select.dataset.enhanced = '1';
+        function enhanceSearchable(select) {
+            if (!select || select.dataset.searchEnhanced) return;
+            select.dataset.searchEnhanced = '1';
 
-            const container = select.parentElement; // div.relative yang juga berisi ikon panah
-            const options = Array.from(select.options).filter(function (o) { return o.value !== ''; });
+            const originalParent = select.parentElement;
+            const existingIcon = originalParent.querySelector('svg');
+            if (existingIcon) existingIcon.style.display = 'none';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'relative';
 
             const input = document.createElement('input');
             input.type = 'text';
             input.autocomplete = 'off';
-            input.placeholder = select.dataset.placeholder || 'Cari & pilih...';
-            input.className = select.className;
+            input.className = select.className.replace('js-searchable', '').trim() + ' pr-9';
             if (select.hasAttribute('required')) input.setAttribute('required', 'required');
+
+            const iconWrap = document.createElement('span');
+            iconWrap.className = 'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400';
+            iconWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>';
 
             const list = document.createElement('ul');
             list.className = 'absolute z-20 top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm hidden';
 
             let highlighted = -1;
+
+            function liveOptions() {
+                return Array.from(select.options).filter(function (o) { return o.value !== ''; });
+            }
 
             function itemEls() {
                 return Array.from(list.children).filter(function (li) { return li.dataset.value !== undefined; });
@@ -621,7 +614,7 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 const f = (filterText || '').toLowerCase();
                 list.innerHTML = '';
                 highlighted = -1;
-                const filtered = options.filter(function (o) {
+                const filtered = liveOptions().filter(function (o) {
                     return o.textContent.trim().toLowerCase().includes(f);
                 });
                 if (filtered.length === 0) {
@@ -638,7 +631,7 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                     li.className = 'px-3.5 py-2 cursor-pointer hover:bg-blue-50 text-gray-700' +
                         (o.value === select.value ? ' bg-blue-50 font-medium text-blue-700' : '');
                     li.addEventListener('mousedown', function (e) {
-                        e.preventDefault(); // biar blur tidak menutup list sebelum klik terpilih
+                        e.preventDefault();
                         pick(o);
                     });
                     list.appendChild(li);
@@ -649,10 +642,12 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 select.value = o.value;
                 input.value = o.textContent.trim();
                 select.dispatchEvent(new Event('change', { bubbles: true }));
+                select.dispatchEvent(new Event('input', { bubbles: true }));
                 closeList();
             }
 
             function openList() {
+                if (select.disabled) return;
                 renderList(input.value);
                 list.classList.remove('hidden');
             }
@@ -669,24 +664,35 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                 if (items[highlighted]) items[highlighted].scrollIntoView({ block: 'nearest' });
             }
 
+            function refreshFromSelect() {
+                const current = select.selectedOptions[0];
+                input.value = (current && current.value !== '') ? current.textContent.trim() : '';
+                input.disabled = select.disabled;
+                if (select.disabled) {
+                    input.placeholder = current ? current.textContent.trim() : 'Tidak tersedia';
+                    closeList();
+                } else {
+                    input.placeholder = select.dataset.placeholder || 'Cari & pilih...';
+                }
+            }
+
             input.addEventListener('focus', function () {
+                if (select.disabled) return;
                 input.select();
                 openList();
             });
 
-            input.addEventListener('input', function () {
-                openList();
-            });
+            input.addEventListener('input', openList);
 
             input.addEventListener('blur', function () {
                 setTimeout(function () {
-                    const current = select.selectedOptions[0];
-                    input.value = (current && current.value !== '') ? current.textContent.trim() : '';
+                    refreshFromSelect();
                     closeList();
                 }, 120);
             });
 
             input.addEventListener('keydown', function (e) {
+                if (select.disabled) return;
                 if (list.classList.contains('hidden') && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
                     e.preventDefault();
                     openList();
@@ -706,7 +712,7 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                     if (!list.classList.contains('hidden') && highlighted >= 0 && items[highlighted]) {
                         e.preventDefault();
                         const val = items[highlighted].dataset.value;
-                        const opt = options.find(function (o) { return o.value === val; });
+                        const opt = liveOptions().find(function (o) { return o.value === val; });
                         if (opt) pick(opt);
                     }
                 } else if (e.key === 'Escape') {
@@ -715,23 +721,22 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
             });
 
             document.addEventListener('click', function (e) {
-                if (!container.contains(e.target)) closeList();
+                if (!wrapper.contains(e.target)) closeList();
             });
 
-            const initial = select.selectedOptions[0];
-            if (initial && initial.value !== '') input.value = initial.textContent.trim();
+            const observer = new MutationObserver(refreshFromSelect);
+            observer.observe(select, { attributes: true, attributeFilter: ['disabled'], childList: true, subtree: true });
 
-            // Bungkus input + list dalam wrapper "relative" sendiri supaya dropdown
-            // selalu muncul tepat di bawah kotaknya.
-            const wrapper = document.createElement('div');
-            wrapper.className = 'relative';
-            container.insertBefore(wrapper, select);
-            wrapper.appendChild(input);
-            wrapper.appendChild(list);
+            refreshFromSelect();
+
             select.classList.add('hidden');
+            originalParent.insertBefore(wrapper, select);
+            wrapper.appendChild(input);
+            wrapper.appendChild(iconWrap);
+            wrapper.appendChild(list);
             wrapper.appendChild(select);
         }
 
-        document.querySelectorAll('select.js-searchable').forEach(enhance);
+        document.querySelectorAll('select.js-searchable').forEach(enhanceSearchable);
     })();
 </script>
