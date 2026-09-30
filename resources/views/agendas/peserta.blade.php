@@ -83,20 +83,6 @@
                 </div>
             </div>
 
-            {{-- Banner info --}}
-            <div
-                class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl px-4 sm:px-5 py-4 flex items-start gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p class="text-sm text-blue-900">
-                    Pilih komponen biaya untuk agenda ini di bawah, lalu isi rincian biaya untuk tiap peserta yang
-                    sudah dipilih di langkah sebelumnya.
-                </p>
-            </div>
-
             @php
                 // ================== Semua komponen biaya & jenis UH yang mungkin ada ==================
                 // Pemilihan komponen sekarang dilakukan di halaman ini (chip di atas tabel),
