@@ -6,7 +6,7 @@
     </x-slot>
 
     @php
-        // Hitung data tampilan sekali saja, dipakai oleh tabel (desktop) & kartu (HP/tablet)
+        // Hitung data tampilan sekali saja
         $groups = $groups->map(function ($g) {
             $statuses = '|' . collect($g['items'])->pluck('status')->implode('|') . '|';
             $search = strtolower(
@@ -18,64 +18,50 @@
         });
 
         $badgeClass = fn($status) => $status === 'PNS'
-            ? 'bg-blue-50 text-blue-700 border-blue-200/60'
+            ? 'bg-blue-50 text-blue-700 border-blue-200'
             : ($status === 'Honorarium'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
-                : 'bg-amber-50 text-amber-700 border-amber-200/60');
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200');
+
+        $statusLabel = fn($status) => $status === 'Honorarium' ? 'Honorarium' : $status;
     @endphp
 
-    <div class="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+    <div class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5">
 
         @if (session('success'))
-            <div class="flex gap-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-xl">
+            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3 rounded-xl">
                 {{ session('success') }}
             </div>
         @endif
 
-        <!-- Header & aksi -->
-        <div
-            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Nominatif</h1>
-                    <span
-                        class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-indigo-100">
-                        {{ $groups->count() }} kegiatan
-                    </span>
-                </div>
-                <p class="text-sm text-gray-500 mt-1">Nominatif perjalanan dinas dari agenda, dan daftar honorarium
-                    narasumber
-                    yang dibuat mandiri tanpa agenda.</p>
-            </div>
-            <div class="shrink-0">
-                <a href="{{ route('nominatif.create') }}"
-                    class="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow-sm transition duration-150 ease-in-out hover:shadow">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Buat Nominatif
-                </a>
-            </div>
-        </div>
+        {{-- ============ BAGIAN ATAS: judul + filter dalam satu kartu ringkas ============ --}}
+        <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-5">
 
-        <!-- Filter (instan, tanpa reload) -->
-        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-            <div class="grid grid-cols-1 sm:grid-cols-[1fr_12rem_auto] gap-3">
-                <div class="relative sm:col-span-3 lg:col-span-1">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input type="text" id="nom-filter-q" autocomplete="off"
-                        placeholder="Cari uraian kegiatan, tujuan, atau status..."
-                        class="w-full pl-10 pr-4 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+                <div class="min-w-0">
+                    <h3 class="text-lg font-bold text-gray-800">Nominatif</h3>
+                    <p class="text-sm text-gray-500">Nominatif perjalanan dinas dari agenda, dan daftar honorarium
+                        narasumber yang dibuat mandiri.</p>
+                </div>
+                <span
+                    class="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-100 rounded-full px-3 py-1.5"
+                    aria-live="polite">
+                    <span id="nom-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }} kegiatan
+                </span>
+            </div>
+
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="nom-filter-q" class="text-xs font-semibold text-gray-600">Uraian / Tujuan</label>
+                    <input type="text" id="nom-filter-q" autocomplete="off" placeholder="Ketik uraian atau tujuan..."
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-72 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                 </div>
 
-                <div class="sm:col-span-2 sm:col-start-1 lg:col-span-1 lg:col-start-auto">
+                <div class="flex flex-col gap-1 flex-1 sm:flex-none">
+                    <label for="nom-filter-status" class="text-xs font-semibold text-gray-600">Status</label>
                     <select id="nom-filter-status"
-                        class="w-full py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
-                        <option value="">-- Semua Status --</option>
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-56 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        <option value="">Semua Status</option>
                         <option value="PNS">PNS</option>
                         <option value="Non PNS">Non PNS</option>
                         <option value="Honorarium">Honorarium Narasumber</option>
@@ -83,226 +69,119 @@
                 </div>
 
                 <button type="button" id="nom-filter-reset"
-                    class="px-4 py-2.5 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition cursor-pointer">
+                    class="text-sm text-gray-500 hover:text-gray-700 transition px-1 py-2 sm:py-0 cursor-pointer">
                     Reset
                 </button>
+
+                <div class="hidden sm:block flex-1"></div>
+
+                <a href="{{ route('nominatif.create') }}"
+                    class="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Buat Nominatif
+                </a>
             </div>
         </div>
 
-        <!-- Daftar -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-5 pb-3 xl:pb-0">
-                <span class="text-xs font-semibold text-gray-400">
-                    <span id="nom-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }} kegiatan
-                </span>
+        {{-- ============ DAFTAR: satu kartu per kegiatan ============ --}}
+        <div class="space-y-3">
+
+            {{-- Judul kolom (hanya layar sangat lebar, sejajar dengan isi kartu) --}}
+            <div
+                class="hidden xl:grid grid-cols-[minmax(0,1fr)_37rem] gap-6 px-5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                <div>Kegiatan</div>
+                <div class="grid grid-cols-[9.5rem_3.5rem_minmax(0,1fr)_12.5rem] gap-3 px-3">
+                    <div>Status</div>
+                    <div class="text-center">Orang</div>
+                    <div class="text-right">Total</div>
+                    <div class="text-right">Aksi</div>
+                </div>
             </div>
 
-            {{-- ============ TABEL (layar lebar, xl ke atas) ============ --}}
-            <div class="hidden xl:block overflow-x-auto">
-                <table id="nom-table" class="w-full min-w-[1050px] table-fixed text-left text-sm text-gray-600">
-                    <thead class="bg-gray-50/70 border-b border-gray-100 text-xs font-semibold uppercase text-gray-500">
-                        <tr>
-                            <th class="px-3 py-4 text-center w-12">No</th>
-                            <th class="px-3 py-4">Uraian Kegiatan</th>
-                            <th class="px-3 py-4 w-40">Tujuan</th>
-                            <th class="px-3 py-4 w-32">Tanggal</th>
-                            <th class="px-3 py-4 w-32">Status</th>
-                            <th class="px-3 py-4 text-center w-16">Orang</th>
-                            <th class="px-3 py-4 text-right w-32">Total</th>
-                            <th class="px-3 py-4 text-right w-44">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @forelse ($groups as $g)
-                            <tr class="js-nom-row hover:bg-gray-50/50 transition align-top"
-                                data-search="{{ $g['search'] }}" data-status="{{ $g['statuses'] }}">
-                                <td class="px-4 py-4 text-center text-xs font-semibold text-gray-400 tabular-nums">
-                                    <span class="js-nom-number">{{ $loop->iteration }}</span>
-                                </td>
-                                <td class="px-3 py-4 font-medium text-gray-900 max-w-xs">
-                                    <div class="line-clamp-2">{{ $g['uraian_kegiatan'] }}</div>
-                                </td>
-                                <td class="px-3 py-4">{{ $g['tujuan'] }}</td>
-                                <td class="px-3 py-4 text-xs text-gray-500">{{ $g['tanggal'] }}</td>
-
-                                {{-- Status --}}
-                                <td class="px-3 py-4">
-                                    <div class="flex flex-col gap-1.5">
-                                        @foreach ($g['items'] as $r)
-                                            <div class="h-8 flex items-center">
-                                                <span
-                                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $badgeClass($r['status']) }}">
-                                                    {{ $r['status'] }}
-                                                </span>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </td>
-
-                                {{-- Orang --}}
-                                <td class="px-3 py-4 text-center">
-                                    <div class="flex flex-col gap-1.5">
-                                        @foreach ($g['items'] as $r)
-                                            <div class="h-8 flex items-center justify-center">{{ $r['jumlah_peserta'] }}</div>
-                                        @endforeach
-                                    </div>
-                                </td>
-
-                                {{-- Total --}}
-                                <td class="px-3 py-4 text-right whitespace-nowrap">
-                                    <div class="flex flex-col gap-1.5">
-                                        @foreach ($g['items'] as $r)
-                                            <div class="h-8 flex items-center justify-end">
-                                                Rp {{ number_format($r['total'], 0, ',', '.') }}
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </td>
-
-                                {{-- Aksi --}}
-                                <td class="px-3 py-4 text-right">
-                                    <div class="flex flex-col gap-1.5 items-end">
-                                        @foreach ($g['items'] as $r)
-                                            <div class="h-8 flex items-center justify-end gap-1.5">
-                                                <a href="{{ $r['pdf_url'] }}" target="_blank"
-                                                    class="inline-flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition"
-                                                    title="Buka / Unduh PDF {{ $r['status'] }}">
-                                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                    </svg>
-                                                    <span>PDF</span>
-                                                </a>
-
-                                                @if ($r['edit_url'])
-                                                    <a href="{{ $r['edit_url'] }}"
-                                                        class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 rounded-lg transition"
-                                                        title="Edit Nominatif {{ $r['status'] }}">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                        </svg>
-                                                    </a>
-                                                @endif
-
-                                                @if ($r['delete_url'])
-                                                    <form method="POST" action="{{ $r['delete_url'] }}" class="inline-flex m-0"
-                                                        onsubmit="return confirm('Hapus nominatif {{ $r['status'] }} ini beserta seluruh pesertanya?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit"
-                                                            class="inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-rose-600 bg-gray-50 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 rounded-lg transition cursor-pointer"
-                                                            title="Hapus Nominatif {{ $r['status'] }}">
-                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                                viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-gray-400">
-                                    <p class="text-sm font-medium">Belum ada nominatif.</p>
-                                    <p class="text-xs mt-1">Klik "Buat Nominatif" untuk membuat yang pertama.</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- ============ KARTU (HP & tablet, di bawah xl) ============ --}}
-            <div id="nom-cards" class="xl:hidden divide-y divide-gray-100 border-t border-gray-100">
+            <div id="nom-list" class="space-y-3">
                 @forelse ($groups as $g)
-                    <div class="js-nom-card p-4 sm:p-5 space-y-3" data-search="{{ $g['search'] }}"
-                        data-status="{{ $g['statuses'] }}">
+                    <article
+                        class="js-nom-item bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_37rem] xl:gap-6"
+                        data-search="{{ $g['search'] }}" data-status="{{ $g['statuses'] }}">
 
-                        {{-- Uraian + nomor urut --}}
-                        <div class="flex items-start gap-3">
+                        {{-- Info kegiatan --}}
+                        <div class="flex gap-3 min-w-0">
                             <span
-                                class="js-card-number inline-flex h-6 min-w-6 px-1.5 items-center justify-center rounded-md bg-gray-100 text-xs font-semibold text-gray-500 tabular-nums shrink-0">{{ $loop->iteration }}</span>
-                            <p class="text-sm font-medium text-gray-900 leading-relaxed break-words min-w-0">
-                                {{ $g['uraian_kegiatan'] }}
-                            </p>
+                                class="js-nom-number inline-flex h-7 min-w-7 px-2 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-500 tabular-nums shrink-0">{{ $loop->iteration }}</span>
+                            <div class="min-w-0">
+                                <h3 class="text-sm font-semibold text-gray-800 leading-snug break-words">
+                                    {{ $g['uraian_kegiatan'] }}
+                                </h3>
+                                <dl class="mt-2 space-y-1 text-xs">
+                                    <div class="flex gap-2">
+                                        <dt
+                                            class="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">
+                                            Tujuan</dt>
+                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['tujuan'] ?: '-' }}</dd>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <dt
+                                            class="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">
+                                            Tanggal</dt>
+                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['tanggal'] ?: '-' }}</dd>
+                                    </div>
+                                </dl>
+                            </div>
                         </div>
 
-                        {{-- Tujuan & tanggal --}}
-                        <dl class="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 text-xs">
-                            <div class="min-w-0">
-                                <dt class="text-gray-400">Tujuan</dt>
-                                <dd class="text-gray-700 font-medium mt-0.5 break-words">{{ $g['tujuan'] ?: '-' }}</dd>
-                            </div>
-                            <div class="min-w-0">
-                                <dt class="text-gray-400">Tanggal</dt>
-                                <dd class="text-gray-700 font-medium mt-0.5 break-words">{{ $g['tanggal'] ?: '-' }}</dd>
-                            </div>
-                        </dl>
-
-                        {{-- Daftar nominatif per status --}}
-                        <div class="space-y-2">
+                        {{-- Nominatif per status --}}
+                        <div class="space-y-2 min-w-0">
                             @foreach ($g['items'] as $r)
-                                <div class="rounded-xl border border-gray-100 bg-gray-50/70 p-3 space-y-2.5">
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div class="flex flex-wrap items-center gap-2 min-w-0">
-                                            <span
-                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $badgeClass($r['status']) }}">
-                                                {{ $r['status'] }}
-                                            </span>
-                                            <span class="text-xs text-gray-500">{{ $r['jumlah_peserta'] }} orang</span>
-                                        </div>
-                                        <p class="text-sm font-semibold text-gray-900 tabular-nums text-right shrink-0">
-                                            Rp {{ number_format($r['total'], 0, ',', '.') }}
-                                        </p>
-                                    </div>
+                                <div class="js-nom-sub rounded-xl bg-gray-50 border border-gray-200 p-3 flex flex-wrap items-center gap-x-3 gap-y-3 xl:grid xl:grid-cols-[9.5rem_3.5rem_minmax(0,1fr)_12.5rem]"
+                                    data-item-status="{{ $r['status'] }}">
 
-                                    <div class="flex items-center gap-2">
-                                        <a href="{{ $r['pdf_url'] }}" target="_blank"
-                                            class="inline-flex flex-1 items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg transition"
-                                            title="Buka / Unduh PDF {{ $r['status'] }}">
-                                            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                    <span
+                                        class="inline-flex items-center justify-self-start whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-semibold border {{ $badgeClass($r['status']) }}">
+                                        {{ $statusLabel($r['status']) }}
+                                    </span>
+
+                                    <span class="text-xs text-gray-500 xl:text-center tabular-nums">
+                                        {{ $r['jumlah_peserta'] }}<span class="xl:hidden"> orang</span>
+                                    </span>
+
+                                    <span
+                                        class="text-xs font-medium text-gray-700 text-right tabular-nums whitespace-nowrap ml-auto xl:ml-0">
+                                        Rp {{ number_format($r['total'], 0, ',', '.') }}
+                                    </span>
+
+                                    <div class="w-full sm:w-auto xl:w-full flex items-center gap-1.5 xl:justify-end">
+                                        <a href="{{ $r['pdf_url'] }}" target="_blank" rel="noopener"
+                                            class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-2.5 py-2 xl:py-1 text-[11px] font-semibold text-blue-600 bg-white hover:bg-blue-50 border border-blue-500 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            title="Buka / unduh PDF {{ $statusLabel($r['status']) }}">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24" aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                             </svg>
-                                            <span>PDF</span>
+                                            PDF
                                         </a>
 
                                         @if ($r['edit_url'])
                                             <a href="{{ $r['edit_url'] }}"
-                                                class="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 rounded-lg transition"
-                                                title="Edit Nominatif {{ $r['status'] }}"
-                                                aria-label="Edit Nominatif {{ $r['status'] }}">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                </svg>
+                                                class="inline-flex flex-1 sm:flex-none items-center justify-center px-2.5 py-2 xl:py-1 text-[11px] font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                title="Edit nominatif {{ $statusLabel($r['status']) }}">
+                                                Edit
                                             </a>
                                         @endif
 
                                         @if ($r['delete_url'])
-                                            <form method="POST" action="{{ $r['delete_url'] }}" class="inline-flex m-0"
+                                            <form method="POST" action="{{ $r['delete_url'] }}"
+                                                class="flex flex-1 sm:flex-none m-0"
                                                 onsubmit="return confirm('Hapus nominatif {{ $r['status'] }} ini beserta seluruh pesertanya?');">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"
-                                                    class="inline-flex items-center justify-center w-9 h-9 text-gray-500 hover:text-rose-600 bg-white hover:bg-rose-50 border border-gray-200 hover:border-rose-200 rounded-lg transition cursor-pointer"
-                                                    title="Hapus Nominatif {{ $r['status'] }}"
-                                                    aria-label="Hapus Nominatif {{ $r['status'] }}">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
+                                                    class="inline-flex flex-1 items-center justify-center px-2.5 py-2 xl:py-1 text-[11px] font-semibold text-red-500 bg-white hover:bg-red-50 border border-red-400 rounded-md transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                                                    title="Hapus nominatif {{ $statusLabel($r['status']) }}">
+                                                    Hapus
                                                 </button>
                                             </form>
                                         @endif
@@ -310,17 +189,18 @@
                                 </div>
                             @endforeach
                         </div>
-                    </div>
+                    </article>
                 @empty
-                    <div class="px-4 py-12 text-center text-gray-400">
-                        <p class="text-sm font-medium">Belum ada nominatif.</p>
-                        <p class="text-xs mt-1">Ketuk "Buat Nominatif" untuk membuat yang pertama.</p>
+                    <div class="bg-white rounded-2xl border border-gray-200 px-4 py-14 text-center">
+                        <p class="text-sm font-semibold text-gray-800">Belum ada nominatif</p>
+                        <p class="text-xs text-gray-500 mt-1">Klik "Buat Nominatif" untuk membuat yang pertama.</p>
                     </div>
                 @endforelse
             </div>
 
-            <div id="nom-no-result" class="hidden px-4 sm:px-6 py-12 text-center text-gray-400">
-                <p class="text-sm font-medium">Tidak ada nominatif yang cocok dengan filter.</p>
+            <div id="nom-no-result" class="hidden bg-white rounded-2xl border border-gray-200 px-4 py-14 text-center">
+                <p class="text-sm font-semibold text-gray-800">Tidak ada nominatif yang cocok</p>
+                <p class="text-xs text-gray-500 mt-1">Ubah kata kunci atau klik Reset untuk menampilkan semua.</p>
             </div>
         </div>
     </div>
@@ -330,52 +210,37 @@
             const qInput = document.getElementById('nom-filter-q');
             const statusSelect = document.getElementById('nom-filter-status');
             const resetBtn = document.getElementById('nom-filter-reset');
-            const rows = Array.from(document.querySelectorAll('.js-nom-row'));
-            const cards = Array.from(document.querySelectorAll('.js-nom-card'));
+            const items = Array.from(document.querySelectorAll('.js-nom-item'));
             const noResult = document.getElementById('nom-no-result');
-            const table = document.getElementById('nom-table');
-            const cardsBox = document.getElementById('nom-cards');
             const countEl = document.getElementById('nom-visible-count');
 
-            if (rows.length === 0) return;
+            if (items.length === 0) return;
 
             function applyFilter() {
                 const q = qInput.value.trim().toLowerCase();
                 const status = statusSelect.value;
-
-                function cocok(el) {
-                    const matchesQuery = (q === '' || el.dataset.search.includes(q));
-                    // data-status berformat "|PNS|Non PNS|" supaya "Non PNS" tidak bentrok dengan "PNS"
-                    const matchesStatus = (status === '' || el.dataset.status.includes('|' + status + '|'));
-                    return matchesQuery && matchesStatus;
-                }
-
                 let visible = 0;
-                rows.forEach(function (row) {
-                    const ok = cocok(row);
-                    row.style.display = ok ? '' : 'none';
-                    if (ok) {
-                        visible++;
-                        const numEl = row.querySelector('.js-nom-number');
-                        if (numEl) numEl.textContent = visible;
-                    }
-                });
 
-                let cardVisible = 0;
-                cards.forEach(function (card) {
-                    const ok = cocok(card);
-                    card.style.display = ok ? '' : 'none';
-                    if (ok) {
-                        cardVisible++;
-                        const numEl = card.querySelector('.js-card-number');
-                        if (numEl) numEl.textContent = cardVisible;
-                    }
+                items.forEach(function (item) {
+                    const matchesQuery = q === '' || item.dataset.search.includes(q);
+                    // data-status berformat "|PNS|Non PNS|" supaya "Non PNS" tidak bentrok dengan "PNS"
+                    const matchesStatus = status === '' || item.dataset.status.includes('|' + status + '|');
+                    const ok = matchesQuery && matchesStatus;
+
+                    item.style.display = ok ? '' : 'none';
+                    if (!ok) return;
+
+                    visible++;
+                    item.querySelector('.js-nom-number').textContent = visible;
+
+                    // Saat filter status aktif, tampilkan hanya baris status yang dipilih
+                    item.querySelectorAll('.js-nom-sub').forEach(function (sub) {
+                        sub.style.display = (status === '' || sub.dataset.itemStatus === status) ? '' : 'none';
+                    });
                 });
 
                 countEl.textContent = visible;
                 noResult.classList.toggle('hidden', visible > 0);
-                if (table) table.style.display = visible > 0 ? '' : 'none';
-                if (cardsBox) cardsBox.style.display = visible > 0 ? '' : 'none';
             }
 
             qInput.addEventListener('input', applyFilter);

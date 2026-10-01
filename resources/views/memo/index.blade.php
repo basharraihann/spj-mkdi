@@ -1,12 +1,12 @@
 <x-app-layout title="Memorandum">
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Memorandum') }}
+            {{ __('Daftar Memorandum') }}
         </h2>
     </x-slot>
 
     @php
-        // Hitung data tampilan sekali saja, dipakai oleh tabel (desktop) & kartu (HP/tablet)
+        // Hitung data tampilan sekali saja
         $groups = $groups->map(function ($g) {
             $tanggal = $g['tanggal_memo'] ?? null;
             $tanggalIso = optional($tanggal)->format('Y-m-d');
@@ -23,9 +23,9 @@
             ])->filter()->implode(' '));
 
             $jenisClass = match ($g['jenis']) {
-                'perdin' => 'bg-indigo-50 text-indigo-600',
-                'konsumsi' => 'bg-emerald-50 text-emerald-600',
-                default => 'bg-amber-50 text-amber-600',
+                'perdin' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                'konsumsi' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                default => 'bg-amber-50 text-amber-700 border-amber-200',
             };
 
             $deleteLabel = $g['agenda_id']
@@ -38,416 +38,247 @@
                 'search_blob' => $searchBlob,
                 'jenis_class' => $jenisClass,
                 'delete_label' => $deleteLabel,
+                'delete_text' => $g['agenda_id'] ? 'Hapus agenda' : 'Hapus memo',
             ];
         });
+
+        $statusClass = fn($status) => $status === 'PNS'
+            ? 'bg-blue-50 text-blue-700 border-blue-200'
+            : 'bg-orange-50 text-orange-700 border-orange-200';
     @endphp
 
-    <div class="py-6 sm:py-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
+    <div class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5">
 
-            @if (session('error'))
-                <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-                    {{ session('error') }}
-                </div>
-            @endif
+        @if (session('error'))
+            <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+                {{ session('error') }}
+            </div>
+        @endif
 
-            {{-- Nomor memo terkini + tombol buat mandiri --}}
-            <div class="relative overflow-hidden bg-white rounded-2xl shadow-sm border border-gray-100">
-                <div class="absolute inset-y-0 left-0 w-1.5 bg-blue-600"></div>
-                <div
-                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 px-5 py-5 pl-7 sm:px-8 sm:py-8 sm:pl-10">
-                    <div class="min-w-0">
-                        <p class="text-xs font-semibold text-blue-600 tracking-wide uppercase">Nomor Memo Berikutnya</p>
-                        <p class="text-xl sm:text-3xl font-bold text-gray-900 mt-2 tabular-nums break-all">
-                            {{ $nomorBerikutnya['nomor'] }}
-                        </p>
-                        <p class="text-sm text-gray-400 mt-2 sm:mt-3 max-w-md leading-relaxed">
-                            Dihitung otomatis dari nomor terbesar yang sudah pernah dipakai.
-                        </p>
-                    </div>
-                    <a href="{{ route('memo.create') }}"
-                        class="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-md shadow-blue-600/20 transition flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Buat Memorandum
-                    </a>
+        {{-- ============ BAGIAN ATAS: judul, nomor berikutnya, filter ============ --}}
+        <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-5">
+
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+                <div class="min-w-0">
+                    <h3 class="text-lg font-bold text-gray-800">Memorandum</h3>
+                    <p class="text-sm text-gray-500">Diurutkan dari nomor memo terbaru.</p>
                 </div>
+                <span
+                    class="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-100 rounded-full px-3 py-1.5"
+                    aria-live="polite">
+                    <span id="memo-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }} kegiatan
+                </span>
             </div>
 
-            {{-- Filter : instan client-side, tidak reload halaman --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
-                    <div class="sm:col-span-2 lg:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Cari</label>
-                        <input type="text" id="memo-filter-cari" autocomplete="off"
-                            placeholder="Nomor memo atau uraian kegiatan..."
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Jenis</label>
-                        <div class="relative">
-                            <select id="memo-filter-jenis"
-                                class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
-                                <option value="semua" selected>Semua Jenis</option>
-                                <option value="perdin">Perjalanan Dinas</option>
-                                <option value="konsumsi">Konsumsi</option>
-                                <option value="honorarium">Honorarium</option>
-                            </select>
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">PIC</label>
-                        <div class="relative">
-                            <select id="memo-filter-pic"
-                                class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
-                                <option value="">Semua PIC</option>
-                                @foreach ($picOptions as $namaPic)
-                                    <option value="{{ $namaPic }}">{{ $namaPic }}</option>
-                                @endforeach
-                            </select>
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="min-w-0">
-                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Dari Tanggal</label>
-                        <input type="date" id="memo-filter-dari"
-                            class="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
-                    </div>
-
-                    <div class="min-w-0">
-                        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Sampai Tanggal</label>
-                        <input type="date" id="memo-filter-sampai"
-                            class="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
-                    </div>
-
-                    <div class="sm:col-span-2 lg:col-span-6 flex items-center gap-2 pt-1">
-                        <button type="button" id="memo-filter-reset"
-                            class="text-xs font-medium text-gray-400 hover:text-gray-600 py-2 pr-3 transition">
-                            Reset Filter
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Daftar nomor memo --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-4 py-4 sm:px-8 sm:py-6 border-b border-gray-100">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-800">Daftar Nomor Memo</h3>
-                    <p class="text-sm text-gray-400 mt-1.5">
-                        Diurutkan dari nomor memo terbaru. Menampilkan
-                        <span id="memo-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }}
-                        kegiatan.
+            {{-- Nomor memo berikutnya + tombol buat --}}
+            <div
+                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold text-blue-700">Nomor memo berikutnya</p>
+                    <p class="text-xl font-bold text-gray-900 tabular-nums break-all">
+                        {{ $nomorBerikutnya['nomor'] }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-0.5">Dihitung otomatis dari nomor terbesar yang sudah dipakai.
                     </p>
                 </div>
+                <a href="{{ route('memo.create') }}"
+                    class="inline-flex w-full sm:w-auto shrink-0 items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Buat Memorandum
+                </a>
+            </div>
 
-                {{-- ============ TABEL (layar lebar, xl ke atas) ============ --}}
-                <div class="hidden xl:block overflow-x-auto">
-                    <table id="memo-table" class="w-full min-w-[1150px] table-fixed text-sm">
-                        <thead>
-                            <tr class="bg-gray-50/80 text-gray-500 text-left border-b border-gray-100">
-                                <th class="px-3 py-3.5 font-medium w-10">No</th>
-                                <th class="px-3 py-3.5 font-medium w-44">Nomor Memo</th>
-                                <th class="px-3 py-3.5 font-medium w-28">Jenis</th>
-                                <th class="px-3 py-3.5 font-medium w-24">Tanggal</th>
-                                <th class="px-3 py-3.5 font-medium">Nama Kegiatan</th>
-                                <th class="px-3 py-3.5 font-medium w-28">PIC</th>
-                                <th class="px-3 py-3.5 font-medium w-28">MAK</th>
-                                <th class="px-3 py-3.5 font-medium text-right w-28">Nominal</th>
-                                <th class="px-3 py-3.5 font-medium text-center w-24">Aksi</th>
-                                <th class="px-3 py-3.5 font-medium text-center w-16">Hapus</th>
-                            </tr>
-                        </thead>
-
-                        @forelse ($groups as $g)
-                            @php $n = count($g['items']); @endphp
-
-                            {{-- Satu tbody = satu kegiatan (bisa 2 baris memo: PNS + Non PNS) --}}
-                            <tbody class="js-memo-group border-t border-gray-100 hover:bg-gray-50/70 transition"
-                                data-search="{{ $g['search_blob'] }}" data-jenis="{{ $g['jenis'] }}"
-                                data-pic="{{ $g['pic'] }}" data-tanggal="{{ $g['tanggal_iso'] }}">
-                                @foreach ($g['items'] as $memo)
-                                    <tr class="align-top {{ $loop->first ? '' : 'border-t border-dashed border-gray-100' }}">
-                                        @if ($loop->first)
-                                            <td rowspan="{{ $n }}"
-                                                class="px-3 py-4 text-gray-400 js-memo-number">{{ $loop->parent->iteration }}</td>
-                                        @endif
-
-                                        {{-- Nomor memo + status (per memo) --}}
-                                        <td class="px-3 py-4">
-                                            <div class="flex flex-col items-start gap-1.5">
-                                                @if ($memo['agenda_id'])
-                                                    <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
-                                                        class="font-semibold text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
-                                                        {{ $memo['nomor_memo'] }}
-                                                    </a>
-                                                @else
-                                                    <span class="font-semibold text-gray-800 tabular-nums break-all">
-                                                        {{ $memo['nomor_memo'] }}
-                                                    </span>
-                                                @endif
-
-                                                @if ($memo['status'])
-                                                    <span
-                                                        class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
-                                                        {{ $memo['status'] }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </td>
-
-                                        @if ($loop->first)
-                                            <td rowspan="{{ $n }}" class="px-3 py-4">
-                                                <span
-                                                    class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $g['jenis_class'] }}">
-                                                    {{ $g['jenis_label'] }}
-                                                </span>
-                                            </td>
-                                            <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-500 text-xs">
-                                                {{ $g['tanggal_tampil'] }}
-                                            </td>
-                                            <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-700 leading-relaxed">
-                                                <p class="uraian-text line-clamp-2">
-                                                    {{ $g['uraian_kegiatan'] ?? '-' }}
-                                                </p>
-                                                @if (strlen($g['uraian_kegiatan'] ?? '') > 90)
-                                                    <button type="button"
-                                                        class="toggle-uraian text-xs font-medium text-blue-600 hover:text-blue-700 mt-1">
-                                                        Selengkapnya
-                                                    </button>
-                                                @endif
-                                            </td>
-                                            <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-600 break-words">
-                                                {{ $g['pic'] }}
-                                            </td>
-                                            <td rowspan="{{ $n }}"
-                                                class="px-3 py-4 text-gray-500 text-xs font-mono break-all">
-                                                {{ $g['mak'] ?? '-' }}
-                                            </td>
-                                        @endif
-
-                                        {{-- Nominal (per memo) --}}
-                                        <td class="px-3 py-4 text-gray-900 font-semibold text-right tabular-nums">
-                                            Rp{{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
-                                        </td>
-
-                                        {{-- PDF / Edit (per memo) --}}
-                                        <td class="px-3 py-3">
-                                            <div class="flex flex-col items-stretch gap-1">
-                                                <a href="{{ $memo['pdf_url'] }}" target="_blank"
-                                                    title="Buka PDF {{ $memo['status'] ?? '' }}"
-                                                    class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                    PDF
-                                                </a>
-
-                                                @if ($memo['editable'])
-                                                    <a href="{{ $memo['edit_url'] }}"
-                                                        class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
-                                                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                            stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                        </svg>
-                                                        Edit
-                                                    </a>
-                                                @endif
-                                            </div>
-                                        </td>
-
-                                        {{-- Hapus (satu per kegiatan) --}}
-                                        @if ($loop->first)
-                                            <td rowspan="{{ $n }}" class="px-3 py-3 text-center">
-                                                <form action="{{ route('memo.destroy', $g['delete_id']) }}" method="POST"
-                                                    class="delete-memo-form inline-flex"
-                                                    data-label="{{ $g['delete_label'] }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" title="Hapus {{ $g['delete_label'] }}"
-                                                        class="inline-flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        @endif
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        @empty
-                            <tbody>
-                                <tr>
-                                    <td colspan="10" class="px-6 py-16 text-center text-gray-400">
-                                        Belum ada nomor memo.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        @endforelse
-                    </table>
+            {{-- Filter instan, tanpa reload --}}
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="memo-filter-cari" class="text-xs font-semibold text-gray-600">Cari</label>
+                    <input type="text" id="memo-filter-cari" autocomplete="off"
+                        placeholder="Nomor memo, uraian, atau PIC..."
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-64 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                 </div>
 
-                {{-- ============ KARTU (HP & tablet, di bawah xl) ============ --}}
-                <div id="memo-cards" class="xl:hidden divide-y divide-gray-100">
-                    @forelse ($groups as $g)
-                        <div class="js-memo-card p-4 sm:p-5 space-y-3" data-search="{{ $g['search_blob'] }}"
-                            data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}"
-                            data-tanggal="{{ $g['tanggal_iso'] }}">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="memo-filter-jenis" class="text-xs font-semibold text-gray-600">Jenis</label>
+                    <select id="memo-filter-jenis"
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        <option value="semua" selected>Semua Jenis</option>
+                        <option value="perdin">Perjalanan Dinas</option>
+                        <option value="konsumsi">Konsumsi</option>
+                        <option value="honorarium">Honorarium</option>
+                    </select>
+                </div>
 
-                            {{-- Baris atas: nomor urut, jenis, tanggal, hapus --}}
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="memo-filter-pic" class="text-xs font-semibold text-gray-600">PIC</label>
+                    <select id="memo-filter-pic"
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        <option value="">Semua PIC</option>
+                        @foreach ($picOptions as $namaPic)
+                            <option value="{{ $namaPic }}">{{ $namaPic }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
+                    <label for="memo-filter-dari" class="text-xs font-semibold text-gray-600">Dari tanggal</label>
+                    <input type="date" id="memo-filter-dari"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                </div>
+
+                <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
+                    <label for="memo-filter-sampai" class="text-xs font-semibold text-gray-600">Sampai tanggal</label>
+                    <input type="date" id="memo-filter-sampai"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                </div>
+
+                <button type="button" id="memo-filter-reset"
+                    class="text-sm text-gray-500 hover:text-gray-700 transition px-1 py-2 cursor-pointer">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        {{-- ============ DAFTAR: satu kartu per kegiatan ============ --}}
+        <div class="space-y-3">
+
+            {{-- Judul kolom (hanya layar lebar, sejajar dengan isi kartu) --}}
+            <div
+                class="hidden xl:grid grid-cols-[minmax(0,1fr)_36rem] gap-6 px-5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                <div>Kegiatan</div>
+                <div class="grid grid-cols-[minmax(0,1fr)_8rem_9.5rem] gap-3 px-3">
+                    <div>Nomor Memo</div>
+                    <div class="text-right">Nominal</div>
+                    <div class="text-right">Aksi</div>
+                </div>
+            </div>
+
+            <div id="memo-list" class="space-y-3">
+                @forelse ($groups as $g)
+                    <article
+                        class="js-memo-item bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_36rem] xl:gap-6"
+                        data-search="{{ $g['search_blob'] }}" data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}"
+                        data-tanggal="{{ $g['tanggal_iso'] }}">
+
+                        {{-- Info kegiatan --}}
+                        <div class="flex gap-3 min-w-0">
+                            <span
+                                class="js-memo-number inline-flex h-7 min-w-7 px-2 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-500 tabular-nums shrink-0">{{ $loop->iteration }}</span>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                                     <span
-                                        class="js-card-number inline-flex h-6 min-w-6 px-1.5 items-center justify-center rounded-md bg-gray-100 text-xs font-medium text-gray-500">{{ $loop->iteration }}</span>
-                                    <span
-                                        class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $g['jenis_class'] }}">
+                                        class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-semibold border {{ $g['jenis_class'] }}">
                                         {{ $g['jenis_label'] }}
                                     </span>
-                                    <span class="text-xs text-gray-500">{{ $g['tanggal_tampil'] }}</span>
+                                    <span class="text-xs text-gray-500">{{ $g['tanggal_tampil'] ?: '-' }}</span>
                                 </div>
 
+                                <h3 class="text-sm font-semibold text-gray-800 leading-snug break-words mt-2">
+                                    {{ $g['uraian_kegiatan'] ?? '-' }}
+                                </h3>
+
+                                <dl class="mt-2 space-y-1 text-xs">
+                                    <div class="flex gap-2">
+                                        <dt class="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">PIC</dt>
+                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['pic'] ?: '-' }}</dd>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <dt class="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">MAK</dt>
+                                        <dd class="text-gray-700 font-medium font-mono text-xs break-all min-w-0">
+                                            {{ $g['mak'] ?? '-' }}
+                                        </dd>
+                                    </div>
+                                </dl>
+
                                 <form action="{{ route('memo.destroy', $g['delete_id']) }}" method="POST"
-                                    class="delete-memo-form inline-flex shrink-0" data-label="{{ $g['delete_label'] }}">
+                                    class="delete-memo-form inline-flex mt-3 m-0" data-label="{{ $g['delete_label'] }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" title="Hapus {{ $g['delete_label'] }}"
-                                        aria-label="Hapus {{ $g['delete_label'] }}"
-                                        class="inline-flex items-center justify-center w-9 h-9 -mt-1 -mr-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
+                                        class="inline-flex items-center justify-center px-3 py-2 xl:py-1 text-[11px] font-semibold text-red-500 bg-white hover:bg-red-50 border border-red-400 rounded-md transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
+                                        {{ $g['delete_text'] }}
                                     </button>
                                 </form>
                             </div>
-
-                            {{-- Uraian kegiatan --}}
-                            <div class="text-sm text-gray-700 leading-relaxed">
-                                <p class="uraian-text line-clamp-2 break-words">{{ $g['uraian_kegiatan'] ?? '-' }}</p>
-                                @if (strlen($g['uraian_kegiatan'] ?? '') > 90)
-                                    <button type="button"
-                                        class="toggle-uraian text-xs font-medium text-blue-600 hover:text-blue-700 mt-1 py-1">
-                                        Selengkapnya
-                                    </button>
-                                @endif
-                            </div>
-
-                            {{-- PIC & MAK --}}
-                            <dl class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="min-w-0">
-                                    <dt class="text-gray-400">PIC</dt>
-                                    <dd class="text-gray-700 font-medium mt-0.5 break-words">{{ $g['pic'] ?: '-' }}</dd>
-                                </div>
-                                <div class="min-w-0">
-                                    <dt class="text-gray-400">MAK</dt>
-                                    <dd class="text-gray-700 font-mono mt-0.5 break-all">{{ $g['mak'] ?? '-' }}</dd>
-                                </div>
-                            </dl>
-
-                            {{-- Daftar memo (PNS / Non PNS) --}}
-                            <div class="space-y-2 pt-1">
-                                @foreach ($g['items'] as $memo)
-                                    <div class="rounded-xl border border-gray-100 bg-gray-50/70 p-3 space-y-2.5">
-                                        <div class="flex items-start justify-between gap-3">
-                                            <div class="min-w-0 flex flex-col items-start gap-1.5">
-                                                @if ($memo['agenda_id'])
-                                                    <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
-                                                        class="font-semibold text-sm text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
-                                                        {{ $memo['nomor_memo'] }}
-                                                    </a>
-                                                @else
-                                                    <span class="font-semibold text-sm text-gray-800 tabular-nums break-all">
-                                                        {{ $memo['nomor_memo'] }}
-                                                    </span>
-                                                @endif
-
-                                                @if ($memo['status'])
-                                                    <span
-                                                        class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
-                                                        {{ $memo['status'] }}
-                                                    </span>
-                                                @endif
-                                            </div>
-
-                                            <p class="text-sm font-semibold text-gray-900 tabular-nums text-right shrink-0">
-                                                Rp{{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
-                                            </p>
-                                        </div>
-
-                                        <div class="grid {{ $memo['editable'] ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
-                                            <a href="{{ $memo['pdf_url'] }}" target="_blank"
-                                                title="Buka PDF {{ $memo['status'] ?? '' }}"
-                                                class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-100 hover:bg-blue-50 px-3 py-2 rounded-lg transition">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                                PDF
-                                            </a>
-
-                                            @if ($memo['editable'])
-                                                <a href="{{ $memo['edit_url'] }}"
-                                                    class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
-                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                        stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                    Edit
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
                         </div>
-                    @empty
-                        <p class="px-4 py-16 text-center text-gray-400">Belum ada nomor memo.</p>
-                    @endforelse
-                </div>
 
-                <p id="memo-no-result" class="hidden px-4 sm:px-6 py-16 text-center text-gray-400">
-                    Tidak ada nomor memo yang cocok dengan filter ini.
-                </p>
+                        {{-- Nomor memo per status (PNS / Non PNS) --}}
+                        <div class="space-y-2 min-w-0 xl:pt-0">
+                            @foreach ($g['items'] as $memo)
+                                <div
+                                    class="rounded-xl bg-gray-50 border border-gray-200 p-3 flex flex-wrap items-center gap-x-3 gap-y-3 xl:grid xl:grid-cols-[minmax(0,1fr)_8rem_9.5rem]">
+
+                                    {{-- Nomor memo + status --}}
+                                    <div class="min-w-0 flex flex-col items-start gap-1.5">
+                                        @if ($memo['agenda_id'])
+                                            <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
+                                                class="font-semibold text-xs text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
+                                                {{ $memo['nomor_memo'] }}
+                                            </a>
+                                        @else
+                                            <span class="font-semibold text-xs text-gray-800 tabular-nums break-all">
+                                                {{ $memo['nomor_memo'] }}
+                                            </span>
+                                        @endif
+
+                                        @if ($memo['status'])
+                                            <span
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusClass($memo['status']) }}">
+                                                {{ $memo['status'] }}
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    {{-- Nominal --}}
+                                    <span
+                                        class="text-xs font-medium text-gray-700 text-right tabular-nums whitespace-nowrap ml-auto xl:ml-0">
+                                        Rp {{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
+                                    </span>
+
+                                    {{-- PDF / Edit --}}
+                                    <div class="w-full sm:w-auto xl:w-full flex items-center gap-1.5 xl:justify-end">
+                                        <a href="{{ $memo['pdf_url'] }}" target="_blank" rel="noopener"
+                                            title="Buka PDF {{ $memo['status'] ?? '' }}"
+                                            class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-2.5 py-2 xl:py-1 text-[11px] font-semibold text-blue-600 bg-white hover:bg-blue-50 border border-blue-500 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                            PDF
+                                        </a>
+
+                                        @if ($memo['editable'])
+                                            <a href="{{ $memo['edit_url'] }}"
+                                                class="inline-flex flex-1 sm:flex-none items-center justify-center px-3 py-2 xl:py-1 text-[11px] font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                                Edit
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </article>
+                @empty
+                    <div class="bg-white rounded-2xl border border-gray-200 px-4 py-14 text-center">
+                        <p class="text-sm font-semibold text-gray-800">Belum ada nomor memo</p>
+                        <p class="text-xs text-gray-500 mt-1">Klik "Buat Memorandum" untuk membuat yang pertama.</p>
+                    </div>
+                @endforelse
+            </div>
+
+            <div id="memo-no-result" class="hidden bg-white rounded-2xl border border-gray-200 px-4 py-14 text-center">
+                <p class="text-sm font-semibold text-gray-800">Tidak ada nomor memo yang cocok</p>
+                <p class="text-xs text-gray-500 mt-1">Ubah filter atau klik Reset untuk menampilkan semua.</p>
             </div>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.toggle-uraian').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    const p = btn.previousElementSibling;
-                    const expanded = !p.classList.contains('line-clamp-2');
-                    p.classList.toggle('line-clamp-2');
-                    btn.textContent = expanded ? 'Selengkapnya' : 'Sembunyikan';
-                });
-            });
-
-            // Form hapus ada di tabel & kartu, jadi id dibuat unik lewat index
+            // Setiap form hapus diberi id unik, lalu konfirmasi lewat confirmDelete()
             document.querySelectorAll('.delete-memo-form').forEach(function (form, index) {
                 if (!form.id) {
                     form.id = 'delete-memo-form-' + index;
@@ -462,7 +293,7 @@
         });
     </script>
 
-    {{-- Filter instan client-side (tabel desktop + kartu mobile) --}}
+    {{-- Filter instan client-side --}}
     <script>
         (function () {
             const cariInput = document.getElementById('memo-filter-cari');
@@ -472,23 +303,22 @@
             const sampaiInput = document.getElementById('memo-filter-sampai');
             const resetBtn = document.getElementById('memo-filter-reset');
 
-            const tableGroups = Array.from(document.querySelectorAll('.js-memo-group'));
-            const cards = Array.from(document.querySelectorAll('.js-memo-card'));
+            const items = Array.from(document.querySelectorAll('.js-memo-item'));
             const noResult = document.getElementById('memo-no-result');
-            const table = document.getElementById('memo-table');
-            const cardsBox = document.getElementById('memo-cards');
-            const visibleCountEl = document.getElementById('memo-visible-count');
+            const countEl = document.getElementById('memo-visible-count');
 
-            if (tableGroups.length === 0) return; // belum ada data, gak perlu filter
+            if (items.length === 0) return; // belum ada data, tidak perlu filter
 
             function applyFilter() {
                 const cari = cariInput.value.trim().toLowerCase();
                 const jenis = jenisSelect.value;
                 const pic = picSelect.value;
-                const dari = dariInput.value; // YYYY-MM-DD, cocok buat compare string
+                const dari = dariInput.value; // YYYY-MM-DD, bisa dibandingkan sebagai string
                 const sampai = sampaiInput.value;
 
-                function cocok(el) {
+                let visible = 0;
+
+                items.forEach(function (el) {
                     const matchCari = cari === '' || el.dataset.search.includes(cari);
                     const matchJenis = jenis === 'semua' || el.dataset.jenis === jenis;
                     const matchPic = pic === '' || el.dataset.pic === pic;
@@ -497,39 +327,17 @@
                     const matchDari = dari === '' || (tgl !== '' && tgl >= dari);
                     const matchSampai = sampai === '' || (tgl !== '' && tgl <= sampai);
 
-                    return matchCari && matchJenis && matchPic && matchDari && matchSampai;
-                }
+                    const ok = matchCari && matchJenis && matchPic && matchDari && matchSampai;
+                    el.style.display = ok ? '' : 'none';
 
-                let visibleCount = 0;
-
-                tableGroups.forEach(function (g) {
-                    const visible = cocok(g);
-                    g.style.display = visible ? '' : 'none';
-
-                    if (visible) {
-                        visibleCount++;
-                        const numberCell = g.querySelector('.js-memo-number');
-                        if (numberCell) numberCell.textContent = visibleCount;
+                    if (ok) {
+                        visible++;
+                        el.querySelector('.js-memo-number').textContent = visible;
                     }
                 });
 
-                let cardCount = 0;
-                cards.forEach(function (c) {
-                    const visible = cocok(c);
-                    c.style.display = visible ? '' : 'none';
-
-                    if (visible) {
-                        cardCount++;
-                        const numberEl = c.querySelector('.js-card-number');
-                        if (numberEl) numberEl.textContent = cardCount;
-                    }
-                });
-
-                if (visibleCountEl) visibleCountEl.textContent = visibleCount;
-                if (noResult) noResult.classList.toggle('hidden', visibleCount > 0);
-                // sembunyikan tabel (termasuk header) & daftar kartu kalau tidak ada hasil
-                if (table) table.style.display = visibleCount > 0 ? '' : 'none';
-                if (cardsBox) cardsBox.style.display = visibleCount > 0 ? '' : 'none';
+                countEl.textContent = visible;
+                noResult.classList.toggle('hidden', visible > 0);
             }
 
             cariInput.addEventListener('input', applyFilter);
