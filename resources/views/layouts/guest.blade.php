@@ -1,336 +1,234 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
     <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}</title>
-
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
-    <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #eaedfa; }
 
-        /* ===== SPLIT LAYOUT ===== */
-        .login-wrapper {
+        /* ===== CITY BACKGROUND & LOGIN LAYOUT ===== */
+        .city-page {
             min-height: 100vh;
             display: flex;
-            background: #f0f4f8;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .login-card {
-            display: flex;
-            width: 100%;
-            max-width: 900px;
-            min-height: 560px;
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
-        }
-
-        /* Panel kiri: gambar */
-        .login-visual {
+            flex-direction: column;
             position: relative;
-            width: 48%;
-            flex-shrink: 0;
-            background: #b8d4ed;
             overflow: hidden;
+            background: #eef2ff;
         }
 
-        .login-visual img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-        }
-
-        .login-visual-overlay {
+        .city-bg-image {
             position: absolute;
             inset: 0;
-            background: linear-gradient(to top, rgba(10,80,160,0.55) 0%, rgba(10,80,160,0.10) 60%, transparent 100%);
+            width: 100%;
+            height: 100%;
+            background-image: url('{{ asset("images/login-bg.jpg") }}');
+            background-size: cover;
+            background-position: center bottom;
+            background-repeat: no-repeat;
+            z-index: 1;
         }
 
-        .login-visual-caption {
-            position: absolute;
-            bottom: 28px;
-            left: 0; right: 0;
-            text-align: center;
-            color: #fff;
-        }
-
-        .login-visual-caption p:first-child {
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 0.01em;
-        }
-
-        .login-visual-caption p:last-child {
-            font-size: 0.78rem;
-            opacity: 0.85;
-            margin-top: 2px;
-        }
-
-        /* Dot indicators */
-        .login-visual-dots {
-            display: flex;
-            justify-content: center;
-            gap: 6px;
-            margin-top: 10px;
-        }
-
-        .login-visual-dots span {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.5);
-        }
-
-        .login-visual-dots span.active {
-            background: #fff;
-            width: 20px;
-            border-radius: 4px;
-        }
-
-        /* Panel kanan: form */
-        .login-form-panel {
+        /* Konten Utama */
+        .city-main {
+            position: relative;
+            z-index: 10;
             flex: 1;
-            background: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px 44px;
+            padding: 40px 16px 50px;
         }
 
-        .login-form-inner {
+        /* Kartu form */
+        .city-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(30, 45, 110, 0.14);
+            padding: 36px 36px 30px;
             width: 100%;
-            max-width: 320px;
+            max-width: 400px;
         }
 
-        /* Judul */
-        .login-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #111827;
+        .city-card-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1a1f36;
             text-align: center;
-            margin-bottom: 22px;
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
         }
 
-        /* Tab e-mail / mobile */
-        .login-tabs {
-            display: flex;
-            border-bottom: 1px solid #e5e7eb;
-            margin-bottom: 22px;
-        }
-
-        .login-tab {
-            flex: 1;
+        .city-card-sub {
+            font-size: 0.82rem;
+            color: #6b7280;
             text-align: center;
-            padding-bottom: 10px;
-            font-size: 0.78rem;
-            font-weight: 500;
-            color: #9ca3af;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -1px;
-            transition: all .2s;
+            margin-bottom: 24px;
         }
 
-        .login-tab.active {
-            color: #111827;
-            border-bottom-color: #111827;
-        }
-
-        /* Input underline */
-        .login-input-group {
+        .city-field {
             position: relative;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
 
-        .login-input-group .input-icon {
+        .city-field label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        .city-field .field-wrap { position: relative; }
+
+        .city-field .field-icon {
             position: absolute;
-            left: 0;
+            left: 13px;
             top: 50%;
             transform: translateY(-50%);
-            color: #9ca3af;
-            width: 16px;
-            height: 16px;
+            width: 17px;
+            height: 17px;
+            color: #6b7280;
+            pointer-events: none;
         }
 
-        .login-input-group input {
+        .city-field input {
             width: 100%;
-            border: none;
-            border-bottom: 1.5px solid #d1d5db;
-            padding: 9px 28px 9px 24px;
-            font-size: 0.82rem;
-            color: #374151;
-            background: transparent;
+            padding: 11px 40px 11px 40px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: #111827;
+            background: #ffffff;
             outline: none;
-            transition: border-color .2s;
+            transition: border-color .2s, box-shadow .2s;
         }
 
-        .login-input-group input:focus {
-            border-bottom-color: #3b82f6;
+        .city-field input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            background: #ffffff;
         }
 
-        .login-input-group input::placeholder {
-            color: #9ca3af;
-        }
+        .city-field input::placeholder { color: #9ca3af; }
 
-        /* Eye toggle */
-        .login-input-group .eye-btn {
+        .city-field .eye-btn {
             position: absolute;
-            right: 0;
+            right: 12px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
             cursor: pointer;
-            color: #9ca3af;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
             padding: 0;
         }
+        .city-field .eye-btn:hover { color: #2563eb; }
 
-        /* Forgot */
-        .login-forgot {
-            text-align: right;
-            margin-bottom: 18px;
+        .city-error { font-size: 0.72rem; color: #ef4444; margin-top: 4px; }
+        .city-status {
+            font-size: 0.78rem; color: #16a34a;
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 8px; padding: 8px 12px; margin-bottom: 16px;
         }
 
-        .login-forgot a {
-            font-size: 0.75rem;
-            color: #6b7280;
-            text-decoration: none;
-        }
-
-        .login-forgot a:hover {
-            color: #3b82f6;
-        }
-
-        /* Submit button */
-        .login-btn {
+        .city-btn {
             width: 100%;
-            padding: 11px;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-            color: #fff;
-            font-size: 0.85rem;
-            font-weight: 600;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 10px;
+            background: #1e293b;
+            color: #ffffff;
+            font-size: 0.88rem;
+            font-weight: 700;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 14px rgba(59,130,246,0.35);
-            transition: opacity .2s, transform .15s;
+            letter-spacing: 0.03em;
+            transition: background .2s, transform .15s, box-shadow .2s;
+            box-shadow: 0 4px 16px rgba(30, 41, 59, 0.25);
         }
-
-        .login-btn:hover {
-            opacity: 0.92;
+        .city-btn:hover {
+            background: #334155;
             transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(30, 41, 59, 0.32);
         }
 
-        /* Error */
-        .login-error {
-            color: #ef4444;
-            font-size: 0.72rem;
-            margin-top: 4px;
+        .city-copy {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #4b5563;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            padding: 5px 16px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            white-space: nowrap;
         }
 
-        /* Status alert */
-        .login-status {
-            font-size: 0.78rem;
-            color: #16a34a;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 6px;
-            padding: 8px 10px;
-            margin-bottom: 14px;
-        }
-
-        /* Responsive */
-        @media (max-width: 640px) {
-            .login-card { flex-direction: column; border-radius: 16px; }
-            .login-visual { width: 100%; height: 220px; }
-            .login-form-panel { padding: 28px 24px; }
+        @media (max-width: 480px) {
+            .city-card { padding: 28px 20px 24px; }
         }
     </style>
 </head>
+<body>
 
-<body style="background:#f0f4f8; margin:0;">
-
-    @if ($attributes->get('split'))
-    <div class="login-wrapper">
-        <div class="login-card">
-
-            {{-- Panel kiri: visual --}}
-            <div class="login-visual">
-                <img src="{{ asset('images/login-bg.jpg') }}" alt="Login Visual">
-                <div class="login-visual-overlay"></div>
-                <div class="login-visual-caption">
-                    <p>Welcome Pikmin</p>
-                    <p>&copy;2026 SPJ MKDI</p>
-                    <div class="login-visual-dots">
-                        <span class="active"></span>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Panel kanan: form --}}
-            <div class="login-form-panel">
-                <div class="login-form-inner">
-                    {{ $slot }}
-                </div>
-            </div>
-
+@if ($attributes->get('split'))
+<div class="city-page">
+    <div class="city-bg-image"></div>
+    <div class="city-main">
+        <div class="city-card">
+            {{ $slot }}
         </div>
     </div>
+    <div class="city-copy">&copy;2026 SPJ MKDI &mdash; Welcome Pikmin</div>
+</div>
 
-    @elseif ($attributes->get('scene'))
-        <div class="relative min-h-screen overflow-hidden bg-indigo-50 flex flex-col items-center px-4">
-            <x-login-scene class="absolute inset-0 w-full h-full" />
-
-            <a href="/" class="relative z-10 mt-8 sm:mt-10">
-                <img src="{{ asset('images/logoheader.png') }}" alt="Logo"
-                    class="h-12 sm:h-14 lg:h-16 w-auto object-contain">
-            </a>
-
-            <main class="relative z-10 flex w-full flex-1 items-center justify-center py-8">
-                <div class="w-full max-w-sm rounded-lg border border-indigo-100 bg-white/70 backdrop-blur-md
-                                    shadow-xl shadow-indigo-900/5 p-6 sm:p-7">
-                    @isset($tagline)
-                        <h1 class="text-lg font-bold text-gray-900 leading-snug">{{ $tagline }}</h1>
-                    @endisset
-                    <div class="mt-5">{{ $slot }}</div>
-                </div>
-            </main>
-
-            <footer class="relative z-10 pb-6 text-xs text-gray-600">
-                &copy; {{ date('Y') }} {{ config('app.name', 'Laravel') }}
-            </footer>
-        </div>
-    @else
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
-                </a>
+@elseif ($attributes->get('scene'))
+    <div class="relative min-h-screen overflow-hidden bg-indigo-50 flex flex-col items-center px-4">
+        <x-login-scene class="absolute inset-0 w-full h-full" />
+        <a href="/" class="relative z-10 mt-8 sm:mt-10">
+            <img src="{{ asset('images/logoheader.png') }}" alt="Logo" class="h-12 sm:h-14 lg:h-16 w-auto object-contain">
+        </a>
+        <main class="relative z-10 flex w-full flex-1 items-center justify-center py-8">
+            <div class="w-full max-w-sm rounded-lg border border-indigo-100 bg-white/70 backdrop-blur-md shadow-xl shadow-indigo-900/5 p-6 sm:p-7">
+                @isset($tagline)
+                    <h1 class="text-lg font-bold text-gray-900 leading-snug">{{ $tagline }}</h1>
+                @endisset
+                <div class="mt-5">{{ $slot }}</div>
             </div>
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
-            </div>
-        </div>
-    @endif
+        </main>
+        <footer class="relative z-10 pb-6 text-xs text-gray-600">
+            &copy; {{ date('Y') }} {{ config('app.name', 'Laravel') }}
+        </footer>
+    </div>
+@else
+    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+        <div><a href="/"><x-application-logo class="w-20 h-20 fill-current text-gray-500" /></a></div>
+        <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">{{ $slot }}</div>
+    </div>
+@endif
 
 </body>
-
 </html>
