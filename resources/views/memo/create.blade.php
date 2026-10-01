@@ -56,6 +56,17 @@
                 $currentMak = old('mak');
                 $makAdaDiDaftar = $makOptions->contains('mak', $currentMak);
                 $tampilkanManual = $makOptions->isEmpty() || ($currentMak && !$makAdaDiDaftar);
+
+                // "Payung" = MAK tanpa kode belanja (segmen ke-6).
+                // Contoh: 7458.ABR.006.075.EE.524111 -> payung 7458.ABR.006.075.EE
+                $makGroups = $makOptions
+                    ->sortBy('mak')
+                    ->groupBy(fn($o) => \Illuminate\Support\Str::beforeLast($o->mak, '.'));
+
+                $currentOpt = $makOptions->firstWhere('mak', $currentMak);
+                $currentLabel = $currentOpt
+                    ? \Illuminate\Support\Str::afterLast($currentOpt->mak, '.') . ' — ' . $currentOpt->uraian_belanja
+                    : ($tampilkanManual && $currentMak ? 'Ketik manual (belum ada di daftar)' : '');
             @endphp
 
             <form action="{{ route('memo.store') }}" method="POST" class="space-y-5">
@@ -321,21 +332,93 @@
                                 <span class="text-red-400">*</span></label>
 
                             @if ($makOptions->isNotEmpty())
-                                <select id="mak-select" data-placeholder="Cari MAK..."
-                                    class="js-searchable w-full appearance-none border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white mb-2">
-                                    <option value="" {{ !$currentMak ? 'selected' : '' }}>— Pilih dari daftar MAK —</option>
-                                    @foreach ($makOptions as $opt)
-                                        <option value="{{ $opt->mak }}" data-uraian-giat="{{ $opt->uraian_giat }}"
-                                            data-uraian-komponen="{{ $opt->uraian_komponen }}"
-                                            data-uraian-akun-ap="{{ $opt->uraian_akun_ap }}"
-                                            data-uraian-belanja="{{ $opt->uraian_belanja }}" @selected($currentMak === $opt->mak)>
-                                            {{ $opt->mak }} — {{ $opt->uraian_belanja }}
-                                        </option>
+                                {{-- Select asli disembunyikan (TANPA js-searchable). Tetap jadi sumber nilai
+                                supaya skrip sinkron MAK / preview uraian di bawah tetap jalan. --}}
+                                <select id="mak-select" class="hidden" tabindex="-1" aria-hidden="true">
+                                    <option value="" data-label="" {{ !$currentMak ? 'selected' : '' }}>— Pilih dari
+                                        daftar MAK —</option>
+                                    @foreach ($makGroups as $payung => $items)
+                                        @foreach ($items as $opt)
+                                            <option value="{{ $opt->mak }}"
+                                                data-label="{{ \Illuminate\Support\Str::afterLast($opt->mak, '.') }} — {{ $opt->uraian_belanja }}"
+                                                data-uraian-giat="{{ $opt->uraian_giat }}"
+                                                data-uraian-komponen="{{ $opt->uraian_komponen }}"
+                                                data-uraian-akun-ap="{{ $opt->uraian_akun_ap }}"
+                                                data-uraian-belanja="{{ $opt->uraian_belanja }}"
+                                                @selected($currentMak === $opt->mak)>
+                                                {{ $opt->mak }}
+                                            </option>
+                                        @endforeach
                                     @endforeach
-                                    <option value="__manual__" @selected($tampilkanManual && $currentMak)>
+                                    <option value="__manual__" data-label="Ketik manual (belum ada di daftar)"
+                                        @selected($tampilkanManual && $currentMak)>
                                         Ketik manual (belum ada di daftar)
                                     </option>
                                 </select>
+
+                                {{-- Dropdown MAK buatan sendiri: header ringkas per payung + item yang dijorok --}}
+                                <div id="mak-combo" class="relative mb-2">
+                                    <input type="text" id="mak-search" autocomplete="off" placeholder="Cari MAK..."
+                                        value="{{ $currentLabel }}"
+                                        class="w-full border border-gray-200 rounded-xl pl-3.5 pr-10 py-2.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white placeholder:text-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+
+                                    <div id="mak-panel"
+                                        class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-96 overflow-y-auto">
+                                        @foreach ($makGroups as $payung => $items)
+                                            @php $first = $items->first(); @endphp
+                                            <div class="mak-group">
+                                                {{-- Header ringkas per payung --}}
+                                                <div class="sticky top-0 z-10 px-3.5 py-1.5 bg-gray-50 border-y border-gray-100">
+                                                    <div class="flex items-center gap-2">
+                                                        <span
+                                                            class="font-mono text-[11px] font-semibold text-indigo-700 bg-white border border-gray-200 rounded px-1.5 py-0.5">{{ $payung }}</span>
+                                                        <span class="text-[11px] text-gray-400">{{ $items->count() }} akun
+                                                            belanja</span>
+                                                    </div>
+                                                    <div class="text-xs font-semibold text-gray-700 mt-1 truncate"
+                                                        title="{{ $first->uraian_giat }}">{{ $first->uraian_giat }}</div>
+                                                    <div class="text-[11px] text-gray-500 truncate"
+                                                        title="{{ $first->uraian_komponen }}">
+                                                        {{ $first->uraian_komponen }}
+                                                    </div>
+                                                </div>
+
+                                                {{-- Item dijorok + garis vertikal tipis supaya kelihatan anak dari header --}}
+                                                <div class="ml-4 my-1 border-l border-gray-200">
+                                                    @foreach ($items as $opt)
+                                                        <button type="button" data-mak="{{ $opt->mak }}"
+                                                            data-search="{{ mb_strtolower($opt->mak . ' ' . $opt->uraian_belanja . ' ' . $opt->uraian_giat . ' ' . $opt->uraian_komponen) }}"
+                                                            class="mak-item w-full text-left flex items-baseline gap-3 -ml-px pl-4 pr-3.5 py-1.5 text-xs text-gray-700 border-l-2 border-transparent hover:bg-blue-50 transition">
+                                                            <span
+                                                                class="font-mono text-[11px] text-gray-500 w-14 flex-shrink-0">{{ \Illuminate\Support\Str::afterLast($opt->mak, '.') }}</span>
+                                                            <span class="flex-1">{{ $opt->uraian_belanja }}</span>
+                                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                                class="mak-check hidden h-4 w-4 text-blue-600 flex-shrink-0 self-center"
+                                                                fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                                stroke-width="2.5">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        </button>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endforeach
+
+                                        <p id="mak-empty" class="hidden px-3.5 py-3 text-xs text-gray-400">MAK tidak
+                                            ditemukan.</p>
+
+                                        <button type="button" data-mak="__manual__" data-search="ketik manual"
+                                            class="mak-item w-full text-left px-3.5 py-2 text-xs text-blue-600 font-semibold border-t border-gray-100 hover:bg-blue-50 transition">
+                                            + Ketik manual (belum ada di daftar)
+                                        </button>
+                                    </div>
+                                </div>
                             @else
                                 <p
                                     class="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-2">
@@ -554,6 +637,107 @@
             });
 
             isiUraian(makSelect.selectedOptions[0]);
+        })();
+
+        // Dropdown MAK buatan sendiri (header per payung + daftar kode belanja).
+        // Cuma UI: pilihan diteruskan ke <select id="mak-select"> yang disembunyikan,
+        // lalu event "change"-nya ditangani skrip sinkron di atas.
+        (function () {
+            const combo = document.getElementById('mak-combo');
+            const select = document.getElementById('mak-select');
+            if (!combo || !select) return;
+
+            const search = document.getElementById('mak-search');
+            const panel = document.getElementById('mak-panel');
+            const empty = document.getElementById('mak-empty');
+            const items = Array.from(panel.querySelectorAll('.mak-item'));
+            const groups = Array.from(panel.querySelectorAll('.mak-group'));
+
+            function labelTerpilih() {
+                const opt = select.selectedOptions[0];
+                return opt ? (opt.dataset.label || '') : '';
+            }
+
+            // Tandai item terpilih: latar biru muda, teks tebal, garis biru di kiri, dan centang di kanan.
+            // Tombol "Ketik manual" tidak punya .mak-check, jadi cuma kena latar + tebal.
+            function tandaiTerpilih() {
+                items.forEach(function (el) {
+                    const aktif = el.dataset.mak === select.value && select.value !== '';
+                    const cek = el.querySelector('.mak-check');
+
+                    el.classList.toggle('bg-blue-50', aktif);
+                    el.classList.toggle('font-semibold', aktif);
+
+                    if (cek) {
+                        cek.classList.toggle('hidden', !aktif);
+                        el.classList.toggle('border-blue-500', aktif);
+                        el.classList.toggle('border-transparent', !aktif);
+                    }
+                });
+            }
+
+            function filter(q) {
+                q = q.trim().toLowerCase();
+                let adaHasil = false;
+
+                groups.forEach(function (g) {
+                    let adaDiGrup = false;
+                    g.querySelectorAll('.mak-item').forEach(function (el) {
+                        const cocok = !q || el.dataset.search.includes(q);
+                        el.classList.toggle('hidden', !cocok);
+                        if (cocok) adaDiGrup = true;
+                    });
+                    g.classList.toggle('hidden', !adaDiGrup);
+                    if (adaDiGrup) adaHasil = true;
+                });
+
+                empty.classList.toggle('hidden', adaHasil);
+            }
+
+            function buka() {
+                filter('');
+                tandaiTerpilih();
+                panel.classList.remove('hidden');
+            }
+
+            function tutup() {
+                panel.classList.add('hidden');
+                search.value = labelTerpilih(); // kembalikan teks kalau user batal milih
+            }
+
+            search.addEventListener('focus', function () {
+                search.select();
+                buka();
+            });
+            search.addEventListener('click', function () {
+                if (panel.classList.contains('hidden')) buka();
+            });
+            search.addEventListener('input', function () {
+                panel.classList.remove('hidden');
+                filter(search.value);
+            });
+            search.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    tutup();
+                    search.blur();
+                }
+            });
+
+            items.forEach(function (el) {
+                // mousedown supaya kepilih sebelum input kehilangan fokus
+                el.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    select.value = el.dataset.mak;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    panel.classList.add('hidden');
+                    search.value = labelTerpilih();
+                    search.blur();
+                });
+            });
+
+            document.addEventListener('mousedown', function (e) {
+                if (!combo.contains(e.target) && !panel.classList.contains('hidden')) tutup();
+            });
         })();
 
         (function () {

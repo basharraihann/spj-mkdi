@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToUnit;
 use Illuminate\Database\Eloquent\Model;
 
 class NominatifEntry extends Model
 {
+    use BelongsToUnit;
+
     protected $table = 'nominatif_entries';
 
     protected $fillable = [
+        'unit_id',          // <- baru
         'uraian_kegiatan',
         'tanggal',
-        'provinsi',   // baru
-        'kota',       // baru
+        'provinsi',
+        'kota',
         'ppk_id',
         'bendahara_id',
     ];

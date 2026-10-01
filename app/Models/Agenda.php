@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToUnit;
 
 class Agenda extends Model
 {
-    protected $guarded = [];
+    use BelongsToUnit;
 
+    protected $guarded = [];
     /**
      * Daftar kategori dokumen pendukung yang wajib diupload per agenda.
      * Dipakai bersama oleh AgendaController (index & dokumenForm) dan view.
