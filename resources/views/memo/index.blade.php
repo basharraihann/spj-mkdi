@@ -5,8 +5,45 @@
         </h2>
     </x-slot>
 
-    <div class="py-10">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    @php
+        // Hitung data tampilan sekali saja, dipakai oleh tabel (desktop) & kartu (HP/tablet)
+        $groups = $groups->map(function ($g) {
+            $tanggal = $g['tanggal_memo'] ?? null;
+            $tanggalIso = optional($tanggal)->format('Y-m-d');
+            $tanggalTampil = optional($tanggal)->translatedFormat('d M Y');
+            $tanggalTampilLengkap = optional($tanggal)->translatedFormat('d F Y');
+
+            $searchBlob = strtolower(collect([
+                collect($g['items'])->pluck('nomor_memo')->implode(' '),
+                $g['uraian_kegiatan'] ?? '',
+                $g['pic'] ?? '',
+                $tanggalIso,
+                $tanggalTampil,
+                $tanggalTampilLengkap,
+            ])->filter()->implode(' '));
+
+            $jenisClass = match ($g['jenis']) {
+                'perdin' => 'bg-indigo-50 text-indigo-600',
+                'konsumsi' => 'bg-emerald-50 text-emerald-600',
+                default => 'bg-amber-50 text-amber-600',
+            };
+
+            $deleteLabel = $g['agenda_id']
+                ? 'agenda ini beserta seluruh nomor memonya (PNS dan Non PNS)'
+                : 'nomor memo ini';
+
+            return $g + [
+                'tanggal_iso' => $tanggalIso,
+                'tanggal_tampil' => $tanggalTampil,
+                'search_blob' => $searchBlob,
+                'jenis_class' => $jenisClass,
+                'delete_label' => $deleteLabel,
+            ];
+        });
+    @endphp
+
+    <div class="py-6 sm:py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
 
             @if (session('error'))
                 <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
@@ -17,18 +54,19 @@
             {{-- Nomor memo terkini + tombol buat mandiri --}}
             <div class="relative overflow-hidden bg-white rounded-2xl shadow-sm border border-gray-100">
                 <div class="absolute inset-y-0 left-0 w-1.5 bg-blue-600"></div>
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 px-8 py-8 pl-10">
-                    <div>
+                <div
+                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 px-5 py-5 pl-7 sm:px-8 sm:py-8 sm:pl-10">
+                    <div class="min-w-0">
                         <p class="text-xs font-semibold text-blue-600 tracking-wide uppercase">Nomor Memo Berikutnya</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2 tabular-nums">
+                        <p class="text-xl sm:text-3xl font-bold text-gray-900 mt-2 tabular-nums break-all">
                             {{ $nomorBerikutnya['nomor'] }}
                         </p>
-                        <p class="text-sm text-gray-400 mt-3 max-w-md leading-relaxed">
+                        <p class="text-sm text-gray-400 mt-2 sm:mt-3 max-w-md leading-relaxed">
                             Dihitung otomatis dari nomor terbesar yang sudah pernah dipakai.
                         </p>
                     </div>
                     <a href="{{ route('memo.create') }}"
-                        class="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-md shadow-blue-600/20 transition flex-shrink-0">
+                        class="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-md shadow-blue-600/20 transition flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -39,20 +77,20 @@
             </div>
 
             {{-- Filter : instan client-side, tidak reload halaman --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-5">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
-                    <div class="lg:col-span-2">
+                    <div class="sm:col-span-2 lg:col-span-2">
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Cari</label>
                         <input type="text" id="memo-filter-cari" autocomplete="off"
                             placeholder="Nomor memo atau uraian kegiatan..."
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Jenis</label>
                         <div class="relative">
                             <select id="memo-filter-jenis"
-                                class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
+                                class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
                                 <option value="semua" selected>Semua Jenis</option>
                                 <option value="perdin">Perjalanan Dinas</option>
                                 <option value="konsumsi">Konsumsi</option>
@@ -70,7 +108,7 @@
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">PIC</label>
                         <div class="relative">
                             <select id="memo-filter-pic"
-                                class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
+                                class="w-full appearance-none border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition bg-white">
                                 <option value="">Semua PIC</option>
                                 @foreach ($picOptions as $namaPic)
                                     <option value="{{ $namaPic }}">{{ $namaPic }}</option>
@@ -84,21 +122,21 @@
                         </div>
                     </div>
 
-                    <div>
+                    <div class="min-w-0">
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Dari Tanggal</label>
                         <input type="date" id="memo-filter-dari"
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                            class="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
                     </div>
 
-                    <div>
+                    <div class="min-w-0">
                         <label class="block text-xs font-semibold text-gray-500 mb-1.5">Sampai Tanggal</label>
                         <input type="date" id="memo-filter-sampai"
-                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                            class="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2.5 sm:py-2 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
                     </div>
 
-                    <div class="lg:col-span-6 flex items-center gap-2 pt-1">
+                    <div class="sm:col-span-2 lg:col-span-6 flex items-center gap-2 pt-1">
                         <button type="button" id="memo-filter-reset"
-                            class="text-xs font-medium text-gray-400 hover:text-gray-600 px-3 py-2 transition">
+                            class="text-xs font-medium text-gray-400 hover:text-gray-600 py-2 pr-3 transition">
                             Reset Filter
                         </button>
                     </div>
@@ -107,18 +145,18 @@
 
             {{-- Daftar nomor memo --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-800">Daftar Nomor Memo</h3>
-                        <p class="text-sm text-gray-400 mt-1.5">
-                            Diurutkan dari nomor memo terbaru. Menampilkan
-                            <span id="memo-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }} kegiatan.
-                        </p>
-                    </div>
+                <div class="px-4 py-4 sm:px-8 sm:py-6 border-b border-gray-100">
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-800">Daftar Nomor Memo</h3>
+                    <p class="text-sm text-gray-400 mt-1.5">
+                        Diurutkan dari nomor memo terbaru. Menampilkan
+                        <span id="memo-visible-count">{{ $groups->count() }}</span> dari {{ $groups->count() }}
+                        kegiatan.
+                    </p>
                 </div>
 
-                <div>
-                    <table id="memo-table" class="w-full table-fixed text-sm">
+                {{-- ============ TABEL (layar lebar, xl ke atas) ============ --}}
+                <div class="hidden xl:block overflow-x-auto">
+                    <table id="memo-table" class="w-full min-w-[1150px] table-fixed text-sm">
                         <thead>
                             <tr class="bg-gray-50/80 text-gray-500 text-left border-b border-gray-100">
                                 <th class="px-3 py-3.5 font-medium w-10">No</th>
@@ -135,36 +173,12 @@
                         </thead>
 
                         @forelse ($groups as $g)
-                            @php
-                                $tanggalIso = optional($g['tanggal_memo'])->format('Y-m-d');
-                                $tanggalTampil = optional($g['tanggal_memo'])->translatedFormat('d M Y');
-                                $tanggalTampilLengkap = optional($g['tanggal_memo'])->translatedFormat('d F Y');
-                                $n = count($g['items']);
-
-                                $searchBlob = strtolower(collect([
-                                    collect($g['items'])->pluck('nomor_memo')->implode(' '),
-                                    $g['uraian_kegiatan'] ?? '',
-                                    $g['pic'] ?? '',
-                                    $tanggalIso,
-                                    $tanggalTampil,
-                                    $tanggalTampilLengkap,
-                                ])->filter()->implode(' '));
-
-                                $jenisClass = match ($g['jenis']) {
-                                    'perdin' => 'bg-indigo-50 text-indigo-600',
-                                    'konsumsi' => 'bg-emerald-50 text-emerald-600',
-                                    default => 'bg-amber-50 text-amber-600',
-                                };
-
-                                $deleteLabel = $g['agenda_id']
-                                    ? 'agenda ini beserta seluruh nomor memonya (PNS dan Non PNS)'
-                                    : 'nomor memo ini';
-                            @endphp
+                            @php $n = count($g['items']); @endphp
 
                             {{-- Satu tbody = satu kegiatan (bisa 2 baris memo: PNS + Non PNS) --}}
                             <tbody class="js-memo-group border-t border-gray-100 hover:bg-gray-50/70 transition"
-                                data-search="{{ $searchBlob }}" data-jenis="{{ $g['jenis'] }}"
-                                data-pic="{{ $g['pic'] }}" data-tanggal="{{ $tanggalIso }}">
+                                data-search="{{ $g['search_blob'] }}" data-jenis="{{ $g['jenis'] }}"
+                                data-pic="{{ $g['pic'] }}" data-tanggal="{{ $g['tanggal_iso'] }}">
                                 @foreach ($g['items'] as $memo)
                                     <tr class="align-top {{ $loop->first ? '' : 'border-t border-dashed border-gray-100' }}">
                                         @if ($loop->first)
@@ -198,12 +212,12 @@
                                         @if ($loop->first)
                                             <td rowspan="{{ $n }}" class="px-3 py-4">
                                                 <span
-                                                    class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $jenisClass }}">
+                                                    class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $g['jenis_class'] }}">
                                                     {{ $g['jenis_label'] }}
                                                 </span>
                                             </td>
                                             <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-500 text-xs">
-                                                {{ $tanggalTampil }}
+                                                {{ $g['tanggal_tampil'] }}
                                             </td>
                                             <td rowspan="{{ $n }}" class="px-3 py-4 text-gray-700 leading-relaxed">
                                                 <p class="uraian-text line-clamp-2">
@@ -263,10 +277,11 @@
                                         @if ($loop->first)
                                             <td rowspan="{{ $n }}" class="px-3 py-3 text-center">
                                                 <form action="{{ route('memo.destroy', $g['delete_id']) }}" method="POST"
-                                                    class="delete-memo-form inline-flex" data-label="{{ $deleteLabel }}">
+                                                    class="delete-memo-form inline-flex"
+                                                    data-label="{{ $g['delete_label'] }}">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" title="Hapus {{ $deleteLabel }}"
+                                                    <button type="submit" title="Hapus {{ $g['delete_label'] }}"
                                                         class="inline-flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -290,11 +305,133 @@
                             </tbody>
                         @endforelse
                     </table>
-
-                    <p id="memo-no-result" class="hidden px-6 py-16 text-center text-gray-400">
-                        Tidak ada nomor memo yang cocok dengan filter ini.
-                    </p>
                 </div>
+
+                {{-- ============ KARTU (HP & tablet, di bawah xl) ============ --}}
+                <div id="memo-cards" class="xl:hidden divide-y divide-gray-100">
+                    @forelse ($groups as $g)
+                        <div class="js-memo-card p-4 sm:p-5 space-y-3" data-search="{{ $g['search_blob'] }}"
+                            data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}"
+                            data-tanggal="{{ $g['tanggal_iso'] }}">
+
+                            {{-- Baris atas: nomor urut, jenis, tanggal, hapus --}}
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0">
+                                    <span
+                                        class="js-card-number inline-flex h-6 min-w-6 px-1.5 items-center justify-center rounded-md bg-gray-100 text-xs font-medium text-gray-500">{{ $loop->iteration }}</span>
+                                    <span
+                                        class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $g['jenis_class'] }}">
+                                        {{ $g['jenis_label'] }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">{{ $g['tanggal_tampil'] }}</span>
+                                </div>
+
+                                <form action="{{ route('memo.destroy', $g['delete_id']) }}" method="POST"
+                                    class="delete-memo-form inline-flex shrink-0" data-label="{{ $g['delete_label'] }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" title="Hapus {{ $g['delete_label'] }}"
+                                        aria-label="Hapus {{ $g['delete_label'] }}"
+                                        class="inline-flex items-center justify-center w-9 h-9 -mt-1 -mr-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+
+                            {{-- Uraian kegiatan --}}
+                            <div class="text-sm text-gray-700 leading-relaxed">
+                                <p class="uraian-text line-clamp-2 break-words">{{ $g['uraian_kegiatan'] ?? '-' }}</p>
+                                @if (strlen($g['uraian_kegiatan'] ?? '') > 90)
+                                    <button type="button"
+                                        class="toggle-uraian text-xs font-medium text-blue-600 hover:text-blue-700 mt-1 py-1">
+                                        Selengkapnya
+                                    </button>
+                                @endif
+                            </div>
+
+                            {{-- PIC & MAK --}}
+                            <dl class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="min-w-0">
+                                    <dt class="text-gray-400">PIC</dt>
+                                    <dd class="text-gray-700 font-medium mt-0.5 break-words">{{ $g['pic'] ?: '-' }}</dd>
+                                </div>
+                                <div class="min-w-0">
+                                    <dt class="text-gray-400">MAK</dt>
+                                    <dd class="text-gray-700 font-mono mt-0.5 break-all">{{ $g['mak'] ?? '-' }}</dd>
+                                </div>
+                            </dl>
+
+                            {{-- Daftar memo (PNS / Non PNS) --}}
+                            <div class="space-y-2 pt-1">
+                                @foreach ($g['items'] as $memo)
+                                    <div class="rounded-xl border border-gray-100 bg-gray-50/70 p-3 space-y-2.5">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0 flex flex-col items-start gap-1.5">
+                                                @if ($memo['agenda_id'])
+                                                    <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
+                                                        class="font-semibold text-sm text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
+                                                        {{ $memo['nomor_memo'] }}
+                                                    </a>
+                                                @else
+                                                    <span class="font-semibold text-sm text-gray-800 tabular-nums break-all">
+                                                        {{ $memo['nomor_memo'] }}
+                                                    </span>
+                                                @endif
+
+                                                @if ($memo['status'])
+                                                    <span
+                                                        class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full {{ $memo['status'] === 'PNS' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600' }}">
+                                                        {{ $memo['status'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            <p class="text-sm font-semibold text-gray-900 tabular-nums text-right shrink-0">
+                                                Rp{{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
+                                            </p>
+                                        </div>
+
+                                        <div class="grid {{ $memo['editable'] ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
+                                            <a href="{{ $memo['pdf_url'] }}" target="_blank"
+                                                title="Buka PDF {{ $memo['status'] ?? '' }}"
+                                                class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-100 hover:bg-blue-50 px-3 py-2 rounded-lg transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                PDF
+                                            </a>
+
+                                            @if ($memo['editable'])
+                                                <a href="{{ $memo['edit_url'] }}"
+                                                    class="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                        stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    Edit
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @empty
+                        <p class="px-4 py-16 text-center text-gray-400">Belum ada nomor memo.</p>
+                    @endforelse
+                </div>
+
+                <p id="memo-no-result" class="hidden px-4 sm:px-6 py-16 text-center text-gray-400">
+                    Tidak ada nomor memo yang cocok dengan filter ini.
+                </p>
             </div>
         </div>
     </div>
@@ -310,6 +447,7 @@
                 });
             });
 
+            // Form hapus ada di tabel & kartu, jadi id dibuat unik lewat index
             document.querySelectorAll('.delete-memo-form').forEach(function (form, index) {
                 if (!form.id) {
                     form.id = 'delete-memo-form-' + index;
@@ -324,7 +462,7 @@
         });
     </script>
 
-    {{-- Filter instan client-side --}}
+    {{-- Filter instan client-side (tabel desktop + kartu mobile) --}}
     <script>
         (function () {
             const cariInput = document.getElementById('memo-filter-cari');
@@ -334,12 +472,14 @@
             const sampaiInput = document.getElementById('memo-filter-sampai');
             const resetBtn = document.getElementById('memo-filter-reset');
 
-            const groups = Array.from(document.querySelectorAll('.js-memo-group'));
+            const tableGroups = Array.from(document.querySelectorAll('.js-memo-group'));
+            const cards = Array.from(document.querySelectorAll('.js-memo-card'));
             const noResult = document.getElementById('memo-no-result');
             const table = document.getElementById('memo-table');
+            const cardsBox = document.getElementById('memo-cards');
             const visibleCountEl = document.getElementById('memo-visible-count');
 
-            if (groups.length === 0) return; // belum ada data, gak perlu filter
+            if (tableGroups.length === 0) return; // belum ada data, gak perlu filter
 
             function applyFilter() {
                 const cari = cariInput.value.trim().toLowerCase();
@@ -348,19 +488,22 @@
                 const dari = dariInput.value; // YYYY-MM-DD, cocok buat compare string
                 const sampai = sampaiInput.value;
 
-                let visibleCount = 0;
+                function cocok(el) {
+                    const matchCari = cari === '' || el.dataset.search.includes(cari);
+                    const matchJenis = jenis === 'semua' || el.dataset.jenis === jenis;
+                    const matchPic = pic === '' || el.dataset.pic === pic;
 
-                groups.forEach(function (g) {
-                    const matchCari = cari === '' || g.dataset.search.includes(cari);
-                    const matchJenis = jenis === 'semua' || g.dataset.jenis === jenis;
-                    const matchPic = pic === '' || g.dataset.pic === pic;
-
-                    const tgl = g.dataset.tanggal || '';
+                    const tgl = el.dataset.tanggal || '';
                     const matchDari = dari === '' || (tgl !== '' && tgl >= dari);
                     const matchSampai = sampai === '' || (tgl !== '' && tgl <= sampai);
 
-                    const visible = matchCari && matchJenis && matchPic && matchDari && matchSampai;
+                    return matchCari && matchJenis && matchPic && matchDari && matchSampai;
+                }
 
+                let visibleCount = 0;
+
+                tableGroups.forEach(function (g) {
+                    const visible = cocok(g);
                     g.style.display = visible ? '' : 'none';
 
                     if (visible) {
@@ -370,10 +513,23 @@
                     }
                 });
 
+                let cardCount = 0;
+                cards.forEach(function (c) {
+                    const visible = cocok(c);
+                    c.style.display = visible ? '' : 'none';
+
+                    if (visible) {
+                        cardCount++;
+                        const numberEl = c.querySelector('.js-card-number');
+                        if (numberEl) numberEl.textContent = cardCount;
+                    }
+                });
+
                 if (visibleCountEl) visibleCountEl.textContent = visibleCount;
                 if (noResult) noResult.classList.toggle('hidden', visibleCount > 0);
-                // sembunyikan seluruh tabel (termasuk header) kalau tidak ada hasil
+                // sembunyikan tabel (termasuk header) & daftar kartu kalau tidak ada hasil
                 if (table) table.style.display = visibleCount > 0 ? '' : 'none';
+                if (cardsBox) cardsBox.style.display = visibleCount > 0 ? '' : 'none';
             }
 
             cariInput.addEventListener('input', applyFilter);

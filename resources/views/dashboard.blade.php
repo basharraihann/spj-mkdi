@@ -16,7 +16,7 @@
                             Halo, {{ auth()->user()->name ?? 'Pengguna' }} 👋
                         </h3>
                         <p class="text-sm text-gray-400 mt-1">
-                            Selamat datang kembali. Berikut ringkasan aktivitas perjalanan dinas Anda.
+                            Selamat datang kembali. Berikut ringkasan aktivitas perjalanan dinas Biro Anda.
                         </p>
                     </div>
 
