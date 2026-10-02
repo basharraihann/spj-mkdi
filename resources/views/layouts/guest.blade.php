@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}
     </title>
@@ -36,6 +36,11 @@
             position: relative;
             overflow: hidden;
             background: #eef2ff;
+        }
+
+        /* Brand (hanya tampil di mobile) */
+        .city-brand {
+            display: none;
         }
 
         .city-bg-scene {
@@ -221,9 +226,120 @@
             white-space: nowrap;
         }
 
-        @media (max-width: 480px) {
+        /* ===== MOBILE ===== */
+        @media (max-width: 640px) {
+            .city-page {
+                min-height: 100dvh;
+                background: linear-gradient(180deg, #d4e4fb 0%, #e9f1fe 55%, #f4f8ff 100%);
+            }
+
+            /* Brand di atas */
+            .city-brand {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                position: relative;
+                z-index: 10;
+                padding: calc(env(safe-area-inset-top, 0px) + 44px) 16px 0;
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: #1e3a5f;
+                letter-spacing: -0.2px;
+            }
+
+            .city-brand-logo {
+                height: 34px;
+                width: auto;
+                object-fit: contain;
+            }
+
+            /* Skyline: kecil selebar layar, menempel di atas kartu */
+            .city-bg-scene {
+                position: relative;
+                inset: auto;
+                width: 100%;
+                height: auto;
+                aspect-ratio: 1440 / 680;
+                margin-top: auto;
+                margin-bottom: -34px;
+                z-index: 1;
+            }
+
+            .city-bg-scene svg .sky-bg,
+            .city-bg-scene svg .ground-strip {
+                display: none;
+            }
+
+            .city-bg-scene svg * {
+                vector-effect: non-scaling-stroke;
+                stroke-width: 1px;
+            }
+
+            /* Kartu login */
+            .city-main {
+                flex: none;
+                width: 100%;
+                padding: 0 16px;
+                justify-content: flex-start;
+            }
+
             .city-card {
-                padding: 28px 20px 24px;
+                max-width: none;
+                padding: 24px 20px 22px;
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.97);
+                box-shadow: 0 10px 30px rgba(37, 99, 235, 0.14);
+            }
+
+            .city-card-title {
+                font-size: 1.6rem;
+            }
+
+            .city-card-sub {
+                margin-bottom: 20px;
+            }
+
+            .city-field input {
+                background: #f1f5f9;
+                border-color: transparent;
+                border-radius: 12px;
+                padding: 14px 42px;
+                font-size: 16px;
+                /* cegah auto-zoom di iOS */
+            }
+
+            .city-field input:focus {
+                background: #ffffff;
+                border-color: #3b82f6;
+            }
+
+            .city-btn {
+                padding: 14px;
+                border-radius: 12px;
+                background: linear-gradient(180deg, #6aa8f0 0%, #3f7fd6 100%);
+                box-shadow: 0 6px 16px rgba(63, 127, 214, 0.35);
+            }
+
+            .city-btn:hover {
+                background: linear-gradient(180deg, #5c9cea 0%, #3774c8 100%);
+                box-shadow: 0 6px 16px rgba(63, 127, 214, 0.35);
+            }
+
+            /* Footer ikut alur halaman, bukan melayang */
+            .city-copy {
+                position: static;
+                transform: none;
+                left: auto;
+                bottom: auto;
+                background: none;
+                box-shadow: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+                margin: 14px auto 0;
+                white-space: normal;
+                color: #5b6b85;
             }
         }
     </style>
@@ -233,6 +349,10 @@
 
     @if ($attributes->get('split'))
         <div class="city-page">
+            <div class="city-brand">
+                <img src="{{ asset('images/logo.png') }}" alt="" class="city-brand-logo">
+                <span>SPJ MKDI</span>
+            </div>
             <div class="city-bg-scene">
                 <x-city-skyline />
             </div>
@@ -241,7 +361,7 @@
                     {{ $slot }}
                 </div>
             </div>
-            <div class="city-copy">&copy;2026 SPJ MKDI</div>
+            <div class="city-copy">&copy;2026 SPJ MKDI &mdash; Welcome Pikmin</div>
         </div>
 
     @else

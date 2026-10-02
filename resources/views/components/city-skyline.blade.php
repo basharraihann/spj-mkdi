@@ -41,7 +41,7 @@
         </clipPath>
     </defs>
     {{-- 1. LANGIT & DOME --}}
-    <rect width="1440" height="680" fill="url(#skyGrad)" />
+    <rect class="sky-bg" width="1440" height="680" fill="url(#skyGrad)" />
     <ellipse cx="720" cy="640" rx="680" ry="640" fill="url(#domeGrad)" />
     {{-- 2. AWAN --}}
     <g transform="translate(123 165) scale(1.08)" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round"
@@ -532,5 +532,6 @@
         stroke-linejoin="round" />
     {{-- 5. TANAH & TROTOAR --}}
     <line x1="0" y1="640" x2="1440" y2="640" stroke="#1c2438" stroke-width="2.4" stroke-linecap="round" />
-    <rect x="0" y="640" width="1440" height="40" fill="#fdfdff" stroke="#1c2438" stroke-width="1.6" />
+    <rect class="ground-strip" x="0" y="640" width="1440" height="40" fill="#fdfdff" stroke="#1c2438"
+        stroke-width="1.6" />
 </svg>
