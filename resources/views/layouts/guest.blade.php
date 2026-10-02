@@ -1,19 +1,32 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}
+    </title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #eaedfa; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #eaedfa;
+        }
 
         /* ===== CITY BACKGROUND & LOGIN LAYOUT ===== */
         .city-page {
@@ -96,7 +109,9 @@
             letter-spacing: 0.02em;
         }
 
-        .city-field .field-wrap { position: relative; }
+        .city-field .field-wrap {
+            position: relative;
+        }
 
         .city-field .field-icon {
             position: absolute;
@@ -127,7 +142,9 @@
             background: #ffffff;
         }
 
-        .city-field input::placeholder { color: #9ca3af; }
+        .city-field input::placeholder {
+            color: #9ca3af;
+        }
 
         .city-field .eye-btn {
             position: absolute;
@@ -142,13 +159,25 @@
             align-items: center;
             padding: 0;
         }
-        .city-field .eye-btn:hover { color: #2563eb; }
 
-        .city-error { font-size: 0.72rem; color: #ef4444; margin-top: 4px; }
+        .city-field .eye-btn:hover {
+            color: #2563eb;
+        }
+
+        .city-error {
+            font-size: 0.72rem;
+            color: #ef4444;
+            margin-top: 4px;
+        }
+
         .city-status {
-            font-size: 0.78rem; color: #16a34a;
-            background: #f0fdf4; border: 1px solid #bbf7d0;
-            border-radius: 8px; padding: 8px 12px; margin-bottom: 16px;
+            font-size: 0.78rem;
+            color: #16a34a;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
         }
 
         .city-btn {
@@ -166,6 +195,7 @@
             transition: background .2s, transform .15s, box-shadow .2s;
             box-shadow: 0 4px 16px rgba(30, 41, 59, 0.25);
         }
+
         .city-btn:hover {
             background: #334155;
             transform: translateY(-1px);
@@ -192,49 +222,36 @@
         }
 
         @media (max-width: 480px) {
-            .city-card { padding: 28px 20px 24px; }
+            .city-card {
+                padding: 28px 20px 24px;
+            }
         }
     </style>
 </head>
+
 <body>
 
-@if ($attributes->get('split'))
-<div class="city-page">
-    <div class="city-bg-scene">
-        <x-city-skyline />
-    </div>
-    <div class="city-main">
-        <div class="city-card">
-            {{ $slot }}
-        </div>
-    </div>
-    <div class="city-copy">&copy;2026 SPJ MKDI &mdash; Welcome Pikmin</div>
-</div>
-
-@elseif ($attributes->get('scene'))
-    <div class="relative min-h-screen overflow-hidden bg-indigo-50 flex flex-col items-center px-4">
-        <x-login-scene class="absolute inset-0 w-full h-full" />
-        <a href="/" class="relative z-10 mt-8 sm:mt-10">
-            <img src="{{ asset('images/logoheader.png') }}" alt="Logo" class="h-12 sm:h-14 lg:h-16 w-auto object-contain">
-        </a>
-        <main class="relative z-10 flex w-full flex-1 items-center justify-center py-8">
-            <div class="w-full max-w-sm rounded-lg border border-indigo-100 bg-white/70 backdrop-blur-md shadow-xl shadow-indigo-900/5 p-6 sm:p-7">
-                @isset($tagline)
-                    <h1 class="text-lg font-bold text-gray-900 leading-snug">{{ $tagline }}</h1>
-                @endisset
-                <div class="mt-5">{{ $slot }}</div>
+    @if ($attributes->get('split'))
+        <div class="city-page">
+            <div class="city-bg-scene">
+                <x-city-skyline />
             </div>
-        </main>
-        <footer class="relative z-10 pb-6 text-xs text-gray-600">
-            &copy; {{ date('Y') }} {{ config('app.name', 'Laravel') }}
-        </footer>
-    </div>
-@else
-    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-        <div><a href="/"><x-application-logo class="w-20 h-20 fill-current text-gray-500" /></a></div>
-        <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">{{ $slot }}</div>
-    </div>
-@endif
+            <div class="city-main">
+                <div class="city-card">
+                    {{ $slot }}
+                </div>
+            </div>
+            <div class="city-copy">&copy;2026 SPJ MKDI</div>
+        </div>
+
+    @else
+        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+            <div><a href="/"><x-application-logo class="w-20 h-20 fill-current text-gray-500" /></a></div>
+            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">{{ $slot }}
+            </div>
+        </div>
+    @endif
 
 </body>
+
 </html>

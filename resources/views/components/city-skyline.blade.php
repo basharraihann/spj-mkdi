@@ -1,544 +1,536 @@
 {{-- City Skyline Illustration (Pure SVG, no external image) --}}
-<svg {{ $attributes->merge(['class' => 'city-skyline-svg']) }} viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<svg {{ $attributes->merge(['class' => 'city-skyline-svg']) }} viewBox="0 0 1440 680"
+    preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <defs>
-        {{-- Sky Gradient --}}
         <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#ffffff" />
-            <stop offset="60%" stop-color="#f5f8ff" />
-            <stop offset="100%" stop-color="#e9f0fc" />
+            <stop offset="100%" stop-color="#f1f6ff" />
         </linearGradient>
-
-        {{-- Center Sky Dome Gradient --}}
-        <radialGradient id="skyDome" cx="50%" cy="85%" r="70%" fx="50%" fy="85%">
-            <stop offset="0%" stop-color="#d6e5fb" stop-opacity="0.9" />
-            <stop offset="45%" stop-color="#e6f0fe" stop-opacity="0.6" />
-            <stop offset="75%" stop-color="#f4f8ff" stop-opacity="0.25" />
-            <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
-        </radialGradient>
-
-        {{-- Distant Building Silhouettes Fill --}}
+        <linearGradient id="domeGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#eef4ff" />
+            <stop offset="25%" stop-color="#e3ecfd" />
+            <stop offset="50%" stop-color="#cbdbf7" />
+            <stop offset="100%" stop-color="#cbdbf7" />
+        </linearGradient>
         <linearGradient id="distBldg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#dbe6fa" />
-            <stop offset="100%" stop-color="#cbdaf7" />
+            <stop offset="100%" stop-color="#c9d9f7" />
         </linearGradient>
-
-        {{-- Glass Gradient for Slanted Pavilion --}}
-        <linearGradient id="glassSlope" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#a4c2f8" />
-            <stop offset="50%" stop-color="#c2d7fb" />
-            <stop offset="100%" stop-color="#8bb0f5" />
+        <linearGradient id="bldgFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#e2ecfc" />
         </linearGradient>
-
-        {{-- Subtle Drop Shadow --}}
-        <filter id="softShadow" x="-5%" y="-5%" width="110%" height="110%">
-            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1e293b" flood-opacity="0.04" />
-        </filter>
+        <linearGradient id="winDark" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6a8bef" />
+            <stop offset="100%" stop-color="#4568dc" />
+        </linearGradient>
+        <linearGradient id="winMid" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#93b0f6" />
+            <stop offset="100%" stop-color="#7396f0" />
+        </linearGradient>
+        <linearGradient id="winLight" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#d2e0fb" />
+            <stop offset="100%" stop-color="#adc5f7" />
+        </linearGradient>
+        <linearGradient id="pavGlass" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#a9c2f8" />
+            <stop offset="100%" stop-color="#7b9cf0" />
+        </linearGradient>
+        <clipPath id="pavClip">
+            <polygon points="190,395 240,395 418,558 418,598 190,598" />
+        </clipPath>
     </defs>
-
-    {{-- 1. BASE BACKGROUND --}}
+    {{-- 1. LANGIT & DOME --}}
     <rect width="1440" height="680" fill="url(#skyGrad)" />
-
-    {{-- 2. CENTRAL SKY DOME / ARCH --}}
-    <ellipse cx="720" cy="560" rx="640" ry="510" fill="url(#skyDome)" />
-
-    {{-- 3. OUTLINE CLOUDS --}}
-    <g stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="#ffffff">
-        {{-- Cloud Top Left --}}
-        <path d="M 105 138 Q 95 138 95 128 Q 95 118 108 116 Q 115 104 128 104 Q 139 104 145 112 Q 153 108 162 114 Q 170 115 171 123 Q 178 126 177 133 Q 175 138 166 138 Z" />
-        <line x1="86" y1="138" x2="94" y2="138" />
-
-        {{-- Cloud Mid Left --}}
-        <path d="M 252 322 Q 244 322 244 314 Q 244 306 254 305 Q 260 297 270 297 Q 279 297 284 303 Q 290 301 296 306 Q 302 308 302 315 Q 302 322 294 322 Z" />
-        <line x1="236" y1="322" x2="244" y2="322" />
-
-        {{-- Cloud Top Right --}}
-        <path d="M 1255 142 Q 1245 142 1245 132 Q 1245 122 1259 120 Q 1266 108 1280 108 Q 1292 108 1298 116 Q 1307 112 1316 118 Q 1324 119 1325 127 Q 1331 130 1330 137 Q 1328 142 1319 142 Z" />
-        <line x1="1332" y1="142" x2="1342" y2="142" />
-
-        {{-- Cloud Mid Right --}}
-        <path d="M 1085 304 Q 1077 304 1077 296 Q 1077 288 1087 287 Q 1093 279 1103 279 Q 1112 279 1117 285 Q 1123 283 1129 288 Q 1135 290 1135 297 Q 1135 304 1127 304 Z" />
-        <line x1="1137" y1="304" x2="1146" y2="304" />
+    <ellipse cx="720" cy="640" rx="680" ry="640" fill="url(#domeGrad)" />
+    {{-- 2. AWAN --}}
+    <g transform="translate(123 165) scale(1.08)" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round"
+        stroke-linejoin="round" fill="#ffffff">
+        <path
+            d="M 0 0 Q -8 0 -8 -9 Q -8 -18 4 -19 Q 10 -30 24 -30 Q 35 -30 41 -22 Q 50 -26 58 -20 Q 68 -19 68 -10 Q 68 0 58 0 Z" />
+        <line x1="-26" y1="0" x2="-14" y2="0" />
+        <line x1="72" y1="0" x2="82" y2="0" />
     </g>
-
-    {{-- 4. DISTANT CITY SILHOUETTES (Soft Layer Behind) --}}
-    <g fill="url(#distBldg)">
-        {{-- Distant Tower 1 (Left) --}}
-        <rect x="112" y="270" width="50" height="365" rx="2" />
-        {{-- Window slits --}}
-        <g fill="#ffffff" opacity="0.65">
-            <rect x="118" y="295" width="38" height="6" rx="1" />
-            <rect x="118" y="320" width="38" height="6" rx="1" />
-            <rect x="118" y="345" width="38" height="6" rx="1" />
-            <rect x="118" y="370" width="38" height="6" rx="1" />
-            <rect x="118" y="395" width="38" height="6" rx="1" />
-            <rect x="118" y="420" width="38" height="6" rx="1" />
-            <rect x="118" y="445" width="38" height="6" rx="1" />
+    <g transform="translate(287 328) scale(0.9)" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round"
+        stroke-linejoin="round" fill="#ffffff">
+        <path
+            d="M 0 0 Q -8 0 -8 -9 Q -8 -18 4 -19 Q 10 -30 24 -30 Q 35 -30 41 -22 Q 50 -26 58 -20 Q 68 -19 68 -10 Q 68 0 58 0 Z" />
+        <line x1="-26" y1="0" x2="-14" y2="0" />
+    </g>
+    <g transform="translate(717 428) scale(0.74)" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round"
+        stroke-linejoin="round" fill="#ffffff">
+        <path
+            d="M 0 0 Q -8 0 -8 -9 Q -8 -18 4 -19 Q 10 -30 24 -30 Q 35 -30 41 -22 Q 50 -26 58 -20 Q 68 -19 68 -10 Q 68 0 58 0 Z" />
+        <line x1="-26" y1="0" x2="-14" y2="0" />
+        <line x1="72" y1="0" x2="82" y2="0" />
+    </g>
+    <g transform="translate(1090 310) scale(0.7)" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round"
+        stroke-linejoin="round" fill="#ffffff">
+        <path
+            d="M 0 0 Q -8 0 -8 -9 Q -8 -18 4 -19 Q 10 -30 24 -30 Q 35 -30 41 -22 Q 50 -26 58 -20 Q 68 -19 68 -10 Q 68 0 58 0 Z" />
+        <line x1="-26" y1="0" x2="-14" y2="0" />
+        <line x1="72" y1="0" x2="82" y2="0" />
+    </g>
+    <g transform="translate(1245 176) scale(1.0)" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round"
+        stroke-linejoin="round" fill="#ffffff">
+        <path
+            d="M 0 0 Q -8 0 -8 -9 Q -8 -18 4 -19 Q 10 -30 24 -30 Q 35 -30 41 -22 Q 50 -26 58 -20 Q 68 -19 68 -10 Q 68 0 58 0 Z" />
+        <line x1="-26" y1="0" x2="-14" y2="0" />
+    </g>
+    {{-- 3. GEDUNG BAYANGAN (LATAR) --}}
+    <g fill="url(#distBldg)" opacity="0.9">
+        <polygon points="150,322 181,291 244,291 244,640 150,640" />
+        <rect x="319" y="370" width="86" height="270" rx="2" />
+        <rect x="998" y="412" width="96" height="228" rx="2" />
+        <polygon points="1190,332 1231,291 1295,291 1295,640 1190,640" />
+    </g>
+    <g fill="#ffffff" opacity="0.6">
+        <rect x="160" y="330" width="70" height="6" rx="1" />
+        <rect x="160" y="356" width="70" height="6" rx="1" />
+        <rect x="160" y="382" width="70" height="6" rx="1" />
+        <rect x="160" y="408" width="70" height="6" rx="1" />
+        <rect x="160" y="434" width="70" height="6" rx="1" />
+        <rect x="160" y="460" width="70" height="6" rx="1" />
+        <rect x="160" y="486" width="70" height="6" rx="1" />
+        <rect x="160" y="512" width="70" height="6" rx="1" />
+        <rect x="160" y="538" width="70" height="6" rx="1" />
+        <rect x="160" y="564" width="70" height="6" rx="1" />
+        <rect x="160" y="590" width="70" height="6" rx="1" />
+    </g>
+    <g fill="#ffffff" opacity="0.6">
+        <rect x="327" y="396" width="70" height="6" rx="1" />
+        <rect x="327" y="422" width="70" height="6" rx="1" />
+        <rect x="327" y="448" width="70" height="6" rx="1" />
+        <rect x="327" y="474" width="70" height="6" rx="1" />
+        <rect x="327" y="500" width="70" height="6" rx="1" />
+        <rect x="327" y="526" width="70" height="6" rx="1" />
+        <rect x="327" y="552" width="70" height="6" rx="1" />
+        <rect x="327" y="578" width="70" height="6" rx="1" />
+        <rect x="327" y="604" width="70" height="6" rx="1" />
+        <rect x="327" y="630" width="70" height="6" rx="1" />
+    </g>
+    <g fill="#ffffff" opacity="0.6">
+        <rect x="1006" y="438" width="80" height="6" rx="1" />
+        <rect x="1006" y="464" width="80" height="6" rx="1" />
+        <rect x="1006" y="490" width="80" height="6" rx="1" />
+        <rect x="1006" y="516" width="80" height="6" rx="1" />
+        <rect x="1006" y="542" width="80" height="6" rx="1" />
+        <rect x="1006" y="568" width="80" height="6" rx="1" />
+        <rect x="1006" y="594" width="80" height="6" rx="1" />
+        <rect x="1006" y="620" width="80" height="6" rx="1" />
+    </g>
+    <g fill="#ffffff" opacity="0.6">
+        <rect x="1200" y="330" width="85" height="6" rx="1" />
+        <rect x="1200" y="356" width="85" height="6" rx="1" />
+        <rect x="1200" y="382" width="85" height="6" rx="1" />
+        <rect x="1200" y="408" width="85" height="6" rx="1" />
+        <rect x="1200" y="434" width="85" height="6" rx="1" />
+        <rect x="1200" y="460" width="85" height="6" rx="1" />
+        <rect x="1200" y="486" width="85" height="6" rx="1" />
+        <rect x="1200" y="512" width="85" height="6" rx="1" />
+        <rect x="1200" y="538" width="85" height="6" rx="1" />
+        <rect x="1200" y="564" width="85" height="6" rx="1" />
+        <rect x="1200" y="590" width="85" height="6" rx="1" />
+    </g>
+    {{-- GEDUNG A: Menara kiri --}}
+    <g id="tower-left">
+        <line x1="122" y1="210" x2="122" y2="236" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
+        <line x1="131" y1="220" x2="131" y2="236" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+        <rect x="38" y="224" width="48" height="12" fill="#cfe0fb" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
+        <rect x="12" y="236" width="138" height="404" fill="url(#bldgFill)" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <rect x="12" y="236" width="138" height="22" fill="#f4f8ff" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <rect x="12" y="258" width="138" height="6" fill="#3f5fc9" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <rect x="29" y="282" width="21" height="18" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="29" y="300" width="21" height="50" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="29" y="350" width="21" height="48" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="29" y="398" width="21" height="52" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="29" y="450" width="21" height="70" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="29" y="520" width="21" height="66" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="57" y="282" width="21" height="48" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="57" y="330" width="21" height="42" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="57" y="372" width="21" height="58" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="57" y="430" width="21" height="68" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="57" y="498" width="21" height="88" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="85" y="282" width="21" height="28" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="85" y="310" width="21" height="70" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="85" y="380" width="21" height="60" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="85" y="440" width="21" height="80" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="85" y="520" width="21" height="66" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="113" y="282" width="21" height="58" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="113" y="340" width="21" height="80" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="113" y="420" width="21" height="60" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="113" y="480" width="21" height="60" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="113" y="540" width="21" height="46" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="12" y="596" width="138" height="44" fill="#eef4fd" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <rect x="24" y="606" width="28" height="34" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="38" y1="606" x2="38" y2="640" stroke="#1c2438" stroke-width="1.2" stroke-linecap="round" />
+        <rect x="62" y="606" width="28" height="34" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="76" y1="606" x2="76" y2="640" stroke="#1c2438" stroke-width="1.2" stroke-linecap="round" />
+        <rect x="100" y="606" width="28" height="34" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="114" y1="606" x2="114" y2="640" stroke="#1c2438" stroke-width="1.2" stroke-linecap="round" />
+    </g>
+    {{-- GEDUNG C: Gedung jendela biru (di belakang paviliun) --}}
+    <g id="mid-left-blue">
+        <line x1="385" y1="386" x2="385" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="395" y1="386" x2="395" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="405" y1="386" x2="405" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="415" y1="386" x2="415" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="425" y1="386" x2="425" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="435" y1="386" x2="435" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="445" y1="386" x2="445" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="455" y1="386" x2="455" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <line x1="465" y1="386" x2="465" y2="394" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <rect x="367" y="394" width="133" height="8" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <rect x="375" y="402" width="123" height="238" fill="url(#bldgFill)" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
+        <rect x="389" y="420" width="26" height="34" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="421" y="420" width="26" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="453" y="420" width="26" height="34" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="389" y="462" width="26" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="421" y="462" width="26" height="34" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="453" y="462" width="26" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="389" y="504" width="26" height="34" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="421" y="504" width="26" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="453" y="504" width="26" height="34" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="389" y="546" width="26" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="421" y="546" width="26" height="34" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="453" y="546" width="26" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+    </g>
+    {{-- GEDUNG B: Paviliun kaca miring --}}
+    <g id="glass-pavilion">
+        <polygon points="172,377 240,377 434,555 434,640 172,640" fill="#ffffff" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <rect x="188" y="356" width="34" height="21" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <circle cx="205" cy="366" r="5.5" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.8" />
+        <circle cx="205" cy="366" r="2" fill="#ffffff" stroke="#1c2438" stroke-width="1.2" />
+        <polygon points="190,395 240,395 418,558 418,598 190,598" fill="url(#pavGlass)" stroke="#1c2438"
+            stroke-width="1.8" stroke-linejoin="round" />
+        <g clip-path="url(#pavClip)">
+            <line x1="228" y1="380" x2="228" y2="598" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="266" y1="380" x2="266" y2="598" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="304" y1="380" x2="304" y2="598" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="342" y1="380" x2="342" y2="598" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="380" y1="380" x2="380" y2="598" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="418" y1="380" x2="418" y2="598" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="185" y1="435" x2="425" y2="435" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="185" y1="475" x2="425" y2="475" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="185" y1="515" x2="425" y2="515" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="185" y1="555" x2="425" y2="555" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+            <polygon points="190,560 300,430 332,430 190,598" fill="#ffffff" opacity="0.22" />
+            <polygon points="300,598 420,470 420,520 346,598" fill="#ffffff" opacity="0.22" />
         </g>
-
-        {{-- Distant Tower 2 (Mid-Left) --}}
-        <rect x="290" y="350" width="65" height="285" rx="2" />
-        <g fill="#ffffff" opacity="0.65">
-            <rect x="296" y="375" width="53" height="6" rx="1" />
-            <rect x="296" y="400" width="53" height="6" rx="1" />
-            <rect x="296" y="425" width="53" height="6" rx="1" />
-            <rect x="296" y="450" width="53" height="6" rx="1" />
-            <rect x="296" y="475" width="53" height="6" rx="1" />
-            <rect x="296" y="500" width="53" height="6" rx="1" />
-        </g>
-
-        {{-- Distant Tower 3 (Center-Left) --}}
-        <rect x="410" y="390" width="50" height="245" rx="2" />
-        <g fill="#ffffff" opacity="0.65">
-            <rect x="415" y="415" width="40" height="5" rx="1" />
-            <rect x="415" y="435" width="40" height="5" rx="1" />
-            <rect x="415" y="455" width="40" height="5" rx="1" />
-            <rect x="415" y="475" width="40" height="5" rx="1" />
-            <rect x="415" y="495" width="40" height="5" rx="1" />
-        </g>
-
-        {{-- Distant Tower 4 (Center-Right behind Card) --}}
-        <rect x="690" y="340" width="68" height="295" rx="2" />
-        <g fill="#ffffff" opacity="0.65">
-            <rect x="696" y="365" width="56" height="6" rx="1" />
-            <rect x="696" y="390" width="56" height="6" rx="1" />
-            <rect x="696" y="415" width="56" height="6" rx="1" />
-            <rect x="696" y="440" width="56" height="6" rx="1" />
-            <rect x="696" y="465" width="56" height="6" rx="1" />
-            <rect x="696" y="490" width="56" height="6" rx="1" />
-            <rect x="696" y="515" width="56" height="6" rx="1" />
-        </g>
-
-        {{-- Distant Tower 5 (Right) --}}
-        <rect x="990" y="330" width="55" height="305" rx="2" />
-        <g fill="#ffffff" opacity="0.65">
-            <rect x="996" y="355" width="43" height="6" rx="1" />
-            <rect x="996" y="380" width="43" height="6" rx="1" />
-            <rect x="996" y="405" width="43" height="6" rx="1" />
-            <rect x="996" y="430" width="43" height="6" rx="1" />
-            <rect x="996" y="455" width="43" height="6" rx="1" />
-        </g>
-
-        {{-- Distant Tower 6 (Far Right) --}}
-        <rect x="1160" y="360" width="50" height="275" rx="2" />
-        <g fill="#ffffff" opacity="0.65">
-            <rect x="1165" y="385" width="40" height="6" rx="1" />
-            <rect x="1165" y="410" width="40" height="6" rx="1" />
-            <rect x="1165" y="435" width="40" height="6" rx="1" />
-            <rect x="1165" y="460" width="40" height="6" rx="1" />
-        </g>
+        <line x1="240" y1="377" x2="434" y2="555" stroke="#1c2438" stroke-width="2.6" stroke-linecap="round" />
+        <rect x="172" y="598" width="262" height="42" fill="#ffffff" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
+        <rect x="186" y="606" width="60" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="216" y1="606" x2="216" y2="640" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+        <rect x="270" y="606" width="60" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="300" y1="606" x2="300" y2="640" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+        <rect x="354" y="606" width="60" height="34" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="384" y1="606" x2="384" y2="640" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
     </g>
-
-    {{-- ========================================== --}}
-    {{-- 5. FOREGROUND DETAILED BUILDINGS (LINE ART) --}}
-    {{-- ========================================== --}}
-
-    {{-- ------------------------------------------ --}}
-    {{-- BUILDING 1: Far Left Modern Skyscraper     --}}
-    {{-- ------------------------------------------ --}}
-    <g id="building-1">
-        {{-- Rooftop Penthouse & Antenna --}}
-        <line x1="120" y1="175" x2="120" y2="210" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
-        <line x1="108" y1="195" x2="108" y2="210" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-        <rect x="34" y="192" width="52" height="18" fill="#edf3fe" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Main Building Frame --}}
-        <rect x="8" y="210" width="134" height="425" rx="2" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Vertical Window Columns (5 columns) --}}
-        {{-- Col 1 --}}
-        <rect x="22" y="225" width="17" height="48" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="22" y="279" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="22" y="333" width="17" height="48" fill="#a4c2f8" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="22" y="387" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="22" y="480" width="17" height="42" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="22" y="528" width="17" height="42" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Col 2 --}}
-        <rect x="44" y="225" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="44" y="279" width="17" height="48" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="44" y="333" width="17" height="48" fill="#698ef0" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="44" y="387" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="44" y="480" width="17" height="42" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="44" y="528" width="17" height="42" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Col 3 --}}
-        <rect x="66" y="225" width="17" height="48" fill="#a4c2f8" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="66" y="279" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="66" y="333" width="17" height="48" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="66" y="387" width="17" height="48" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="66" y="480" width="17" height="42" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="66" y="528" width="17" height="42" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Col 4 --}}
-        <rect x="88" y="225" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="88" y="279" width="17" height="48" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="88" y="333" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="88" y="387" width="17" height="48" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="88" y="480" width="17" height="42" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="88" y="528" width="17" height="42" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Col 5 --}}
-        <rect x="110" y="225" width="17" height="48" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="110" y="279" width="17" height="48" fill="#698ef0" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="110" y="333" width="17" height="48" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="110" y="387" width="17" height="48" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="110" y="480" width="17" height="42" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="110" y="528" width="17" height="42" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Horizontal Belt Divider --}}
-        <line x1="8" y1="455" x2="142" y2="455" stroke="#1c2438" stroke-width="2.2" />
-
-        {{-- Entrance Portal --}}
-        <rect x="22" y="585" width="105" height="50" fill="#eef4fd" stroke="#1c2438" stroke-width="2" />
-        {{-- Entrance Doors --}}
-        <rect x="58" y="595" width="33" height="40" fill="#ffffff" stroke="#1c2438" stroke-width="2" />
-        <line x1="74.5" y1="595" x2="74.5" y2="635" stroke="#1c2438" stroke-width="1.6" />
-        <line x1="71" y1="612" x2="71" y2="622" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-        <line x1="78" y1="612" x2="78" y2="622" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+    {{-- GEDUNG D: Gedung kecil dengan papan bulat --}}
+    <g id="small-sign-building">
+        <rect x="486" y="429" width="73" height="22" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <circle cx="522" cy="440" r="7.5" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.8" />
+        <circle cx="522" cy="440" r="3" fill="#ffffff" stroke="#1c2438" stroke-width="1.2" />
+        <rect x="480" y="451" width="85" height="12" fill="#e3ecfc" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <rect x="475" y="463" width="97" height="177" fill="url(#bldgFill)" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
+        <rect x="485" y="478" width="77" height="19" fill="#f4f8ff" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="485" y="491" width="77" height="6" fill="#7f9ff0" stroke="#1c2438" stroke-width="1.2"
+            stroke-linejoin="round" />
+        <rect x="485" y="506" width="77" height="19" fill="#f4f8ff" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="485" y="519" width="77" height="6" fill="#7f9ff0" stroke="#1c2438" stroke-width="1.2"
+            stroke-linejoin="round" />
+        <rect x="485" y="534" width="77" height="19" fill="#f4f8ff" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="485" y="547" width="77" height="6" fill="#7f9ff0" stroke="#1c2438" stroke-width="1.2"
+            stroke-linejoin="round" />
+        <rect x="485" y="562" width="77" height="19" fill="#f4f8ff" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="485" y="575" width="77" height="6" fill="#7f9ff0" stroke="#1c2438" stroke-width="1.2"
+            stroke-linejoin="round" />
+        <rect x="508" y="603" width="36" height="37" fill="#5f82ec" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- TREE & BUSH 1 (Between Building 1 & 2)     --}}
-    {{-- ------------------------------------------ --}}
-    <g id="tree-1">
-        <line x1="160" y1="615" x2="160" y2="635" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
-        <polygon points="160,570 151,592 169,592" fill="#ffffff" stroke="#1c2438" stroke-width="2" stroke-linejoin="round" />
-        <polygon points="160,587 147,610 173,610" fill="#eaf1fd" stroke="#1c2438" stroke-width="2" stroke-linejoin="round" />
-        <polygon points="160,604 143,626 177,626" fill="#ffffff" stroke="#1c2438" stroke-width="2" stroke-linejoin="round" />
-        <path d="M 172 635 C 172 626 182 624 184 635 Z" fill="#9dbbfc" stroke="#1c2438" stroke-width="2" />
+    {{-- GEDUNG G: Kantor biru --}}
+    <g id="blue-office">
+        <rect x="1168" y="384" width="52" height="10" fill="#e3ecfc" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <line x1="1244" y1="378" x2="1244" y2="394" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+        <line x1="1238" y1="384" x2="1250" y2="384" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <rect x="1146" y="394" width="129" height="246" fill="url(#bldgFill)" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
+        <rect x="1158" y="405" width="50" height="56" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1213" y="405" width="50" height="56" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1158" y="467" width="50" height="56" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1213" y="467" width="50" height="56" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1158" y="529" width="50" height="56" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1213" y="529" width="50" height="56" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1146" y="598" width="129" height="42" fill="#eef4fd" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- BUILDING 2: Slanted Modern Glass Pavilion  --}}
-    {{-- ------------------------------------------ --}}
-    <g id="building-2">
-        {{-- Elevator Tower Core (Left) --}}
-        <rect x="178" y="360" width="40" height="275" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-        {{-- Round Porthole Window --}}
-        <circle cx="198" cy="378" r="7.5" fill="#9dbbfc" stroke="#1c2438" stroke-width="2" />
-        <circle cx="198" cy="378" r="3.5" fill="#ffffff" stroke="#1c2438" stroke-width="1.5" />
-
-        {{-- Slanted Glass Canopy Outline --}}
-        <polygon points="218,390 415,575 415,635 218,635" fill="#f8faff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Slanted Structural Trusses & Glass Panels --}}
-        {{-- Diagonal Roof Beam Accent --}}
-        <line x1="218" y1="390" x2="415" y2="575" stroke="#1c2438" stroke-width="3" stroke-linecap="round" />
-
-        {{-- Glass Facet Panel Grid --}}
-        {{-- Vertical Grid Lines --}}
-        <line x1="262" y1="431" x2="262" y2="575" stroke="#1c2438" stroke-width="1.8" />
-        <line x1="310" y1="476" x2="310" y2="575" stroke="#1c2438" stroke-width="1.8" />
-        <line x1="360" y1="523" x2="360" y2="575" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Diagonal Mullions inside glass facade --}}
-        <line x1="218" y1="510" x2="262" y2="431" stroke="#1c2438" stroke-width="1.8" />
-        <line x1="262" y1="575" x2="310" y2="476" stroke="#1c2438" stroke-width="1.8" />
-        <line x1="310" y1="575" x2="360" y2="523" stroke="#1c2438" stroke-width="1.8" />
-        <line x1="218" y1="575" x2="262" y2="510" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Colored Glass Triangles & Polygons --}}
-        <polygon points="218,392 262,431 218,510" fill="#7fa4f5" stroke="#1c2438" stroke-width="1.8" />
-        <polygon points="218,510 262,431 262,575" fill="#a8c5fa" stroke="#1c2438" stroke-width="1.8" />
-        <polygon points="218,510 262,575 218,575" fill="#cde0fd" stroke="#1c2438" stroke-width="1.8" />
-        
-        <polygon points="262,431 310,476 262,575" fill="#6088ee" stroke="#1c2438" stroke-width="1.8" />
-        <polygon points="310,476 310,575 262,575" fill="#bdd2fc" stroke="#1c2438" stroke-width="1.8" />
-        
-        <polygon points="310,476 360,523 310,575" fill="#8eb0f6" stroke="#1c2438" stroke-width="1.8" />
-        <polygon points="360,523 360,575 310,575" fill="#dae7fe" stroke="#1c2438" stroke-width="1.8" />
-
-        <polygon points="360,523 415,575 360,575" fill="#7ba0f5" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Entrance Lintel Beam --}}
-        <line x1="178" y1="575" x2="415" y2="575" stroke="#1c2438" stroke-width="2.5" />
-
-        {{-- Lower Entrance Glass Doors (4 bays) --}}
-        <rect x="226" y="583" width="38" height="52" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="272" y="583" width="38" height="52" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="318" y="583" width="38" height="52" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="364" y="583" width="38" height="52" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.8" />
-        {{-- Vertical dividing bars in entrance --}}
-        <line x1="245" y1="583" x2="245" y2="635" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="291" y1="583" x2="291" y2="635" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="337" y1="583" x2="337" y2="635" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="383" y1="583" x2="383" y2="635" stroke="#1c2438" stroke-width="1.2" />
+    {{-- GEDUNG E: Toko dengan kanopi kubah --}}
+    <g id="dome-store">
+        <rect x="905" y="586" width="131" height="54" fill="#ffffff" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <path d="M 898 586 A 72.5 44 0 0 1 1043 586 Z" fill="#c0d4fb" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <line x1="922" y1="586" x2="922" y2="553.3" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <line x1="946" y1="586" x2="946" y2="544.6" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <line x1="970.5" y1="586" x2="970.5" y2="542.0" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <line x1="995" y1="586" x2="995" y2="544.6" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <line x1="1019" y1="586" x2="1019" y2="553.3" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <line x1="898" y1="586" x2="1043" y2="586" stroke="#1c2438" stroke-width="2.5" stroke-linecap="round" />
+        <rect x="934" y="509" width="75" height="26" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <circle cx="971.5" cy="522" r="8.5" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.8" />
+        <circle cx="971.5" cy="522" r="3.5" fill="#ffffff" stroke="#1c2438" stroke-width="1.2" />
+        <line x1="950" y1="535" x2="950" y2="544" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+        <line x1="993" y1="535" x2="993" y2="544" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+        <rect x="912" y="594" width="83" height="30" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="912" y1="609" x2="995" y2="609" stroke="#1c2438" stroke-width="1.4" stroke-linecap="round" />
+        <rect x="1002" y="594" width="28" height="46" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- STREET DETAILS BETWEEN BLDG 2 & 3          --}}
-    {{-- ------------------------------------------ --}}
-    <g id="street-trees-left">
-        {{-- Tree 2 --}}
-        <line x1="432" y1="615" x2="432" y2="635" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-        <polygon points="432,580 424,598 440,598" fill="#ffffff" stroke="#1c2438" stroke-width="1.8" stroke-linejoin="round" />
-        <polygon points="432,595 421,614 443,614" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.8" stroke-linejoin="round" />
-        <polygon points="432,610 418,628 446,628" fill="#ffffff" stroke="#1c2438" stroke-width="1.8" stroke-linejoin="round" />
-        {{-- Utility Box --}}
-        <rect x="449" y="618" width="14" height="17" fill="#dce8fd" stroke="#1c2438" stroke-width="1.8" />
+    {{-- GEDUNG F: Rumah dengan atap pelana --}}
+    <g id="gable-house">
+        <rect x="1070" y="485" width="94" height="155" fill="url(#bldgFill)" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <polygon points="1117,423 1055,485 1178,485" fill="#ffffff" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <polygon points="1117,434 1068,485 1166,485" fill="none" stroke="#1c2438" stroke-width="1.4"
+            stroke-linejoin="round" />
+        <circle cx="1117" cy="470" r="9" fill="#ffffff" stroke="#1c2438" stroke-width="1.8" />
+        <line x1="1108" y1="470" x2="1126" y2="470" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+        <line x1="1117" y1="461" x2="1117" y2="479" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
+        <rect x="1091" y="497" width="19" height="22" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <line x1="1100.5" y1="497" x2="1100.5" y2="519" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <line x1="1091" y1="508" x2="1110" y2="508" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <rect x="1124" y="497" width="19" height="22" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <line x1="1133.5" y1="497" x2="1133.5" y2="519" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <line x1="1124" y1="508" x2="1143" y2="508" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <rect x="1091" y="527" width="19" height="22" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <line x1="1100.5" y1="527" x2="1100.5" y2="549" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <line x1="1091" y1="538" x2="1110" y2="538" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <rect x="1124" y="527" width="19" height="22" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <line x1="1133.5" y1="527" x2="1133.5" y2="549" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <line x1="1124" y1="538" x2="1143" y2="538" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <rect x="1091" y="557" width="19" height="22" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <line x1="1100.5" y1="557" x2="1100.5" y2="579" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <line x1="1091" y1="568" x2="1110" y2="568" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <rect x="1124" y="557" width="19" height="22" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <line x1="1133.5" y1="557" x2="1133.5" y2="579" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <line x1="1124" y1="568" x2="1143" y2="568" stroke="#1c2438" stroke-width="1.1" stroke-linecap="round" />
+        <rect x="1105" y="599" width="24" height="41" fill="#5f82ec" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- BUILDING 3: Mid-Left Tower                 --}}
-    {{-- ------------------------------------------ --}}
-    <g id="building-3">
-        {{-- Rooftop Antenna & Penthouse --}}
-        <line x1="518" y1="410" x2="518" y2="435" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
-        <line x1="513" y1="420" x2="523" y2="420" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
-        <rect x="490" y="423" width="56" height="12" fill="#ffffff" stroke="#1c2438" stroke-width="2" />
-
-        {{-- Building Outer Frame --}}
-        <rect x="475" y="435" width="88" height="200" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Left Column: Louvers / Ventilation Grille --}}
-        <g stroke="#1c2438" stroke-width="2" stroke-linecap="round">
-            <line x1="485" y1="458" x2="510" y2="458" />
-            <line x1="485" y1="472" x2="510" y2="472" />
-            <line x1="485" y1="486" x2="510" y2="486" />
-            <line x1="485" y1="500" x2="510" y2="500" />
-            <line x1="485" y1="514" x2="510" y2="514" />
-            <line x1="485" y1="528" x2="510" y2="528" />
-            <line x1="485" y1="542" x2="510" y2="542" />
-            <line x1="485" y1="556" x2="510" y2="556" />
-            <line x1="485" y1="570" x2="510" y2="570" />
-            <line x1="485" y1="584" x2="510" y2="584" />
-            <line x1="485" y1="598" x2="510" y2="598" />
-        </g>
-
-        {{-- Right Column: 4 Windows --}}
-        <rect x="522" y="455" width="30" height="26" fill="#698ef0" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="522" y="492" width="30" height="26" fill="#9dbbfc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="522" y="529" width="30" height="26" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="522" y="566" width="30" height="26" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Ground Door --}}
-        <rect x="496" y="605" width="32" height="30" fill="#5077e6" stroke="#1c2438" stroke-width="2" />
+    {{-- GEDUNG H: Menara kanan (rapat ke tepi layar) --}}
+    <g id="tower-right">
+        <line x1="1402" y1="192" x2="1402" y2="223" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
+        <line x1="1396" y1="202" x2="1408" y2="202" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+        <line x1="1320" y1="250" x2="1320" y2="260" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+        <line x1="1314" y1="250" x2="1326" y2="250" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+        <rect x="1359" y="223" width="41" height="37" fill="#e3ecfc" stroke="#1c2438" stroke-width="2"
+            stroke-linejoin="round" />
+        <rect x="1372" y="233" width="16" height="22" fill="#ffffff" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <rect x="1295" y="260" width="150" height="380" fill="url(#bldgFill)" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <rect x="1295" y="260" width="150" height="18" fill="#f4f8ff" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <rect x="1295" y="276" width="150" height="6" fill="#3f5fc9" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <rect x="1308" y="292" width="32" height="34" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <rect x="1308" y="316" width="32" height="10" fill="#7f9ff0" stroke="#1c2438" stroke-width="1.4"
+            stroke-linejoin="round" />
+        <rect x="1350" y="292" width="32" height="34" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <rect x="1350" y="316" width="32" height="10" fill="#7f9ff0" stroke="#1c2438" stroke-width="1.4"
+            stroke-linejoin="round" />
+        <rect x="1392" y="292" width="32" height="34" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <rect x="1392" y="316" width="32" height="10" fill="#7f9ff0" stroke="#1c2438" stroke-width="1.4"
+            stroke-linejoin="round" />
+        <rect x="1295" y="336" width="150" height="5" fill="#3f5fc9" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <rect x="1308" y="375" width="32" height="70" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1308" y="445" width="32" height="65" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1308" y="510" width="32" height="75" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1350" y="375" width="32" height="70" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1350" y="445" width="32" height="65" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1350" y="510" width="32" height="75" fill="url(#winMid)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1392" y="375" width="32" height="70" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1392" y="445" width="32" height="65" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1392" y="510" width="32" height="75" fill="url(#winDark)" stroke="#1c2438" stroke-width="1.5"
+            stroke-linejoin="round" />
+        <rect x="1295" y="598" width="150" height="42" fill="#eef4fd" stroke="#1c2438" stroke-width="2.2"
+            stroke-linejoin="round" />
+        <rect x="1330" y="608" width="40" height="32" fill="url(#winLight)" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="1350" y1="608" x2="1350" y2="640" stroke="#1c2438" stroke-width="1.3" stroke-linecap="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- STREET DETAILS IN CENTER (Under card)      --}}
-    {{-- ------------------------------------------ --}}
-    <g id="street-center">
-        {{-- Lamppost Left (x=605) --}}
-        <line x1="605" y1="595" x2="605" y2="635" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-        <path d="M 598 597 C 601 593 605 593 605 595 C 605 593 609 593 612 597" fill="none" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
-        <circle cx="598" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
-        <circle cx="612" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
-
-        {{-- Curb Divider Block --}}
-        <rect x="670" y="625" width="35" height="10" fill="#edf3fe" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Lamppost Right (x=770) --}}
-        <line x1="770" y1="595" x2="770" y2="635" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-        <path d="M 763 597 C 766 593 770 593 770 595 C 770 593 774 593 777 597" fill="none" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
-        <circle cx="763" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
-        <circle cx="777" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
-
-        {{-- Cute Parked Bicycle (x=810 to 835) --}}
-        <g id="bicycle">
-            {{-- Wheels --}}
-            <circle cx="813" cy="627" r="6.5" fill="none" stroke="#1c2438" stroke-width="1.8" />
-            <circle cx="832" cy="627" r="6.5" fill="none" stroke="#1c2438" stroke-width="1.8" />
-            {{-- Frame --}}
-            <polyline points="813,627 822,627 827,620 818,620 813,627" fill="none" stroke="#1c2438" stroke-width="1.6" stroke-linejoin="round" />
-            <line x1="822" y1="627" x2="820" y2="617" stroke="#1c2438" stroke-width="1.6" />
-            {{-- Seat --}}
-            <line x1="817" y1="617" x2="823" y2="617" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-            {{-- Front Fork & Handlebars --}}
-            <line x1="832" y1="627" x2="829" y2="615" stroke="#1c2438" stroke-width="1.6" />
-            <line x1="826" y1="615" x2="832" y2="615" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-        </g>
+    {{-- 4. POHON, LAMPU, SEPEDA --}}
+    <g>
+        <line x1="182" y1="632" x2="182" y2="640" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
+        <polygon points="182,575 173,598 191,598" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="182,590 169,617 195,617" fill="#eef4fe" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="182,606 165,632 199,632" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- BUILDING 4: Storefront with Dome Marquee   --}}
-    {{-- ------------------------------------------ --}}
-    <g id="building-4">
-        {{-- Circular Sign on Top --}}
-        <line x1="918" y1="534" x2="918" y2="544" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
-        <circle cx="918" cy="525" r="9" fill="#eaf1fd" stroke="#1c2438" stroke-width="2" />
-        <circle cx="918" cy="525" r="4" fill="none" stroke="#1c2438" stroke-width="1.5" />
-
-        {{-- Dome Marquee / Barrel Awning --}}
-        <path d="M 865 575 C 865 540 970 540 970 575 Z" fill="#b9d1fc" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Awning Scallop Ribs --}}
-        <path d="M 878 575 C 878 548 894 544 894 575" fill="none" stroke="#1c2438" stroke-width="1.8" />
-        <path d="M 910 575 C 910 543 926 543 926 575" fill="none" stroke="#1c2438" stroke-width="1.8" />
-        <path d="M 942 575 C 942 546 958 550 958 575" fill="none" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Awning Alternating Color Fills --}}
-        <path d="M 865 575 C 865 550 878 548 878 575 Z" fill="#dae7fe" />
-        <path d="M 894 575 C 894 544 910 543 910 575 Z" fill="#dae7fe" />
-        <path d="M 926 575 C 926 543 942 546 942 575 Z" fill="#dae7fe" />
-        <path d="M 958 575 C 958 550 970 550 970 575 Z" fill="#dae7fe" />
-
-        {{-- Awning Bottom Bar --}}
-        <line x1="865" y1="575" x2="970" y2="575" stroke="#1c2438" stroke-width="2.5" />
-
-        {{-- Storefront Main Body --}}
-        <rect x="872" y="575" width="94" height="60" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Store Display Window (Left) --}}
-        <rect x="880" y="586" width="54" height="38" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.8" />
-        <line x1="880" y1="602" x2="934" y2="602" stroke="#1c2438" stroke-width="1.6" />
-
-        {{-- Store Entrance Door (Right) --}}
-        <rect x="940" y="586" width="20" height="49" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.8" />
+    <g>
+        <line x1="578" y1="632" x2="578" y2="640" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
+        <polygon points="578,575 569,598 587,598" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="578,590 565,617 591,617" fill="#eef4fe" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="578,606 561,632 595,632" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- BUILDING 5: Townhouse with Gabled Roof     --}}
-    {{-- ------------------------------------------ --}}
-    <g id="building-5">
-        {{-- Pitched Gable Roof --}}
-        <polygon points="1030,470 980,530 1080,530" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Round Attic Window --}}
-        <circle cx="1030" cy="505" r="8" fill="#ffffff" stroke="#1c2438" stroke-width="2" />
-        <line x1="1022" y1="505" x2="1038" y2="505" stroke="#1c2438" stroke-width="1.4" />
-        <line x1="1030" y1="497" x2="1030" y2="513" stroke="#1c2438" stroke-width="1.4" />
-
-        {{-- House Body --}}
-        <rect x="984" y="530" width="92" height="105" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- 6 Windows (2 columns x 3 rows) --}}
-        {{-- Row 1 --}}
-        <rect x="996" y="542" width="16" height="18" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6" />
-        <line x1="1004" y1="542" x2="1004" y2="560" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="996" y1="551" x2="1012" y2="551" stroke="#1c2438" stroke-width="1.2" />
-
-        <rect x="1048" y="542" width="16" height="18" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6" />
-        <line x1="1056" y1="542" x2="1056" y2="560" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="1048" y1="551" x2="1064" y2="551" stroke="#1c2438" stroke-width="1.2" />
-
-        {{-- Row 2 --}}
-        <rect x="996" y="570" width="16" height="18" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6" />
-        <line x1="1004" y1="570" x2="1004" y2="588" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="996" y1="579" x2="1012" y2="579" stroke="#1c2438" stroke-width="1.2" />
-
-        <rect x="1048" y="570" width="16" height="18" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6" />
-        <line x1="1056" y1="570" x2="1056" y2="588" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="1048" y1="579" x2="1064" y2="579" stroke="#1c2438" stroke-width="1.2" />
-
-        {{-- Row 3 --}}
-        <rect x="996" y="598" width="16" height="18" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6" />
-        <line x1="1004" y1="598" x2="1004" y2="616" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="996" y1="607" x2="1012" y2="607" stroke="#1c2438" stroke-width="1.2" />
-
-        <rect x="1048" y="598" width="16" height="18" fill="#eaf1fd" stroke="#1c2438" stroke-width="1.6" />
-        <line x1="1056" y1="598" x2="1056" y2="616" stroke="#1c2438" stroke-width="1.2" />
-        <line x1="1048" y1="607" x2="1064" y2="607" stroke="#1c2438" stroke-width="1.2" />
-
-        {{-- Entrance Door --}}
-        <rect x="1020" y="605" width="20" height="30" fill="#5077e6" stroke="#1c2438" stroke-width="2" />
+    <g>
+        <line x1="874" y1="632" x2="874" y2="640" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
+        <polygon points="874,575 865,598 883,598" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="874,590 861,617 887,617" fill="#eef4fe" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="874,606 857,632 891,632" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- BUILDING 6: Modern Blue Office Building    --}}
-    {{-- ------------------------------------------ --}}
-    <g id="building-6">
-        {{-- Antenna Mast --}}
-        <line x1="1145" y1="400" x2="1145" y2="430" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
-        <line x1="1138" y1="412" x2="1152" y2="412" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
-
-        {{-- Outer Structure Frame --}}
-        <rect x="1076" y="430" width="126" height="205" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- 6 Large Blue Window Panels (2 columns x 3 rows) --}}
-        {{-- Row 1 --}}
-        <rect x="1088" y="445" width="48" height="52" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1144" y="445" width="48" height="52" fill="#698ef0" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Row 2 --}}
-        <rect x="1088" y="507" width="48" height="52" fill="#698ef0" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1144" y="507" width="48" height="52" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Row 3 --}}
-        <rect x="1088" y="569" width="48" height="52" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1144" y="569" width="48" height="52" fill="#698ef0" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Street Tree 3 in front of Building 6 --}}
-        <line x1="1152" y1="615" x2="1152" y2="635" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
-        <polygon points="1152,570 1143,592 1161,592" fill="#ffffff" stroke="#1c2438" stroke-width="2" stroke-linejoin="round" />
-        <polygon points="1152,587 1139,610 1165,610" fill="#eaf1fd" stroke="#1c2438" stroke-width="2" stroke-linejoin="round" />
-        <polygon points="1152,604 1135,626 1169,626" fill="#ffffff" stroke="#1c2438" stroke-width="2" stroke-linejoin="round" />
+    <g>
+        <line x1="1234" y1="632" x2="1234" y2="640" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
+        <polygon points="1234,575 1225,598 1243,598" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="1234,590 1221,617 1247,617" fill="#eef4fe" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
+        <polygon points="1234,606 1217,632 1251,632" fill="#ffffff" stroke="#1c2438" stroke-width="1.8"
+            stroke-linejoin="round" />
     </g>
-
-    {{-- ------------------------------------------ --}}
-    {{-- BUILDING 7: Far Right High-Rise Skyscraper --}}
-    {{-- ------------------------------------------ --}}
-    <g id="building-7">
-        {{-- Rooftop Structure & Mast --}}
-        <line x1="1300" y1="180" x2="1300" y2="215" stroke="#1c2438" stroke-width="2.2" stroke-linecap="round" />
-        <line x1="1292" y1="195" x2="1308" y2="195" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
-        <rect x="1268" y="200" width="64" height="18" fill="#edf3fe" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Main Skyscraper Frame --}}
-        <rect x="1215" y="218" width="145" height="417" fill="#ffffff" stroke="#1c2438" stroke-width="2.2" stroke-linejoin="round" />
-
-        {{-- Attic Horizontal Windows --}}
-        <rect x="1230" y="235" width="32" height="15" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1271" y="235" width="32" height="15" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1312" y="235" width="32" height="15" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-
-        <line x1="1215" y1="262" x2="1360" y2="262" stroke="#1c2438" stroke-width="2.2" />
-
-        {{-- 3 Window Columns x 4 Vertical Section Rows --}}
-        {{-- Col 1 --}}
-        <rect x="1230" y="278" width="32" height="70" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1230" y="358" width="32" height="70" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1230" y="438" width="32" height="70" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1230" y="518" width="32" height="52" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Col 2 --}}
-        <rect x="1271" y="278" width="32" height="70" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1271" y="358" width="32" height="70" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1271" y="438" width="32" height="70" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1271" y="518" width="32" height="52" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Col 3 --}}
-        <rect x="1312" y="278" width="32" height="70" fill="#c4d8fc" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1312" y="358" width="32" height="70" fill="#698ef0" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1312" y="438" width="32" height="70" fill="#5077e6" stroke="#1c2438" stroke-width="1.8" />
-        <rect x="1312" y="518" width="32" height="52" fill="#8caef7" stroke="#1c2438" stroke-width="1.8" />
-
-        {{-- Entrance Area --}}
-        <rect x="1235" y="585" width="105" height="50" fill="#eaf1fd" stroke="#1c2438" stroke-width="2" />
-        <rect x="1260" y="593" width="55" height="42" fill="#ffffff" stroke="#1c2438" stroke-width="2" />
-        <line x1="1287.5" y1="593" x2="1287.5" y2="635" stroke="#1c2438" stroke-width="1.6" />
+    <g>
+        <line x1="451" y1="595" x2="451" y2="640" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+        <path d="M 444 597 C 447 593 451 593 451 595 C 451 593 455 593 458 597" fill="none" stroke="#1c2438"
+            stroke-width="1.8" stroke-linecap="round" />
+        <circle cx="444" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
+        <circle cx="458" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
     </g>
-
-    {{-- ========================================== --}}
-    {{-- 6. GROUND, SIDEWALK & FOUNDATION BASELINE  --}}
-    {{-- ========================================== --}}
-    <g id="ground-and-sidewalk">
-        {{-- Continuous Ground Baseline --}}
-        <line x1="0" y1="635" x2="1440" y2="635" stroke="#1c2438" stroke-width="2.5" />
-
-        {{-- Sidewalk Curb Strip --}}
-        <rect x="0" y="635" width="1440" height="45" fill="#f4f8fe" stroke="#1c2438" stroke-width="2" />
-
-        {{-- Curb Divider Ticks --}}
-        <g stroke="#1c2438" stroke-width="1.5">
-            <line x1="40" y1="635" x2="40" y2="650" />
-            <line x1="120" y1="635" x2="120" y2="650" />
-            <line x1="200" y1="635" x2="200" y2="650" />
-            <line x1="280" y1="635" x2="280" y2="650" />
-            <line x1="360" y1="635" x2="360" y2="650" />
-            <line x1="440" y1="635" x2="440" y2="650" />
-            <line x1="520" y1="635" x2="520" y2="650" />
-            <line x1="600" y1="635" x2="600" y2="650" />
-            <line x1="680" y1="635" x2="680" y2="650" />
-            <line x1="760" y1="635" x2="760" y2="650" />
-            <line x1="840" y1="635" x2="840" y2="650" />
-            <line x1="920" y1="635" x2="920" y2="650" />
-            <line x1="1000" y1="635" x2="1000" y2="650" />
-            <line x1="1080" y1="635" x2="1080" y2="650" />
-            <line x1="1160" y1="635" x2="1160" y2="650" />
-            <line x1="1240" y1="635" x2="1240" y2="650" />
-            <line x1="1320" y1="635" x2="1320" y2="650" />
-            <line x1="1400" y1="635" x2="1400" y2="650" />
-        </g>
+    <g>
+        <line x1="640" y1="595" x2="640" y2="640" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+        <path d="M 633 597 C 636 593 640 593 640 595 C 640 593 644 593 647 597" fill="none" stroke="#1c2438"
+            stroke-width="1.8" stroke-linecap="round" />
+        <circle cx="633" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
+        <circle cx="647" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
     </g>
+    <g>
+        <line x1="798" y1="595" x2="798" y2="640" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+        <path d="M 791 597 C 794 593 798 593 798 595 C 798 593 802 593 805 597" fill="none" stroke="#1c2438"
+            stroke-width="1.8" stroke-linecap="round" />
+        <circle cx="791" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
+        <circle cx="805" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
+    </g>
+    <g>
+        <line x1="1064" y1="595" x2="1064" y2="640" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+        <path d="M 1057 597 C 1060 593 1064 593 1064 595 C 1064 593 1068 593 1071 597" fill="none" stroke="#1c2438"
+            stroke-width="1.8" stroke-linecap="round" />
+        <circle cx="1057" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
+        <circle cx="1071" cy="600" r="2.5" fill="#fdf2bb" stroke="#1c2438" stroke-width="1.5" />
+    </g>
+    <line x1="158" y1="626" x2="158" y2="640" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+    <circle cx="158" cy="623" r="3" fill="#ffffff" stroke="#1c2438" stroke-width="1.5" />
+    <line x1="1049" y1="626" x2="1049" y2="640" stroke="#1c2438" stroke-width="1.8" stroke-linecap="round" />
+    <circle cx="1049" cy="623" r="3" fill="#ffffff" stroke="#1c2438" stroke-width="1.5" />
+    <g transform="translate(20 5)">
+        <circle cx="813" cy="627" r="6.5" fill="none" stroke="#1c2438" stroke-width="1.8" />
+        <circle cx="832" cy="627" r="6.5" fill="none" stroke="#1c2438" stroke-width="1.8" />
+        <polyline points="813,627 822,627 827,620 818,620 813,627" fill="none" stroke="#1c2438" stroke-width="1.6"
+            stroke-linejoin="round" />
+        <line x1="822" y1="627" x2="820" y2="617" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <line x1="817" y1="617" x2="823" y2="617" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+        <line x1="832" y1="627" x2="829" y2="615" stroke="#1c2438" stroke-width="1.6" stroke-linecap="round" />
+        <line x1="826" y1="615" x2="832" y2="615" stroke="#1c2438" stroke-width="2" stroke-linecap="round" />
+    </g>
+    <rect x="114" y="629" width="30" height="11" fill="#5f82ec" stroke="#1c2438" stroke-width="1.6"
+        stroke-linejoin="round" />
+    <rect x="413" y="629" width="30" height="11" fill="#5f82ec" stroke="#1c2438" stroke-width="1.6"
+        stroke-linejoin="round" />
+    <rect x="705" y="629" width="30" height="11" fill="#5f82ec" stroke="#1c2438" stroke-width="1.6"
+        stroke-linejoin="round" />
+    <rect x="1287" y="629" width="30" height="11" fill="#5f82ec" stroke="#1c2438" stroke-width="1.6"
+        stroke-linejoin="round" />
+    {{-- 5. TANAH & TROTOAR --}}
+    <line x1="0" y1="640" x2="1440" y2="640" stroke="#1c2438" stroke-width="2.4" stroke-linecap="round" />
+    <rect x="0" y="640" width="1440" height="40" fill="#fdfdff" stroke="#1c2438" stroke-width="1.6" />
 </svg>
