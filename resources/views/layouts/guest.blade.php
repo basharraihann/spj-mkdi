@@ -350,8 +350,7 @@
     @if ($attributes->get('split'))
         <div class="city-page">
             <div class="city-brand">
-                <img src="{{ asset('images/logo.png') }}" alt="" class="city-brand-logo">
-                <span>SPJ MKDI</span>
+                <img src="{{ asset('images/logoheader.png') }}" alt="" class="city-brand-logo">
             </div>
             <div class="city-bg-scene">
                 <x-city-skyline />
