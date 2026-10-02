@@ -38,9 +38,24 @@
             background: #eef2ff;
         }
 
-        /* Brand (hanya tampil di mobile) */
+        /* Brand: versi mobile (di atas skyline) disembunyikan di desktop */
         .city-brand {
             display: none;
+        }
+
+        /* Logo di atas kartu (desktop) */
+        .city-brand-top {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 22px;
+        }
+
+        .city-brand-top img {
+            height: 45px;
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+            margin-bottom: 20px;
         }
 
         .city-bg-scene {
@@ -78,7 +93,7 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.9);
             border-radius: 20px;
-            box-shadow: 0 12px 40px rgba(30, 45, 110, 0.14);
+            box-shadow: 0 12px 40px rgba(37, 99, 235, 0.14);
             padding: 36px 36px 30px;
             width: 100%;
             max-width: 400px;
@@ -131,12 +146,12 @@
 
         .city-field input {
             width: 100%;
-            padding: 11px 40px 11px 40px;
-            border: 1.5px solid #d1d5db;
-            border-radius: 10px;
+            padding: 12px 40px 12px 40px;
+            border: 1.5px solid transparent;
+            border-radius: 12px;
             font-size: 0.85rem;
             color: #111827;
-            background: #ffffff;
+            background: #f1f5f9;
             outline: none;
             transition: border-color .2s, box-shadow .2s;
         }
@@ -187,10 +202,10 @@
 
         .city-btn {
             width: 100%;
-            padding: 12px;
+            padding: 13px;
             margin-top: 8px;
-            border-radius: 10px;
-            background: #1e293b;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #6aa8f0 0%, #3f7fd6 100%);
             color: #ffffff;
             font-size: 0.88rem;
             font-weight: 700;
@@ -198,13 +213,13 @@
             cursor: pointer;
             letter-spacing: 0.03em;
             transition: background .2s, transform .15s, box-shadow .2s;
-            box-shadow: 0 4px 16px rgba(30, 41, 59, 0.25);
+            box-shadow: 0 6px 16px rgba(63, 127, 214, 0.35);
         }
 
         .city-btn:hover {
-            background: #334155;
+            background: linear-gradient(180deg, #5c9cea 0%, #3774c8 100%);
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(30, 41, 59, 0.32);
+            box-shadow: 0 8px 20px rgba(63, 127, 214, 0.42);
         }
 
         .city-copy {
@@ -233,6 +248,10 @@
                 background: linear-gradient(180deg, #d4e4fb 0%, #e9f1fe 55%, #f4f8ff 100%);
             }
 
+            .city-brand-top {
+                display: none;
+            }
+
             /* Brand di atas */
             .city-brand {
                 display: flex;
@@ -249,8 +268,9 @@
             }
 
             .city-brand-logo {
-                height: 34px;
+                height: 44px;
                 width: auto;
+                max-width: 85%;
                 object-fit: contain;
             }
 
@@ -301,29 +321,13 @@
             }
 
             .city-field input {
-                background: #f1f5f9;
-                border-color: transparent;
-                border-radius: 12px;
                 padding: 14px 42px;
                 font-size: 16px;
                 /* cegah auto-zoom di iOS */
             }
 
-            .city-field input:focus {
-                background: #ffffff;
-                border-color: #3b82f6;
-            }
-
             .city-btn {
                 padding: 14px;
-                border-radius: 12px;
-                background: linear-gradient(180deg, #6aa8f0 0%, #3f7fd6 100%);
-                box-shadow: 0 6px 16px rgba(63, 127, 214, 0.35);
-            }
-
-            .city-btn:hover {
-                background: linear-gradient(180deg, #5c9cea 0%, #3774c8 100%);
-                box-shadow: 0 6px 16px rgba(63, 127, 214, 0.35);
             }
 
             /* Footer ikut alur halaman, bukan melayang */
@@ -350,12 +354,16 @@
     @if ($attributes->get('split'))
         <div class="city-page">
             <div class="city-brand">
-                <img src="{{ asset('images/logoheader.png') }}" alt="" class="city-brand-logo">
+                <img src="{{ asset('images/logoheader.png') }}" alt="Kementerian Koordinator Bidang Pangan"
+                    class="city-brand-logo">
             </div>
             <div class="city-bg-scene">
                 <x-city-skyline />
             </div>
             <div class="city-main">
+                <div class="city-brand-top">
+                    <img src="{{ asset('images/logoheader.png') }}" alt="Kementerian Koordinator Bidang Pangan">
+                </div>
                 <div class="city-card">
                     {{ $slot }}
                 </div>
