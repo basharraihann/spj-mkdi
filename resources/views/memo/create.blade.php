@@ -1,9 +1,5 @@
 <x-app-layout title="Create Memo">
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot> <x-slot name="header">
         <div class="flex items-center gap-3">
             <div class="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-600/30">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"
@@ -128,10 +124,11 @@
                                         class="w-full appearance-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
                                         <option value="" disabled {{ old('jenis_memo') ? '' : 'selected' }}>— Pilih —
                                         </option>
-                                        <option value="konsumsi" @selected(old('jenis_memo') === 'konsumsi')>Konsumsi
-                                        </option>
-                                        <option value="honorarium" @selected(old('jenis_memo') === 'honorarium')>
-                                            Honorarium</option>
+                                        @foreach (\App\Models\MemoEntry::JENIS as $value => $label)
+                                            <option value="{{ $value }}" @selected(old('jenis_memo') === $value)>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="h-4 w-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -344,8 +341,7 @@
                                                 data-uraian-giat="{{ $opt->uraian_giat }}"
                                                 data-uraian-komponen="{{ $opt->uraian_komponen }}"
                                                 data-uraian-akun-ap="{{ $opt->uraian_akun_ap }}"
-                                                data-uraian-belanja="{{ $opt->uraian_belanja }}"
-                                                @selected($currentMak === $opt->mak)>
+                                                data-uraian-belanja="{{ $opt->uraian_belanja }}" @selected($currentMak === $opt->mak)>
                                                 {{ $opt->mak }}
                                             </option>
                                         @endforeach
@@ -373,7 +369,8 @@
                                             @php $first = $items->first(); @endphp
                                             <div class="mak-group">
                                                 {{-- Header ringkas per payung --}}
-                                                <div class="sticky top-0 z-10 px-3.5 py-1.5 bg-gray-50 border-y border-gray-100">
+                                                <div
+                                                    class="sticky top-0 z-10 px-3.5 py-1.5 bg-gray-50 border-y border-gray-100">
                                                     <div class="flex items-center gap-2">
                                                         <span
                                                             class="font-mono text-[11px] font-semibold text-indigo-700 bg-white border border-gray-200 rounded px-1.5 py-0.5">{{ $payung }}</span>

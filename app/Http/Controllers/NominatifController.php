@@ -60,7 +60,8 @@ class NominatifController extends Controller
             }
         }
 
-        foreach (NominatifEntry::with('peserta')->get() as $entry) {
+        foreach (NominatifEntry::with(['peserta', 'items'])->get() as $entry) {
+            $custom = $entry->jenis_detail === 'custom';
             $tujuan = collect([$entry->kota ?? null, $entry->provinsi ?? null])->filter()->implode(', ');
 
             $rows->push([
@@ -71,11 +72,11 @@ class NominatifController extends Controller
                 'tujuan' => $tujuan ?: '-',
                 'tanggal' => $this->labelTanggal($entry->tanggal, null),
                 'sort' => optional($entry->tanggal)->timestamp ?? 0,
-                'status' => 'Honorarium',
-                'jumlah_peserta' => $entry->peserta->count(),
-                'total' => $entry->totalBruto(),
-                'pdf_url' => route('nominatif.pdf', $entry->id),
-                'edit_url' => route('nominatif.edit', $entry->id),
+                'status' => $custom ? 'Custom' : 'Honorarium',
+                'jumlah_peserta' => $custom ? $entry->items->count() : $entry->peserta->count(),
+                'total' => $custom ? $entry->totalAkhir() : $entry->totalBruto(),
+                'pdf_url' => $custom ? route('nominatif.custom.pdf', $entry->id) : route('nominatif.pdf', $entry->id),
+                'edit_url' => $custom ? route('nominatif.custom.edit', $entry->id) : route('nominatif.edit', $entry->id),
                 'delete_url' => route('nominatif.destroy', $entry->id),
             ]);
         }

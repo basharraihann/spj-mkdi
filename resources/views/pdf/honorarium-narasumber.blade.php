@@ -12,21 +12,21 @@
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 13px;
             color: #000;
         }
 
         .judul {
             text-align: center;
             font-weight: bold;
-            font-size: 11.5px;
+            font-size: 13px;
             line-height: 1.6;
         }
 
         .judul-upper {
             text-align: center;
             font-weight: bold;
-            font-size: 11.5px;
+            font-size: 13px;
             line-height: 1.6;
             text-transform: uppercase;
         }
@@ -43,7 +43,7 @@
             border: 1px solid #000;
             padding: 4px 5px;
             vertical-align: middle;
-            font-size: 10.5px;
+            font-size: 13px;
         }
 
         table.data td.col-no {
@@ -82,7 +82,7 @@
         table.data table.acc td {
             border: none;
             padding: 0;
-            font-size: 10.5px;
+            font-size: 13px;
             white-space: nowrap;
         }
 
@@ -99,7 +99,7 @@
         table.ttd td {
             border: none;
             vertical-align: top;
-            font-size: 10.5px;
+            font-size: 13px;
             line-height: 1.6;
             padding: 0;
         }
@@ -113,17 +113,17 @@
         table.ttd-indiv td {
             border: none;
             vertical-align: top;
-            font-size: 10.5px;
+            font-size: 13px;
             line-height: 1.6;
             padding: 0;
         }
 
         .ttd-space {
-            height: 58px;
+            height: 48px;
         }
 
         .ttd-space-sm {
-            height: 58px;
+            height: 48px;
         }
 
         .page-break {
@@ -131,7 +131,7 @@
         }
 
         .section-gap {
-            margin-top: 42px;
+            margin-top: 24px;
         }
     </style>
 </head>
@@ -174,13 +174,13 @@
         <thead>
             <tr>
                 <th style="width:3%">No</th>
-                <th style="width:35%">Nama</th>
+                <th style="width:31%">Nama</th>
                 <th style="width:8%">Sebagai</th>
                 <th style="width:11%">Tarif</th>
                 <th style="width:4%">Jam</th>
-                <th style="width:13%">Bruto</th>
-                <th style="width:13%">Pajak</th>
-                <th style="width:13%">Netto</th>
+                <th style="width:14%">Bruto</th>
+                <th style="width:14%">Pajak</th>
+                <th style="width:14%">Netto</th>
             </tr>
         </thead>
         <tbody>

@@ -12,12 +12,12 @@
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 13px;
         }
 
         h3.judul {
             text-align: center;
-            font-size: 12px;
+            font-size: 13px;
             margin: 0 0 10px 0;
             text-decoration: underline;
         }
@@ -32,7 +32,7 @@
         table.data th {
             border: 1px solid #000;
             padding: 2px 4px;
-            font-size: 10px;
+            font-size: 13px;
             line-height: 1.25;
             vertical-align: middle;
             text-align: center;
@@ -72,7 +72,7 @@
             text-align: left;
             vertical-align: top;
             padding: 0 10px;
-            font-size: 11px;
+            font-size: 13px;
             line-height: 1.35;
         }
 

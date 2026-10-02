@@ -9,13 +9,15 @@ use App\Models\Pegawai;
 use App\Services\NomorMemoService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MemoController extends Controller
 {
     /**
      * Daftar semua nomor memo, gabungan dari dua sumber:
      * - agendas.nomor_memo_pns / nomor_memo_non_pns -> jenis "perdin"
-     * - memo_entries (dibuat mandiri) -> jenis "konsumsi" / "honorarium"
+     * - memo_entries (dibuat mandiri) -> jenis sesuai MemoEntry::JENIS
+     *   (konsumsi, honorarium, atk, seminar_kit, sewa_ruangan)
      *
      * Ditampilkan satu baris per agenda: memo PNS dan Non PNS dari agenda yang
      * sama digabung. Memo mandiri tetap satu grup satu item.
@@ -94,7 +96,7 @@ class MemoController extends Controller
                 'status' => null,
                 'mandiri' => true,
                 'jenis' => $entry->jenis_memo,
-                'jenis_label' => $entry->jenis_memo === 'konsumsi' ? 'Konsumsi' : 'Honorarium',
+                'jenis_label' => $entry->jenis_label, // accessor di model MemoEntry
                 'editable' => true,
                 'edit_url' => route('memo.edit', $entry->id),
                 'pdf_url' => route('memo.pdf', $entry->id),
@@ -158,20 +160,7 @@ class MemoController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nomor_memo' => 'required|string',
-            'jenis_memo' => 'required|in:konsumsi,honorarium',
-            'tanggal_memo' => 'required|date',
-            'uraian_kegiatan' => 'required|string',
-            'pic_id' => 'required|exists:pegawai,id',
-            'ppk_id' => 'required|exists:pegawai,id',
-            'bendahara_id' => 'required|exists:pegawai,id',
-            'penanggung_jawab_id' => 'required|exists:pegawai,id',
-            'petugas_verifikasi_id' => 'required|exists:pegawai,id',
-            'mak' => 'required|string',
-            'nominal' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string',
-        ]);
+        $validated = $request->validate($this->rules());
 
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
 
@@ -195,20 +184,7 @@ class MemoController extends Controller
 
     public function update(Request $request, MemoEntry $memo)
     {
-        $validated = $request->validate([
-            'nomor_memo' => 'required|string',
-            'jenis_memo' => 'required|in:konsumsi,honorarium',
-            'tanggal_memo' => 'required|date',
-            'uraian_kegiatan' => 'required|string',
-            'pic_id' => 'required|exists:pegawai,id',
-            'ppk_id' => 'required|exists:pegawai,id',
-            'bendahara_id' => 'required|exists:pegawai,id',
-            'penanggung_jawab_id' => 'required|exists:pegawai,id',
-            'petugas_verifikasi_id' => 'required|exists:pegawai,id',
-            'mak' => 'required|string',
-            'nominal' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string',
-        ]);
+        $validated = $request->validate($this->rules());
 
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
 
@@ -267,6 +243,11 @@ class MemoController extends Controller
         $halMemo = match ($memo->jenis_memo) {
             'konsumsi' => 'Permintaan Pembayaran Langsung (LS) Konsumsi',
             'honorarium' => 'Permintaan Pembayaran Langsung (LS) Honorarium',
+            'atk' => 'Permintaan Pembayaran Langsung (LS) Alat Tulis Kantor (ATK)',
+            'seminar_kit' => 'Permintaan Pembayaran Langsung (LS) Seminar Kit',
+            'sewa_ruangan' => 'Permintaan Pembayaran Langsung (LS) Sewa Ruangan',
+            'fullboard_meeting' => 'Permintaan Pembayaran Langsung (LS) Fullboard Meeting',
+            'fullday_meeting' => 'Permintaan Pembayaran Langsung (LS) Fullday Meeting',
             default => 'Permintaan Pembayaran Langsung (LS)',
         };
 
@@ -301,5 +282,28 @@ class MemoController extends Controller
         $namaFile = 'Memorandum-' . str_replace(['/', '\\'], '-', $memo->nomor_memo) . '.pdf';
 
         return $pdf->stream($namaFile);
+    }
+
+    /**
+     * Aturan validasi bersama untuk store() dan update().
+     * Daftar jenis memo diambil dari MemoEntry::JENIS, jadi nambah jenis baru
+     * cukup di model.
+     */
+    private function rules(): array
+    {
+        return [
+            'nomor_memo' => 'required|string',
+            'jenis_memo' => ['required', Rule::in(array_keys(MemoEntry::JENIS))],
+            'tanggal_memo' => 'required|date',
+            'uraian_kegiatan' => 'required|string',
+            'pic_id' => 'required|exists:pegawai,id',
+            'ppk_id' => 'required|exists:pegawai,id',
+            'bendahara_id' => 'required|exists:pegawai,id',
+            'penanggung_jawab_id' => 'required|exists:pegawai,id',
+            'petugas_verifikasi_id' => 'required|exists:pegawai,id',
+            'mak' => 'required|string',
+            'nominal' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string',
+        ];
     }
 }

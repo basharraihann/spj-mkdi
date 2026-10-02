@@ -17,15 +17,23 @@
                 collect($g['items'])->pluck('nomor_memo')->implode(' '),
                 $g['uraian_kegiatan'] ?? '',
                 $g['pic'] ?? '',
+                $g['jenis_label'] ?? '',
                 $tanggalIso,
                 $tanggalTampil,
                 $tanggalTampilLengkap,
             ])->filter()->implode(' '));
 
+            // Warna badge per jenis. Jenis yang belum terdaftar jatuh ke default (abu-abu).
             $jenisClass = match ($g['jenis']) {
                 'perdin' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
                 'konsumsi' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                default => 'bg-amber-50 text-amber-700 border-amber-200',
+                'honorarium' => 'bg-amber-50 text-amber-700 border-amber-200',
+                'atk' => 'bg-sky-50 text-sky-700 border-sky-200',
+                'seminar_kit' => 'bg-violet-50 text-violet-700 border-violet-200',
+                'sewa_ruangan' => 'bg-rose-50 text-rose-700 border-rose-200',
+                'fullboard_meeting' => 'bg-teal-50 text-teal-700 border-teal-200',
+                'fullday_meeting' => 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+                default => 'bg-gray-50 text-gray-700 border-gray-200',
             };
 
             $deleteLabel = $g['agenda_id']
@@ -106,8 +114,9 @@
                         class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                         <option value="semua" selected>Semua Jenis</option>
                         <option value="perdin">Perjalanan Dinas</option>
-                        <option value="konsumsi">Konsumsi</option>
-                        <option value="honorarium">Honorarium</option>
+                        @foreach (\App\Models\MemoEntry::JENIS as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
                     </select>
                 </div>
 

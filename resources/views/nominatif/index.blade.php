@@ -28,11 +28,6 @@
 
     <div class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5">
 
-        @if (session('success'))
-            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3 rounded-xl">
-                {{ session('success') }}
-            </div>
-        @endif
 
         {{-- ============ BAGIAN ATAS: judul + filter dalam satu kartu ringkas ============ --}}
         <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-5">
@@ -81,7 +76,11 @@
                         stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
-                    Buat Nominatif
+                    Buat Nominatif Honorarium
+                </a>
+                <a href="{{ route('nominatif.custom.create') }}"
+                    class="inline-flex items-center gap-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold px-4 py-2 rounded-xl text-sm">
+                    + Nominatif Custom
                 </a>
             </div>
         </div>
@@ -120,13 +119,15 @@
                                         <dt
                                             class="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">
                                             Tujuan</dt>
-                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['tujuan'] ?: '-' }}</dd>
+                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['tujuan'] ?: '-' }}
+                                        </dd>
                                     </div>
                                     <div class="flex gap-2">
                                         <dt
                                             class="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">
                                             Tanggal</dt>
-                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['tanggal'] ?: '-' }}</dd>
+                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['tanggal'] ?: '-' }}
+                                        </dd>
                                     </div>
                                 </dl>
                             </div>
@@ -156,8 +157,8 @@
                                         <a href="{{ $r['pdf_url'] }}" target="_blank" rel="noopener"
                                             class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-2.5 py-2 xl:py-1 text-[11px] font-semibold text-blue-600 bg-white hover:bg-blue-50 border border-blue-500 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                             title="Buka / unduh PDF {{ $statusLabel($r['status']) }}">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24" aria-hidden="true">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                             </svg>
@@ -173,8 +174,7 @@
                                         @endif
 
                                         @if ($r['delete_url'])
-                                            <form method="POST" action="{{ $r['delete_url'] }}"
-                                                class="flex flex-1 sm:flex-none m-0"
+                                            <form method="POST" action="{{ $r['delete_url'] }}" class="flex flex-1 sm:flex-none m-0"
                                                 onsubmit="return confirm('Hapus nominatif {{ $r['status'] }} ini beserta seluruh pesertanya?');">
                                                 @csrf
                                                 @method('DELETE')

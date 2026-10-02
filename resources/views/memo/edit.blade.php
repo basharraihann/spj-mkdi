@@ -1,9 +1,5 @@
 <x-app-layout title="Edit Memo">
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot> <x-slot name="header">
         <div class="flex items-center gap-3">
             <div class="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-600/30">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"
@@ -16,7 +12,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8bg-gradient-to-b from-gray-50/70 to-white min-h-full">
+    <div class="py-8 bg-gradient-to-b from-gray-50/70 to-white min-h-full">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
             @if ($errors->any())
@@ -56,6 +52,8 @@
                 $currentMak = old('mak', $memo->mak);
                 $makAdaDiDaftar = $makOptions->contains('mak', $currentMak);
                 $tampilkanManual = $makOptions->isEmpty() || ($currentMak && !$makAdaDiDaftar);
+
+                $currentJenis = old('jenis_memo', $memo->jenis_memo);
             @endphp
 
             <form action="{{ route('memo.update', $memo->id) }}" method="POST" class="space-y-5">
@@ -99,10 +97,11 @@
                                 <div class="relative">
                                     <select name="jenis_memo" required
                                         class="w-full appearance-none bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition">
-                                        <option value="konsumsi" @selected(old('jenis_memo', $memo->jenis_memo) === 'konsumsi')>
-                                            Konsumsi</option>
-                                        <option value="honorarium" @selected(old('jenis_memo', $memo->jenis_memo) === 'honorarium')>
-                                            Honorarium</option>
+                                        @foreach (\App\Models\MemoEntry::JENIS as $value => $label)
+                                            <option value="{{ $value }}" @selected($currentJenis === $value)>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="h-4 w-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
