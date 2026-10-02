@@ -17,11 +17,13 @@
             return $g + ['statuses' => $statuses, 'search' => $search];
         });
 
-        $badgeClass = fn($status) => $status === 'PNS'
-            ? 'bg-blue-50 text-blue-700 border-blue-200'
-            : ($status === 'Honorarium'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border-amber-200');
+        // Warna badge per status (Custom dibedakan dengan warna ungu)
+        $badgeClass = fn($status) => match ($status) {
+            'PNS' => 'bg-blue-50 text-blue-700 border-blue-200',
+            'Honorarium' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'Custom' => 'bg-violet-50 text-violet-700 border-violet-200',
+            default => 'bg-amber-50 text-amber-700 border-amber-200', // Non PNS
+        };
 
         $statusLabel = fn($status) => $status === 'Honorarium' ? 'Honorarium' : $status;
     @endphp
@@ -35,8 +37,8 @@
             <div class="flex items-start justify-between gap-4 flex-wrap">
                 <div class="min-w-0">
                     <h3 class="text-lg font-bold text-gray-800">Nominatif</h3>
-                    <p class="text-sm text-gray-500">Nominatif perjalanan dinas dari agenda, dan daftar honorarium
-                        narasumber yang dibuat mandiri.</p>
+                    <p class="text-sm text-gray-500">Nominatif perjalanan dinas dari agenda, dan Nominatif yang dibuat
+                        mandiri.</p>
                 </div>
                 <span
                     class="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-100 rounded-full px-3 py-1.5"
@@ -59,7 +61,8 @@
                         <option value="">Semua Status</option>
                         <option value="PNS">PNS</option>
                         <option value="Non PNS">Non PNS</option>
-                        <option value="Honorarium">Honorarium Narasumber</option>
+                        <option value="Honorarium">Honorarium</option>
+                        <option value="Custom">Custom</option>
                     </select>
                 </div>
 
