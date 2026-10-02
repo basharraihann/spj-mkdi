@@ -85,7 +85,7 @@
             @foreach ($items as $item)
                 <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                     class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                                            {{ $item['active'] ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800' }}"
+                                                                {{ $item['active'] ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800' }}"
                     :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                     <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
@@ -96,8 +96,12 @@
         </nav>
 
         <!-- User + Logout -->
+        @php
+            $unit = Auth::user()->unit;
+        @endphp
         <div class="px-4 pb-5 pt-3 border-t border-gray-100">
-            <div class="flex items-center gap-3 px-2 py-2" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+            <div class="flex items-center gap-3 px-2 py-2" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''"
+                @if ($unit) title="{{ $unit->nama }}" @endif>
                 <div
                     class="h-9 w-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold shrink-0">
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
@@ -111,6 +115,13 @@
                         </span>
                     </div>
                     <div class="text-xs text-gray-400 truncate">{{ Auth::user()->email }}</div>
+
+                    @if ($unit)
+                        <div class="mt-0.5 text-[11px] font-semibold text-indigo-600 truncate"
+                            title="{{ $unit->kode ? $unit->kode . ' - ' : '' }}{{ $unit->nama }}">
+                            {{ $unit->nama }}
+                        </div>
+                    @endif
                 </div>
             </div>
 
