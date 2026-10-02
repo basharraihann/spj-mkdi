@@ -25,16 +25,20 @@
             background: #eef2ff;
         }
 
-        .city-bg-image {
+        .city-bg-scene {
             position: absolute;
             inset: 0;
             width: 100%;
             height: 100%;
-            background-image: url('{{ asset("images/login-bg.jpg") }}');
-            background-size: cover;
-            background-position: center bottom;
-            background-repeat: no-repeat;
             z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .city-bg-scene svg {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
         /* Konten Utama */
@@ -196,7 +200,9 @@
 
 @if ($attributes->get('split'))
 <div class="city-page">
-    <div class="city-bg-image"></div>
+    <div class="city-bg-scene">
+        <x-city-skyline />
+    </div>
     <div class="city-main">
         <div class="city-card">
             {{ $slot }}
