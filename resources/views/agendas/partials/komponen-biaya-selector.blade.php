@@ -32,8 +32,6 @@ Kontrak dengan halaman induk TIDAK berubah:
             'items' => [
                 'lumpsum' => 'Uang Harian (Lumpsum)',
                 'representatif' => 'Representatif',
-                'belanja_bahan' => 'Belanja Bahan',
-                'honor_narsum' => 'Honor Narsum',
             ],
         ],
     ];

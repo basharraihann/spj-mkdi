@@ -99,8 +99,6 @@
                     'penginapan_30' => 'Penginapan 30%',
                     'lumpsum' => 'Uang Harian (Lumpsum)',
                     'representatif' => 'Representatif',
-                    'belanja_bahan' => 'Belanja Bahan',
-                    'honor_narsum' => 'Honor Narsum',
                 ];
 
                 $uhFieldMap = [

@@ -170,9 +170,9 @@
 
         $jumlahKolomBiaya = $kolomAktif->count();
 
-        $lebarKolomBiayaDefault = 7;
+        $lebarKolomBiayaDefault = $jumlahKolomBiaya === 1 ? 11 : 7;
         $lebarKolomBiayaOverride = [
-            'dukungan_transportasi' => 9,
+            'dukungan_transportasi' => $jumlahKolomBiaya === 1 ? 12 : 9,
             'representatif' => 10.5,
         ];
 
@@ -225,7 +225,10 @@
                 <th rowspan="2" style="width:3.5%">Lama</th>
                 <th rowspan="2" style="width:{{ $lebarTanggal }}%">Tanggal Perjalanan</th>
                 @if ($kolomAktif->isNotEmpty())
-                    <th colspan="{{ $kolomAktif->count() }}">Rincian Biaya</th>
+                    <th colspan="{{ $kolomAktif->count() }}" @if ($jumlahKolomBiaya === 1)
+                    style="width:{{ $totalLebarKolomBiaya }}%" @endif>
+                        Rincian Biaya
+                    </th>
                 @endif
                 <th rowspan="2" style="width: 6.5%">Jumlah</th>
                 <th rowspan="2" class="ket-col" style="width:{{ $lebarKeterangan }}%">Keterangan</th>
