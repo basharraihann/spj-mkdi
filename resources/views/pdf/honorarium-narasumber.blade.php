@@ -119,11 +119,11 @@
         }
 
         .ttd-space {
-            height: 48px;
+            height: 70px;
         }
 
         .ttd-space-sm {
-            height: 48px;
+            height: 70px;
         }
 
         .page-break {
