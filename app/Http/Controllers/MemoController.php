@@ -248,6 +248,7 @@ class MemoController extends Controller
             'sewa_ruangan' => 'Permintaan Pembayaran Langsung (LS) Sewa Ruangan',
             'fullboard_meeting' => 'Permintaan Pembayaran Langsung (LS) Fullboard Meeting',
             'fullday_meeting' => 'Permintaan Pembayaran Langsung (LS) Fullday Meeting',
+            'perdin' => 'Permintaan Pembayaran Langsung (LS) Perjalanan Dinas', // baru
             default => 'Permintaan Pembayaran Langsung (LS)',
         };
 

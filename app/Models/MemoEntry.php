@@ -21,6 +21,7 @@ class MemoEntry extends Model
         'sewa_ruangan' => 'Sewa Ruangan',
         'fullboard_meeting' => 'Fullboard Meeting',
         'fullday_meeting' => 'Fullday Meeting',
+        'perdin' => 'Perjalanan Dinas', // baru
     ];
 
     protected $guarded = [];
