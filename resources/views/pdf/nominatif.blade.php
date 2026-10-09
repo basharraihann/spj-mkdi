@@ -198,6 +198,20 @@
 
         // Format nominal: kalau kosong/null/0 tampil "-", selain itu format angka.
         $formatNominal = fn($nilai) => ($nilai ?? 0) > 0 ? number_format($nilai) : '-';
+
+        // Lama perjalanan per pegawai diambil dari isian hari uang harian (pivot).
+        // Hanya jenis UH yang dicentang di agenda yang dihitung (field yang tidak dicentang
+        // cuma disembunyikan di halaman input, tapi tetap ikut ter-submit).
+        $uhHariMap = [
+            'uh_biasa' => 'hari_dinas_biasa',
+            'uh_biasa_60' => 'hari_biasa_60',
+            'uh_fullday' => 'hari_fullday',
+            'uh_fullboard' => 'hari_fullboard',
+        ];
+        $uhAktif = $agenda->jenis_uang_harian ?? [];
+
+        // Fallback: selisih tanggal agenda (kalau Lumpsum tidak dipilih / hari UH belum diisi).
+        $lamaHariAgenda = $agenda->tanggal_mulai->startOfDay()->diffInDays($agenda->tanggal_selesai->startOfDay()) + 1;
     @endphp
 
     <table>
@@ -275,8 +289,6 @@
                     }
                     $i = $j + 1;
                 }
-
-                $lamaHari = $agenda->tanggal_mulai->diffInDays($agenda->tanggal_selesai) + 1;
             @endphp
             @forelse ($pegawaiList as $i => $p)
                 @php
@@ -287,6 +299,19 @@
                         $jumlah += $nilai;
                     }
                     $totals['jumlah'] += $jumlah;
+
+                    // Lama perjalanan per pegawai: jumlah hari dari jenis UH yang aktif.
+                    $lamaHari = 0;
+                    if (in_array('lumpsum', $komponenAktif)) {
+                        foreach ($uhHariMap as $uhKey => $kolomHari) {
+                            if (in_array($uhKey, $uhAktif)) {
+                                $lamaHari += (int) ($p->pivot->{$kolomHari} ?? 0);
+                            }
+                        }
+                    }
+                    if ($lamaHari === 0) {
+                        $lamaHari = $lamaHariAgenda;
+                    }
                 @endphp
                 <tr class="row-data">
                     <td>{{ $i + 1 }}</td>
