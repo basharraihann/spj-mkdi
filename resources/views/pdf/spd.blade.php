@@ -197,6 +197,25 @@
                 'darat_udara' => 'Angkutan Darat dan Udara',
                 default => '-',
             };
+
+            // ==== Tanggal & lama dinas PER PESERTA ====
+            // Prioritas: (1) $tglMulai/$tglSelesai kalau dikirim controller,
+            // (2) kolom pivot agenda_pegawai milik pegawai ini (kalau diisi),
+            // (3) rentang penuh surat tugas di agenda.
+            // Kalau $pegawai tidak dimuat lewat relasi (tidak punya ->pivot), ambil pivot-nya
+            // dari relasi $agenda->pegawai berdasarkan id pegawai.
+            $pivotSpd = $pegawai->pivot
+                ?? $agenda->pegawai->firstWhere('id', $pegawai->id)?->pivot;
+
+            $tglMulaiSpd = \Carbon\Carbon::parse(
+                $tglMulai ?? (($pivotSpd->tanggal_mulai ?? null) ?: $agenda->tanggal_mulai)
+            );
+            $tglSelesaiSpd = \Carbon\Carbon::parse(
+                $tglSelesai ?? (($pivotSpd->tanggal_selesai ?? null) ?: $agenda->tanggal_selesai)
+            );
+
+            $lamaHariSpd = (int) $tglMulaiSpd->copy()->startOfDay()
+                ->diffInDays($tglSelesaiSpd->copy()->startOfDay()) + 1;
         @endphp
 
         <table class="header-table">
@@ -357,15 +376,15 @@
                     <table class="sub-table">
                         <tr>
                             <td class="sub-abc">a.</td>
-                            <td>{{ $agenda->tanggal_mulai->diffInDays($agenda->tanggal_selesai) + 1 }} hari</td>
+                            <td>{{ $lamaHariSpd }} hari</td>
                         </tr>
                         <tr>
                             <td class="sub-abc">b.</td>
-                            <td>{{ $agenda->tanggal_mulai->translatedFormat('d F Y') }}</td>
+                            <td>{{ $tglMulaiSpd->translatedFormat('d F Y') }}</td>
                         </tr>
                         <tr>
                             <td class="sub-abc">c.</td>
-                            <td>{{ $agenda->tanggal_selesai->translatedFormat('d F Y') }}</td>
+                            <td>{{ $tglSelesaiSpd->translatedFormat('d F Y') }}</td>
                         </tr>
                     </table>
                 </td>
@@ -436,6 +455,8 @@
                 <td class="col-label" style="border-bottom: 1px solid #000;">Keterangan lain - lain</td>
                 <td class="col-colon" style="border-bottom: 1px solid #000;">:</td>
                 <td class="col-value" style="border-bottom: 1px solid #000;">
+                    {{-- Nomor & tanggal ST tetap dari agenda (sama untuk semua peserta),
+                    BUKAN tanggal berangkat peserta. --}}
                     {{ $nomorStTampil ?? '-' }} tanggal
                     {{ $agenda->tanggal_mulai->translatedFormat('d F Y') }}
                 </td>

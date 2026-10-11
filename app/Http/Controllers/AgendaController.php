@@ -13,6 +13,7 @@ use App\Models\MakOption;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 
 class AgendaController extends Controller
@@ -320,17 +321,36 @@ class AgendaController extends Controller
 
     public function pesertaStore(Request $request, Agenda $agenda)
     {
-        // Komponen biaya & jenis UH sekarang dipilih di halaman ini (chip di atas
-        // tabel peserta), bukan lagi di step 1 — makanya divalidasi & disimpan
-        // di sini, bukan dibaca dari $agenda->komponen_biaya lama.
+        // Rentang surat tugas (batas tanggal peserta)
+        $min = $agenda->tanggal_mulai->toDateString();
+        $max = $agenda->tanggal_selesai->toDateString();
+
+        // Komponen biaya & jenis UH dipilih di halaman ini (chip di atas tabel),
+        // makanya divalidasi & disimpan di sini.
         $validated = $request->validate([
             'komponen_biaya' => 'required|array|min:1',
             'komponen_biaya.*' => 'string',
             'jenis_uang_harian' => 'nullable|array',
             'jenis_uang_harian.*' => 'string',
+            'tanggal_mulai.*' => ['nullable', 'date', "after_or_equal:$min", "before_or_equal:$max"],
+            'tanggal_selesai.*' => ['nullable', 'date', "after_or_equal:$min", "before_or_equal:$max"],
         ], [
             'komponen_biaya.required' => 'Pilih minimal satu komponen biaya.',
+            'tanggal_mulai.*.after_or_equal' => 'Tanggal peserta tidak boleh sebelum rentang surat tugas.',
+            'tanggal_mulai.*.before_or_equal' => 'Tanggal peserta tidak boleh melewati rentang surat tugas.',
+            'tanggal_selesai.*.after_or_equal' => 'Tanggal peserta tidak boleh sebelum rentang surat tugas.',
+            'tanggal_selesai.*.before_or_equal' => 'Tanggal peserta tidak boleh melewati rentang surat tugas.',
         ]);
+
+        // Tanggal mulai tidak boleh lebih besar dari tanggal selesai (per peserta)
+        foreach ((array) $request->input('tanggal_mulai', []) as $pid => $m) {
+            $s = $request->input("tanggal_selesai.$pid");
+            if ($m && $s && $m > $s) {
+                return back()
+                    ->withErrors(['tanggal' => 'Ada peserta yang tanggal mulainya melebihi tanggal selesai.'])
+                    ->withInput();
+            }
+        }
 
         // Jenis uang harian cuma relevan kalau komponen "lumpsum" dicentang.
         if (!in_array('lumpsum', $validated['komponen_biaya'])) {
@@ -342,13 +362,11 @@ class AgendaController extends Controller
             'jenis_uang_harian' => $validated['jenis_uang_harian'] ?? [],
         ]);
 
-        // Peserta sudah ditentukan di step 1 (Buat Agenda). Di sini kita hanya
-        // meng-update rincian biaya untuk peserta yang sudah ter-attach itu,
-        // bukan menerima ulang daftar pegawai_id dari form.
+        // Peserta sudah ditentukan di step 1 (Buat Agenda). Di sini hanya meng-update
+        // rincian biaya untuk peserta yang sudah ter-attach.
         $pegawaiIds = $agenda->pegawai->pluck('id');
 
-        // Ambil hanya digit dari input (input sudah dibersihkan di JS sebelum submit,
-        // ini jaga-jaga tambahan di server)
+        // Ambil hanya digit dari input (jaga-jaga tambahan di server)
         $toInt = fn($v) => $v === null || $v === '' ? 0 : (int) preg_replace('/\D/', '', (string) $v);
 
         $komponenAktif = $validated['komponen_biaya'];
@@ -356,19 +374,14 @@ class AgendaController extends Controller
             ? array_intersect_key(self::UH_FIELD_MAP, array_flip($validated['jenis_uang_harian']))
             : [];
 
-        // peng_riil diproses khusus (multi-entry, mode SBM/manual per entry), jadi
-        // dikeluarkan dari daftar field "generic" yang tinggal disalin apa adanya
-        // dari input.
+        // peng_riil diproses khusus (multi-entry), jadi dikeluarkan dari field generic.
         $genericSimpleFields = array_diff(
             array_intersect(self::SIMPLE_KOMPONEN_FIELDS, $komponenAktif),
             ['peng_riil']
         );
         $prosesPengRiil = in_array('peng_riil', $komponenAktif);
 
-        // Rate UH dipatok dari SBM sesuai provinsi tujuan agenda ini. Rate yang
-        // dikirim dari client (kalaupun ada) SENGAJA diabaikan di sini — sumber
-        // kebenarannya cuma dari master sbm_rates/sbm_flat_rates, supaya gak
-        // bisa dimanipulasi lewat request dan konsisten kalau provinsinya sama.
+        // Rate UH dipatok dari SBM sesuai provinsi tujuan agenda. Rate dari client diabaikan.
         $sbmRate = SbmRate::forProvinsi($agenda->tujuan);
         $sbmFlat = SbmFlatRate::current();
 
@@ -383,18 +396,27 @@ class AgendaController extends Controller
         foreach ($pegawaiIds as $pegawaiId) {
             $rowData = [];
 
+            // ==== Tanggal dinas per peserta ====
+            // null kalau sama dengan rentang agenda, supaya ikut otomatis
+            // kalau tanggal agenda diubah.
+            $mulai = $request->input("tanggal_mulai.$pegawaiId");
+            $selesai = $request->input("tanggal_selesai.$pegawaiId");
+
+            $rowData['tanggal_mulai'] = ($mulai && $mulai !== $min) ? $mulai : null;
+            $rowData['tanggal_selesai'] = ($selesai && $selesai !== $max) ? $selesai : null;
+
+            // opsional: kolom lama_hari tetap diisi supaya tidak menggantung
+            $rowData['lama_hari'] = (int) Carbon::parse($mulai ?: $min)->startOfDay()
+                ->diffInDays(Carbon::parse($selesai ?: $max)->startOfDay()) + 1;
+
             foreach ($genericSimpleFields as $field) {
                 $rowData[$field] = $request->input("$field.$pegawaiId");
             }
 
             if ($prosesPengRiil) {
                 // ==== Peng. Riil multi-entry ====
-                // Modal client kirim satu field peng_riil_detail[{pegawaiId}] berisi
-                // JSON array entry [{mode, value, rate_id, keterangan}, ...]. Tiap
-                // entry SBM dihitung ULANG di sini dari master peng_riil_rates
-                // (nominal & keterangan dari client diabaikan, gak dipercaya begitu
-                // saja) — entry manual dipercaya nilainya dari client (at cost,
-                // sama seperti perilaku lama).
+                // Entry SBM dihitung ULANG di sini dari master peng_riil_rates;
+                // entry manual dipercaya nilainya dari client (at cost).
                 $rawDetail = $request->input("peng_riil_detail.$pegawaiId");
                 $entriesInput = [];
 
@@ -421,9 +443,7 @@ class AgendaController extends Controller
                         $rate = PengRiilRate::find($entryInput['rate_id'] ?? null);
 
                         if (!$rate) {
-                            // Tujuan gak dipilih / gak valid -> skip entry ini,
-                            // jangan diam-diam kesimpen nilai gak tervalidasi.
-                            continue;
+                            continue; // tujuan tidak dipilih / tidak valid
                         }
 
                         $nilai = (int) $rate->rate_pp;
@@ -444,7 +464,7 @@ class AgendaController extends Controller
                         $keterangan = trim((string) ($entryInput['keterangan'] ?? ''));
 
                         if ($nilai === 0 && $keterangan === '') {
-                            continue; // entry manual kosong total, gak usah disimpan
+                            continue; // entry manual kosong total
                         }
 
                         $entries[] = [
@@ -461,10 +481,7 @@ class AgendaController extends Controller
                 $rowData['peng_riil'] = $total;
                 $rowData['peng_riil_detail'] = $entries ? json_encode($entries) : null;
 
-                // Kolom lama dipertahankan sebagai metadata ringkas dari entry
-                // PERTAMA saja — hanya buat kompatibilitas kode/laporan lama yang
-                // mungkin masih membaca peng_riil_mode/peng_riil_rate_id. Sumber
-                // kebenaran biaya sekarang di peng_riil (total) & peng_riil_detail.
+                // Kolom lama dipertahankan sebagai metadata ringkas dari entry pertama.
                 $rowData['peng_riil_mode'] = $entries[0]['mode'] ?? 'manual';
                 $rowData['peng_riil_rate_id'] = $entries[0]['rate_id'] ?? null;
             }

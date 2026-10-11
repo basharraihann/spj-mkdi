@@ -58,6 +58,8 @@ class Agenda extends Model
                 'representatif',
                 'belanja_bahan',
                 'honor_narsum',
+                'tanggal_mulai',
+                'tanggal_selesai',
             ])->withTimestamps();
     }
 
