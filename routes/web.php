@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AgendaPdfController;
+use App\Http\Controllers\AnggaranController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\NominatifController;
@@ -119,6 +120,20 @@ Route::middleware('auth')->group(function () {
         Route::resource('mak-options', MakOptionController::class)
             ->except(['show', 'create', 'edit']);
     });
+
+    // Monitor anggaran (lihat: semua user login; upload: khusus admin)
+    Route::controller(AnggaranController::class)
+        ->prefix('anggaran')
+        ->name('anggaran.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('data', 'data')->name('data');
+
+            Route::middleware('admin')->group(function () {
+                Route::get('upload', 'uploadForm')->name('upload');
+                Route::post('upload', 'uploadStore')->name('upload.store');
+            });
+        });
 
     // User Manajemen (Khusus Admin)
     Route::middleware('admin')->resource('users', UserController::class);
