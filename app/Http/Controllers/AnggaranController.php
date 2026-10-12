@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AnggaranItem;
 use App\Models\AnggaranUpload;
 use App\Services\AnggaranImportService;
+use App\Support\AnggaranExcel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -60,8 +61,11 @@ class AnggaranController extends Controller
         ]);
     }
 
-    /** Download file Laporan Realisasi Anggaran (.xls) */
-    public function export()
+    /**
+     * Download Laporan Ketersediaan Dana Detail (.xlsx) mengikuti template Excel.
+     * Filter dari layar (keg, ro, komp, sub, akun, q, level) ikut diterapkan.
+     */
+    public function export(Request $request)
     {
         $activeUpload = AnggaranUpload::where('is_active', true)->latest('id')->first();
 
@@ -72,13 +76,11 @@ class AnggaranController extends Controller
                 ->get();
         }
 
-        $filename = 'Laporan_Realisasi_Anggaran_' . date('Ymd_His') . '.xls';
-
-        return response()
-            ->view('anggaran.export', compact('items', 'activeUpload'))
-            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
-            ->header('Cache-Control', 'max-age=0');
+        return AnggaranExcel::download(
+            $items,
+            $activeUpload,
+            $request->only(['keg', 'ro', 'komp', 'sub', 'akun', 'q', 'level'])
+        );
     }
 
     public function uploadForm()
