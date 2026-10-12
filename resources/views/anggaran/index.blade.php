@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <!-- CDN Chart.js untuk Grafik -->
+    <!-- CDN Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -48,7 +48,6 @@
 
             <!-- Section Grafik -->
             <div id="section-chart" class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <!-- Serapan Anggaran Donut Chart -->
                 <div class="bg-gray-50/60 border border-gray-100 rounded-xl p-4 flex flex-col justify-between">
                     <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Serapan Anggaran</h3>
                     <div class="relative flex items-center justify-center my-auto py-2" style="height: 170px;">
@@ -60,7 +59,6 @@
                     </div>
                 </div>
 
-                <!-- Pagu dan Realisasi Horizontal Bar Chart -->
                 <div class="lg:col-span-2 bg-gray-50/60 border border-gray-100 rounded-xl p-4 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pagu dan Realisasi</h3>
@@ -77,28 +75,32 @@
             </p>
 
             <div id="ang-body" class="hidden space-y-4 mb-5">
-                <!-- Baris 1: Filter Hierarki Berantai (5 Column Grid) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <!-- Baris 1: Filter Hierarki -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     @foreach (['keg' => 'Kegiatan', 'ro' => 'RO / SubOutput', 'komp' => 'Komponen', 'sub' => 'SubKomponen', 'akun' => 'Akun'] as $k =>$label)
                         <div>
                             <label class="block text-xs text-gray-500 mb-1 font-medium">{{ $label }}</label>
                             <select id="f-{{ $k }}"
-                                class="w-full rounded-xl border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
+                                class="w-full truncate rounded-xl border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
                         </div>
                     @endforeach
                 </div>
 
-                <!-- Baris 2: Controls & Search (3 Column Grid) -->
+                <!-- Baris 2: Level Tampilan, Cari Item, & Pagination Limit -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <!-- Level Tampilan -->
                     <div>
                         <label class="block text-xs text-gray-500 mb-1 font-medium">Level Tampilan</label>
                         <select id="f-level"
                             class="w-full rounded-xl border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white">
-                            <option value="item">Item Detail</option>
-                            <option value="akun">Akun</option>
-                            <option value="sub">SubKomponen</option>
+                            <option value="item">Semua level / Item</option>
+                            <option value="prog">Program</option>
+                            <option value="keg">Kegiatan</option>
+                            <option value="ro">RO / SubOutput</option>
                             <option value="komp">Komponen</option>
+                            <option value="sub">SubKomponen</option>
+                            <option value="akun">Akun</option>
+                            <option value="item_detail">Item Detail</option>
                         </select>
                     </div>
 
@@ -212,7 +214,7 @@
 
                 $('lbl-chart-real').textContent = 'Rp ' + rp(R);$('lbl-chart-sisa').textContent = 'Rp ' + rp(sisa);
 
-                // 1. Donut Chart
+                // Donut Chart
                 const ctxDonut = $('chart-donut').getContext('2d');
                 if (donutChartInstance) donutChartInstance.destroy();
 
@@ -237,7 +239,7 @@
                     }
                 });
 
-                // 2. Bar Chart (Top 7 Items)
+                // Bar Chart (Top 7)
                 const topItems = [...aggregatedList].sort((a, b) => b.pagu - a.pagu).slice(0, 7);
                 const labels = topItems.map((x) => x.item_kode || x.akun_kode || x.sub_kode || 'Item');
                 const paguData = topItems.map((x) => x.pagu);
@@ -280,18 +282,24 @@
                 let filtered = items.filter((it) => match(it, 5) &&
                     (!q || (it.item_uraian + ' ' + it.akun_uraian + ' ' + it.sub_uraian).toLowerCase().includes(q)));
 
-                // Grouping berdasarkan Level Tampilan
+                // Aggregation Handling berdasarkan Level Tampilan
                 let aggregatedRows = [];
-                if (level === 'item') {
+                if (level === 'item' || level === 'item_detail') {
                     aggregatedRows = filtered;
                 } else {
                     const groups = {};
                     filtered.forEach((it) => {
                         let key = '';
                         let u = '';
-                        if (level === 'akun') { key = it.akun_kode; u = it.akun_uraian; }
-                        else if (level === 'sub') { key = it.sub_kode; u = it.sub_uraian; }
+                        if (level === 'prog') { 
+                            key = it.prog_kode || 'PROG'; 
+                            u = it.prog_uraian || 'Program Utama'; 
+                        }
+                        else if (level === 'keg') { key = it.keg_kode; u = it.keg_uraian; }
+                        else if (level === 'ro') { key = it.ro_kode; u = it.ro_uraian; }
                         else if (level === 'komp') { key = it.komp_kode; u = it.komp_uraian; }
+                        else if (level === 'sub') { key = it.sub_kode; u = it.sub_uraian; }
+                        else if (level === 'akun') { key = it.akun_kode; u = it.akun_uraian; }
 
                         if (!groups[key]) {
                             groups[key] = { ...it, item_kode: key, item_uraian: u, pagu: 0, realisasi: 0 };
@@ -302,16 +310,16 @@
                     aggregatedRows = Object.values(groups);
                 }
 
-                // Kalkulasi total
+                // Hitung Ringkasan Total
                 let P = 0, R = 0;
                 filtered.forEach((x) => { P += x.pagu; R += x.realisasi; });
                 $('s-pagu').textContent = 'Rp ' + rp(P);$('s-real').textContent = 'Rp ' + rp(R);
                 $('s-sisa').textContent = 'Rp ' + rp(P - R);$('s-pct').textContent = P ? (R / P * 100).toFixed(1) + '%' : '-';
 
-                // Update Grafik
+                // Render Chart
                 updateCharts(P, R, aggregatedRows);
 
-                // Logika Pagination
+                // Logic Pagination
                 const totalRows = aggregatedRows.length;
                 const totalPages = limit === Infinity ? 1 : Math.ceil(totalRows / limit) || 1;
                 if (currentPage > totalPages) currentPage = totalPages;
@@ -321,7 +329,7 @@
                 const endIdx = limit === Infinity ? totalRows : startIdx + limit;
                 const pageRows = aggregatedRows.slice(startIdx, endIdx);
 
-                // Render Baris Tabel
+                // Render Tabel
                 $('ang-tb').innerHTML = pageRows.map((x) => {
                     const pill = (t) => `<span class="inline-block font-mono text-[11px] text-gray-600 bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 mr-1">${esc(t)}</span>`;
                     return `<tr class="hover:bg-gray-50/60">
@@ -335,14 +343,14 @@
                     </tr>`;
                 }).join('');
 
-                // Status Pagination UI
+                // Status UI
                 $('ang-cnt').textContent = `Menampilkan ${totalRows === 0 ? 0 : startIdx + 1} - ${Math.min(endIdx, totalRows)} dari ${totalRows} baris`;
                 $('page-info').textContent = `Halaman ${currentPage} dari ${totalPages}`;
                 $('btn-prev').disabled = currentPage <= 1;
                 $('btn-next').disabled = currentPage >= totalPages;
             }
 
-            // Event Handlers
+            // Bind Event Listeners
             CH.forEach((k, i) => {
                 $('f-' + k).addEventListener('change', function () {
                     F[k] = this.value;
@@ -358,7 +366,7 @@
 
             $('btn-prev').addEventListener('click', () => { if (currentPage > 1) { currentPage--; render(); } });$('btn-next').addEventListener('click', () => { currentPage++; render(); });
 
-            // Fetch Initial Data
+            // Fetch Data
             fetch(@json(route('anggaran.data')), { headers: { Accept: 'application/json' } })
                 .then((r) => r.json())
                 .then((d) => {
