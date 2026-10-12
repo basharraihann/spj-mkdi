@@ -15,14 +15,12 @@ class AnggaranController extends Controller
 {
     public function index()
     {
-        // Hanya untuk menampilkan/menyembunyikan tombol; proteksi sebenarnya
-        // ada di middleware 'admin' pada route upload.
+
         $canUpload = (bool) auth()->user()?->isAdmin();
 
         return view('anggaran.index', compact('canUpload'));
     }
 
-    /** JSON untuk halaman filter (data upload yang sedang aktif). */
     public function data()
     {
         $active = AnggaranUpload::where('is_active', true)->latest('id')->first();
@@ -61,10 +59,6 @@ class AnggaranController extends Controller
         ]);
     }
 
-    /**
-     * Download Laporan Ketersediaan Dana Detail (.xlsx) mengikuti template Excel.
-     * Filter dari layar (keg, ro, komp, sub, akun, q, level) ikut diterapkan.
-     */
     public function export(Request $request)
     {
         $activeUpload = AnggaranUpload::where('is_active', true)->latest('id')->first();

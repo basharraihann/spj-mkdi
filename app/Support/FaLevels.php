@@ -2,10 +2,6 @@
 
 namespace App\Support;
 
-/**
- * Definisi 8 level hierarki laporan (Program -> Item) dan pemetaannya ke kolom Excel.
- * Semua angka kolom mengikuti template file asli (GLP039 Laporan Realisasi).
- */
 class FaLevels
 {
     public const ORDER = [
@@ -13,13 +9,6 @@ class FaLevels
         'komponen', 'subkomponen', 'akun', 'item',
     ];
 
-    /**
-     * kodeCol  = kolom tempat kode ditulis
-     * textCol  = kolom awal uraian (null untuk item: kode + uraian jadi satu sel)
-     * merges   = rentang merge pada baris data (sama persis dengan file asli)
-     * sample   = nomor baris contoh gaya di template (storage/app/templates/fa_template.xlsx)
-     * color    = warna font pada file asli (dipakai juga di tampilan web)
-     */
     public const MAP = [
         'program'     => ['label' => 'Program',     'kodeCol' => 'B', 'textCol' => 'D', 'merges' => ['B:C', 'D:P'], 'sample' => 10, 'color' => '#000000'],
         'kegiatan'    => ['label' => 'Kegiatan',    'kodeCol' => 'B', 'textCol' => 'I', 'merges' => ['B:H', 'I:P'], 'sample' => 11, 'color' => '#000000'],
