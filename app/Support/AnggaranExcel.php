@@ -2,17 +2,17 @@
 
 namespace App\Support;
 
-/**
- * Jembatan data "anggaran" (baris datar per item: keg_kode, ro_kode, komp_kode, sub_kode, akun_kode, item_kode, pagu, realisasi)
- * -> file Excel mengikuti template Laporan Ketersediaan Dana Detail.
- *
- * Kolom opsional (dipakai kalau ada di data): prog_kode/prog_uraian, lock_pagu, realisasi_lalu, realisasi_ini.
- */
 class AnggaranExcel
 {
     public const TEMPLATE = 'app/templates/fa_template.xlsx';
 
     public const CATATAN = '*Lock Pagu adalah jumlah pagu yang sedang dalam proses usulan revisi DIPA atau POK. Lock pagu akan hilang setelah usulan revisi DIPA/POK selesai menjadi DIPA.';
+
+    /** Nama program bawaan (dari laporan SAKTI); tambahkan kode lain di sini bila perlu. */
+    private const NAMA_PROGRAM = [
+        'CL' => 'Program Koordinasi Pelaksanaan Kebijakan',
+        'WA' => 'Program Dukungan Manajemen',
+    ];
 
     /** kode filter => [level template, field kode, field uraian] */
     private const CHAIN = [
@@ -44,27 +44,44 @@ class AnggaranExcel
             }
         }
 
-        $exporter = new FaXlsxExporter(storage_path(self::TEMPLATE));
+        $exporter = new FaXlsxExporter(self::templatePath());
         $book = $exporter->build($rows, $header, $totals);
-        $tmp = tempnam(sys_get_temp_dir(), 'ang_') . '.xlsx';
+        $base = tempnam(sys_get_temp_dir(), 'ang_');
+        $tmp = $base . '.xlsx';
         $exporter->save($book, $tmp);
+        @unlink($base);
 
         return response()->download($tmp, 'Laporan_Anggaran_' . date('Ymd_His') . '.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend(true);
     }
 
+    /** Cari fa_template.xlsx di beberapa lokasi umum supaya tidak error kalau foldernya sedikit beda. */
+    public static function templatePath(): string
+    {
+        $name = 'fa_template.xlsx';
+        $candidates = [
+            storage_path('app/templates/' . $name),
+            storage_path('app/private/templates/' . $name),
+            storage_path('templates/' . $name),
+            storage_path('app/' . $name),
+            __DIR__ . '/' . $name,
+            dirname(__DIR__, 2) . '/storage/app/templates/' . $name,
+            base_path($name),
+        ];
+        foreach ($candidates as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        throw new \RuntimeException("Template Excel '{$name}' tidak ditemukan. Taruh di: " . storage_path('app/templates/' . $name));
+    }
+
     /** @return array{0: array<int,array>, 1: array} [baris hierarki, total] */
     public static function buildRows(array $items, array $filters = []): array
     {
-        $hasProg = false;
-        foreach ($items as $it) {
-            if (trim((string) self::g($it, 'prog_kode')) !== '') {
-                $hasProg = true;
-                break;
-            }
-        }
-        $chain = array_filter(self::CHAIN, fn ($k) => $hasProg || $k !== 'prog', ARRAY_FILTER_USE_KEY);
+        $chain = self::CHAIN;
 
         $items = array_values(array_filter($items, fn ($it) => self::passes($it, $filters)));
 
@@ -76,10 +93,10 @@ class AnggaranExcel
             self::add($tot, $v);
             $node = &$root;
             foreach ($chain as $key => [$level, $fk, $fu]) {
-                $kode = trim((string) self::g($it, $fk));
+                $kode = self::lvKode($it, $key);
                 if (! isset($node['children'][$kode])) {
                     $node['children'][$kode] = [
-                        'level' => $level, 'kode' => self::kode($level, $kode), 'uraian' => trim((string) self::g($it, $fu)),
+                        'level' => $level, 'kode' => self::kode($level, $kode), 'uraian' => self::lvUraian($it, $key),
                         'v' => ['pagu' => 0.0, 'lock_pagu' => 0.0, 'realisasi_lalu' => null, 'realisasi_ini' => null, 'realisasi_sd' => 0.0],
                         'children' => [], 'leaf' => [],
                     ];
@@ -176,11 +193,11 @@ class AnggaranExcel
             return true;
         }
         $hay = [];
-        foreach (self::CHAIN as [$level, $fk, $fu]) {
-            $k = (string) self::g($it, $fk);
+        foreach (self::CHAIN as $key => [$level]) {
+            $k = self::lvKode($it, $key);
             $hay[] = mb_strtolower($k);
             $hay[] = mb_strtolower(self::kode($level, $k));
-            $hay[] = mb_strtolower((string) self::g($it, $fu));
+            $hay[] = mb_strtolower(self::lvUraian($it, $key));
         }
         $hay[] = mb_strtolower((string) self::g($it, 'item_kode'));
         $hay[] = mb_strtolower((string) self::g($it, 'item_uraian'));
@@ -193,6 +210,35 @@ class AnggaranExcel
         }
 
         return false;
+    }
+
+    /** Program: prog_kode bila ada, kalau tidak dari awalan kode kegiatan (CL.7458 -> CL). */
+    private static function lvKode($it, string $key): string
+    {
+        if ($key !== 'prog') {
+            return trim((string) self::g($it, self::CHAIN[$key][1]));
+        }
+        $p = trim((string) self::g($it, 'prog_kode'));
+        if ($p !== '') {
+            return $p;
+        }
+        $k = trim((string) self::g($it, 'keg_kode'));
+
+        return str_contains($k, '.') ? explode('.', $k, 2)[0] : 'PROG';
+    }
+
+    private static function lvUraian($it, string $key): string
+    {
+        if ($key !== 'prog') {
+            return trim((string) self::g($it, self::CHAIN[$key][2]));
+        }
+        $u = trim((string) self::g($it, 'prog_uraian'));
+        if ($u !== '') {
+            return $u;
+        }
+        $k = self::lvKode($it, 'prog');
+
+        return self::NAMA_PROGRAM[$k] ?? ($k === 'PROG' ? 'Program Utama' : 'Program ' . $k);
     }
 
     /** komponen "51" -> "051" (sama seperti di file Excel asli) */

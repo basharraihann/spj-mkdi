@@ -6,10 +6,6 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-/**
- * Menulis data ke template Excel asli (header, lebar kolom, font, warna, bold, merge, ukuran halaman).
- * Gaya baris data disalin dari baris contoh per level di template (xf index -> tanpa mengubah gaya).
- */
 class FaXlsxExporter
 {
     private const FIRST_COL = 1;   // A

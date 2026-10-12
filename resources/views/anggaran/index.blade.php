@@ -5,13 +5,11 @@
         </h2>
     </x-slot>
 
-    <!-- CDN Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <div class="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
 
-            <!-- Header Section & Action Buttons -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-900">Laporan Ketersediaan Dana Detail</h2>
@@ -46,7 +44,6 @@
                 </div>
             </div>
 
-            <!-- Section Grafik -->
             <div id="section-chart" class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div class="bg-gray-50/60 border border-gray-100 rounded-xl p-4 flex flex-col justify-between">
                     <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Serapan Anggaran</h3>
@@ -75,7 +72,6 @@
             </p>
 
             <div id="ang-body" class="hidden space-y-4 mb-5">
-                <!-- Baris 1: Filter Hierarki -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     @foreach (['keg' => 'Kegiatan', 'ro' => 'RO / SubOutput', 'komp' => 'Komponen', 'sub' => 'SubKomponen', 'akun' => 'Akun'] as $k =>$label)
                         <div>
@@ -86,13 +82,13 @@
                     @endforeach
                 </div>
 
-                <!-- Baris 2: Level Tampilan, Cari, & Pagination Limit -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1 font-medium">Level Tampilan</label>
                         <select id="f-level"
                             class="w-full rounded-xl border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white">
                             <option value="all">Semua level (hierarki)</option>
+                            <option value="prog">Program</option>
                             <option value="keg">Kegiatan</option>
                             <option value="ro">RO / Sub Output</option>
                             <option value="komp">Komponen</option>
@@ -122,7 +118,6 @@
                     </div>
                 </div>
 
-                <!-- Card Summary -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
                     <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-500">Pagu Revisi</p><p id="s-pagu" class="font-semibold text-gray-900">-</p></div>
                     <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-500">Realisasi s.d. Periode</p><p id="s-real" class="font-semibold text-gray-900">-</p></div>
@@ -130,7 +125,6 @@
                     <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-500">% Realisasi</p><p id="s-pct" class="font-semibold text-gray-900">-</p></div>
                 </div>
 
-                <!-- Tabel Data (format sama dengan template Excel) -->
                 <div class="rounded-xl border border-gray-100 overflow-x-auto">
                     <table class="min-w-[1120px] w-full text-sm">
                         <thead class="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500">
@@ -152,7 +146,6 @@
                     </table>
                 </div>
 
-                <!-- Footer Counter & Pagination -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
                     <p id="ang-cnt" class="text-xs text-gray-500"></p>
                     <div class="flex items-center gap-2">
@@ -193,8 +186,6 @@
 
             const match = (it, upTo) => CH.slice(0, upTo).every((k) => !F[k] || it[k + '_kode'] === F[k]);
 
-            /* ===== HIERARKI (sama dengan template Excel) ===== */
-            // TEST-START
             const LEVELS = [
                 { key: 'prog', label: 'Program',      kode: 'prog_kode', uraian: 'prog_uraian' },
                 { key: 'keg',  label: 'Kegiatan',     kode: 'keg_kode',  uraian: 'keg_uraian' },
@@ -205,7 +196,26 @@
             ];
             const ITEM = { key: 'item', label: 'Item' };
 
-            // komponen "51" ditampilkan "051" seperti di Excel
+            function lvKode(it, lv) {
+                if (lv.key !== 'prog') return String(it[lv.kode] ?? '').trim();
+                const p = String(it.prog_kode ?? '').trim();
+                if (p) return p;
+                const k = String(it.keg_kode ?? '').trim();
+                return k.includes('.') ? k.split('.')[0] : 'PROG';
+            }
+
+            const NAMA_PROGRAM = {
+                CL: 'Program Koordinasi Pelaksanaan Kebijakan',
+                WA: 'Program Dukungan Manajemen',
+            };
+            function lvUraian(it, lv) {
+                if (lv.key !== 'prog') return it[lv.uraian] || '';
+                const u = String(it.prog_uraian ?? '').trim();
+                if (u) return u;
+                const k = lvKode(it, lv);
+                return NAMA_PROGRAM[k] || (k === 'PROG' ? 'Program Utama' : 'Program ' + k);
+            }
+
             const padKode = (key, k) => (key === 'komp' && /^\d+$/.test(k) && k.length < 3) ? k.padStart(3, '0') : k;
             const numOrNull = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
 
@@ -222,18 +232,17 @@
             }
             const zero = () => ({ pagu: 0, lock: 0, lalu: null, ini: null, sd: 0 });
 
-            /** Data datar per item -> baris berhierarki (induk dulu, lalu isi) dengan total tiap induk. */
             function buildRows(list) {
-                const chain = LEVELS.filter((lv) => lv.key !== 'prog' || list.some((it) => it.prog_kode));
+                const chain = LEVELS;
                 const root = { ch: new Map(), leaf: [] };
                 list.forEach((it) => {
                     const v = vals(it);
                     let node = root;
                     chain.forEach((lv, depth) => {
-                        const raw = String(it[lv.kode] ?? '').trim();
+                        const raw = lvKode(it, lv);
                         let c = node.ch.get(raw);
                         if (!c) {
-                            c = { lv, depth, kode: padKode(lv.key, raw), uraian: it[lv.uraian] || '', v: zero(), ch: new Map(), leaf: [] };
+                            c = { lv, depth, kode: padKode(lv.key, raw), uraian: lvUraian(it, lv), v: zero(), ch: new Map(), leaf: [] };
                             node.ch.set(raw, c);
                         }
                         addV(c.v, v);
@@ -246,19 +255,17 @@
                 return out;
             }
 
-            /** Cari kode/uraian di semua level. Beberapa kata dipisah koma (salah satu cocok). */
             function matchQ(it, q) {
                 if (!q) return true;
                 const hay = [];
                 LEVELS.forEach((lv) => {
-                    const k = String(it[lv.kode] ?? '');
-                    hay.push(k, padKode(lv.key, k), it[lv.uraian] || '');
+                    const k = lvKode(it, lv);
+                    hay.push(k, padKode(lv.key, k), lvUraian(it, lv));
                 });
                 hay.push(it.item_kode || '', it.item_uraian || '');
                 const h = hay.join('\n').toLowerCase();
                 return q.toLowerCase().split(/[,;\n]+/).map((t) => t.trim()).filter(Boolean).some((t) => h.includes(t));
             }
-            // TEST-END
 
             function fillSel() {
                 CH.forEach((k, i) => {
@@ -303,7 +310,6 @@
                     }
                 });
 
-                // Bar: baris level item bila "Semua level", selain itu baris pada level terpilih
                 const pool = rows.filter((r) => $('f-level').value === 'all' ? r.lv.key === 'item' : true);
                 const top = [...pool].sort((a, b) => b.v.pagu - a.v.pagu).slice(0, 7);
                 const ctxBar = $('chart-bar').getContext('2d');
@@ -335,7 +341,6 @@
                 let rows = buildRows(filtered);
                 if (level !== 'all') rows = rows.filter((r) => r.lv.key === level);
 
-                // Ringkasan total
                 let P = 0, R = 0;
                 filtered.forEach((x) => { const v = vals(x); P += v.pagu; R += v.sd; });
                 $('s-pagu').textContent = 'Rp ' + rp(P);
@@ -346,7 +351,6 @@
                 updateCharts(P, R, rows);
                 updateExportLink();
 
-                // Pagination
                 const totalRows = rows.length;
                 const totalPages = limit === Infinity ? 1 : Math.ceil(totalRows / limit) || 1;
                 if (currentPage > totalPages) currentPage = totalPages;
@@ -355,7 +359,6 @@
                 const endIdx = limit === Infinity ? totalRows : startIdx + limit;
                 const pageRows = rows.slice(startIdx, endIdx);
 
-                // Tabel
                 const dash = '<span class="text-gray-300">–</span>';
                 $('ang-tb').innerHTML = pageRows.map((r) => {
                     const v = r.v;
@@ -393,7 +396,6 @@
                 $('btn-next').disabled = currentPage >= totalPages;
             }
 
-            // Event listeners
             CH.forEach((k, i) => {
                 $('f-' + k).addEventListener('change', function () {
                     F[k] = this.value;
@@ -419,11 +421,6 @@
                         return;
                     }
                     items = d.items;
-                    if (items.some((it) => it.prog_kode)) {
-                        const o = document.createElement('option');
-                        o.value = 'prog'; o.textContent = 'Program';
-                        $('f-level').insertBefore(o, $('f-level').options[1]);
-                    }
                     $('ang-meta').textContent = [d.upload.satker, d.upload.periode, 'diperbarui ' + d.upload.at].filter(Boolean).join(' · ');
                     $('ang-body').classList.remove('hidden');
                     fillSel();
