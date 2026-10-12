@@ -60,6 +60,27 @@ class AnggaranController extends Controller
         ]);
     }
 
+    /** Download file Laporan Realisasi Anggaran (.xls) */
+    public function export()
+    {
+        $activeUpload = AnggaranUpload::where('is_active', true)->latest('id')->first();
+
+        $items = [];
+        if ($activeUpload) {
+            $items = AnggaranItem::where('anggaran_upload_id', $activeUpload->id)
+                ->orderBy('id')
+                ->get();
+        }
+
+        $filename = 'Laporan_Realisasi_Anggaran_' . date('Ymd_His') . '.xls';
+
+        return response()
+            ->view('anggaran.export', compact('items', 'activeUpload'))
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->header('Cache-Control', 'max-age=0');
+    }
+
     public function uploadForm()
     {
         $uploads = AnggaranUpload::with('uploader:id,name')->latest('id')->take(10)->get();

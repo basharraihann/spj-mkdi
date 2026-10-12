@@ -15,11 +15,6 @@ use App\Http\Controllers\NominatifCustomController;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard
-|--------------------------------------------------------------------------
-*/
 Route::middleware(['auth', 'verified'])
     ->controller(DashboardController::class)
     ->group(function () {
@@ -27,11 +22,6 @@ Route::middleware(['auth', 'verified'])
         Route::get('/dashboard/kalender', 'kalender')->name('dashboard.kalender');
     });
 
-/*
-|--------------------------------------------------------------------------
-| Halaman yang butuh login
-|--------------------------------------------------------------------------
-*/
 Route::middleware('auth')->group(function () {
 
     // Profile
@@ -75,6 +65,7 @@ Route::middleware('auth')->group(function () {
     // Pegawai
     Route::post('pegawais/reorder', [PegawaiController::class, 'reorder'])->name('pegawais.reorder');
     Route::resource('pegawais', PegawaiController::class);
+
     // Rekap nomor memo (PNS & Non PNS, dari seluruh agenda)
     Route::controller(MemoController::class)
         ->prefix('nomor-memo')
@@ -128,6 +119,7 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('data', 'data')->name('data');
+            Route::get('export', 'export')->name('export'); // <--- Route Export Excel ditambahkan di sini
 
             Route::middleware('admin')->group(function () {
                 Route::get('upload', 'uploadForm')->name('upload');
@@ -138,7 +130,5 @@ Route::middleware('auth')->group(function () {
     // User Manajemen (Khusus Admin)
     Route::middleware('admin')->resource('users', UserController::class);
 });
-
-
 
 require __DIR__ . '/auth.php';
