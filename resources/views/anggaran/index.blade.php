@@ -307,7 +307,8 @@
             const U = { units: new Set(), sub: '' };
             const openUnits = new Set();   // kelompok yang rinciannya sedang dibuka
             const BELUM = 'Belum dipetakan';
-            const pctTxt = (x) => x.toFixed(1).replace('.', ',') + ' %';
+            // Persen selalu 2 desimal (mis. 72,50 %)
+            const pctTxt = (x) => x.toFixed(2).replace('.', ',') + ' %';
             // Semua angka ringkas dalam miliar, 2 desimal (nilai penuh ada di tooltip)
             const short = (n) => (n / 1e9).toFixed(2).replace('.', ',');
 
@@ -555,6 +556,10 @@
                     const p = a.pagu ? a.sd / a.pagu * 100 : 0;
                     const warn = a.unit === BELUM;
                     const subs = sortedSubs(a);
+                    // Mode banyak unit: kartu tertutup dulu, klik header untuk buka rincian
+                    const collapsible = !single && subs.length > 0;
+                    const expanded = !collapsible || openUnits.has(a.unit);
+                    const tog = collapsible ? `data-toggle="${esc(a.unit)}" role="button" aria-expanded="${expanded}"` : '';
                     const subCard = ([name, x]) => {
                         const sp = x.pagu ? x.sd / x.pagu * 100 : 0;
                         const on = U.sub === name;
@@ -572,10 +577,10 @@
                         </div>`;
                     };
                     return `<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                        <div class="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+                        <div ${tog} class="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 ${collapsible ? 'cursor-pointer' : ''}">
                             <div>
                                 <p class="text-[11px] uppercase tracking-wide text-gray-400">Unit terpilih</p>
-                                <h4 class="mt-0.5 text-lg font-semibold ${warn ? 'text-amber-800' : 'text-gray-900'}">${esc(a.unit)}</h4>
+                                <h4 class="mt-0.5 flex items-center gap-2 text-lg font-semibold ${warn ? 'text-amber-800' : 'text-gray-900'}">${collapsible ? `<span class="text-gray-400">${chevron(expanded)}</span>` : ''}${esc(a.unit)}</h4>
                                 ${warn ? '<p class="mt-1 text-[11px] font-medium text-amber-700">Belum dipetakan oleh admin</p>' : ''}
                             </div>
                             <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
@@ -586,8 +591,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-4">${bar(p)}</div>
-                        ${subs.length ? `<div class="mt-5 border-t border-gray-100 pt-4">
+                        <div ${tog} class="mt-4 ${collapsible ? 'cursor-pointer' : ''}">${bar(p)}</div>
+                        ${subs.length && expanded ? `<div class="mt-5 border-t border-gray-100 pt-4">
                             <p class="mb-2.5 text-[11px] text-gray-400">Rincian Asdep / Sesdep &middot; klik untuk mempersempit tabel, klik lagi untuk membatalkan</p>
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">${subs.map(subCard).join('')}</div>
                         </div>` : ''}
@@ -634,10 +639,10 @@
                 const totalP = sumP ? sumR / sumP * 100 : 0;
                 $('unit-cards').innerHTML = single
                     ? wideCard(list[0]) + '<p class="mt-2 text-[11px] text-gray-400">Angka dalam miliar rupiah (arahkan kursor ke angka untuk nilai penuh).</p>'
-                    : `<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">${list.map(compactCard).join('')}</div>
+                    : `<div class="space-y-4">${list.map(wideCard).join('')}</div>
                        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-600">
                            <span>Total ${list.length} unit terpilih: Pagu <b class="text-gray-900">${short(sumP)}</b> · Terpakai <b class="text-gray-900">${short(sumR)}</b> · Sisa <b class="text-gray-900">${short(sumP - sumR)}</b> · <b class="text-gray-900">${pctTxt(totalP)}</b></span>
-                           <span class="text-gray-400">Angka dalam miliar rupiah. Pilih satu unit saja untuk memfilter per Asdep/Sesdep.</span>
+                           <span class="text-gray-400">Angka dalam miliar rupiah. Klik kartu unit untuk membuka rincian Asdep/Sesdep.</span>
                        </div>`;
             }
 
