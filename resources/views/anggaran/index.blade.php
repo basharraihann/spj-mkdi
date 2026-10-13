@@ -89,7 +89,7 @@
                     <p id="s-pagu" class="mt-1 text-lg font-semibold text-gray-900 tabular-nums">-</p>
                 </div>
                 <div class="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-                    <p class="text-xs text-gray-500">Sudah Terpakai (Realisasi)</p>
+                    <p class="text-xs text-gray-500">Total Realisasi</p>
                     <p id="s-real" class="mt-1 text-lg font-semibold text-gray-900 tabular-nums">-</p>
                 </div>
                 <div class="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
@@ -97,7 +97,7 @@
                     <p id="s-sisa" class="mt-1 text-lg font-semibold text-gray-900 tabular-nums">-</p>
                 </div>
                 <div class="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-                    <p class="text-xs text-gray-500">Penyerapan (% Terpakai)</p>
+                    <p class="text-xs text-gray-500">Penyerapan (% Realisasi)</p>
                     <p id="s-pct" class="mt-1 text-lg font-semibold text-gray-900 tabular-nums">-</p>
                     <div class="mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                         <div id="s-bar" class="h-full rounded-full bg-indigo-600" style="width:0%"></div>
@@ -308,8 +308,8 @@
             const openUnits = new Set();   // kelompok yang rinciannya sedang dibuka
             const BELUM = 'Belum dipetakan';
             const pctTxt = (x) => x.toFixed(1).replace('.', ',') + ' %';
-            // Semua angka ringkas dalam miliar, 2 desimal (nilai penuh ada di tooltip)
-            const short = (n) => (n / 1e9).toFixed(2).replace('.', ',');
+            // Angka kartu ditampilkan penuh, tanpa pembulatan
+            const short = (n) => 'Rp ' + rp(n);
 
             let items = [];
             let currentPage = 1;
@@ -543,7 +543,7 @@
                 const chevron = (o) => `<svg class="chev w-3.5 h-3.5 ${o ? 'is-open' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>`;
                 const stat = (label, v) => `<div>
                     <p class="text-[10px] uppercase tracking-wide text-gray-400">${label}</p>
-                    <p class="mt-0.5 text-sm font-semibold tabular-nums text-gray-900">${money(v)}</p></div>`;
+                    <p class="mt-0.5 text-[13px] font-semibold tabular-nums text-gray-900">${money(v)}</p></div>`;
                 const subLabel = (unit, name) => /\(langsung\)/.test(name) ? 'Langsung ke ' + unit : name.replace(/\s+D\d+$/i, '');
                 const sortedSubs = (a) => [...a.subs.entries()].sort((x, y) => cmpUnit(x[0], y[0]));
 
@@ -579,7 +579,7 @@
                                 ${warn ? '<p class="mt-1 text-[11px] font-medium text-amber-700">Belum dipetakan oleh admin</p>' : ''}
                             </div>
                             <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
-                                ${stat('Pagu', a.pagu)}${stat('Terpakai', a.sd)}${stat('Sisa', a.pagu - a.sd)}
+                                ${stat('Pagu', a.pagu)}${stat('Realisasi', a.sd)}${stat('Sisa', a.pagu - a.sd)}
                                 <div class="text-right">
                                     <p class="text-[10px] uppercase tracking-wide text-gray-400">Penyerapan</p>
                                     <p class="text-2xl font-semibold tabular-nums tracking-tight text-gray-900">${pctTxt(p)}</p>
@@ -595,49 +595,62 @@
                 };
 
                 // ---------- Beberapa unit dipilih: kartu ringkas berdampingan ----------
+                // Angka disusun sebagai baris berlabel (kiri: label, kanan: angka) supaya angka penuh tidak saling menimpa.
+                const dRow = (label, v, strong) => `<div class="flex items-baseline justify-between gap-3 py-2">
+                    <dt class="text-xs text-gray-500">${label}</dt>
+                    <dd class="tabular-nums text-[13px] ${strong ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}" title="${short(v)}">${short(v)}</dd></div>`;
                 const compactCard = (a) => {
-                    if (empty(a)) return `<div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-4">
+                    if (empty(a)) return `<div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-5">
                         <h4 class="truncate text-sm font-semibold text-gray-400">${esc(a.unit)}</h4>
                         <p class="mt-3 text-xs text-gray-400">Tidak ada kode yang cocok.</p></div>`;
                     const p = a.pagu ? a.sd / a.pagu * 100 : 0;
                     const warn = a.unit === BELUM;
                     const subs = sortedSubs(a);
                     const isOpen = openUnits.has(a.unit);
-                    const subHtml = isOpen && subs.length ? `<div class="mt-4 space-y-2.5 border-t border-gray-100 pt-3">
+                    const subHtml = isOpen && subs.length ? `<div class="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                        <p class="text-[10px] font-medium uppercase tracking-wider text-gray-400">Rincian</p>
                         ${subs.map(([name, x]) => {
                         const sp = x.pagu ? x.sd / x.pagu * 100 : 0;
                         return `<div>
                                 <div class="flex items-baseline justify-between gap-3">
                                     <span class="truncate text-xs text-gray-600">${esc(subLabel(a.unit, name))}</span>
-                                    <span class="shrink-0 text-xs font-medium tabular-nums text-gray-800">${pctTxt(sp)}</span>
+                                    <span class="shrink-0 text-xs font-semibold tabular-nums text-gray-800">${pctTxt(sp)}</span>
                                 </div>
-                                <div class="mt-1">${bar(sp, 'h-1')}</div>
+                                <div class="mt-1.5">${bar(sp, 'h-1')}</div>
+                                <div class="mt-1 flex justify-between text-[11px] tabular-nums text-gray-400">
+                                    <span>Pagu ${short(x.pagu)}</span><span>Sisa ${short(x.pagu - x.sd)}</span>
+                                </div>
                             </div>`;
                     }).join('')}</div>` : '';
-                    return `<div class="rounded-xl border bg-white p-4 shadow-sm ${warn ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100'}">
-                        <div class="flex items-center justify-between gap-2">
-                            <h4 class="truncate text-sm font-semibold ${warn ? 'text-amber-800' : 'text-gray-900'}">${esc(a.unit)}</h4>
-                            ${subs.length ? `<button type="button" data-toggle="${esc(a.unit)}" aria-label="Lihat rincian ${esc(a.unit)}" aria-expanded="${isOpen}"
-                                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition">${chevron(isOpen)}</button>` : ''}
+                    return `<div class="overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md ${warn ? 'border-amber-200' : 'border-gray-200'}">
+                        <div class="h-1 ${warn ? 'bg-amber-400' : 'bg-indigo-500'}"></div>
+                        <div class="p-5">
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="truncate text-sm font-semibold tracking-wide ${warn ? 'text-amber-800' : 'text-gray-900'}">${esc(a.unit)}</h4>
+                                ${subs.length ? `<button type="button" data-toggle="${esc(a.unit)}" aria-label="Lihat rincian ${esc(a.unit)}" aria-expanded="${isOpen}"
+                                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition">${chevron(isOpen)}</button>` : ''}
+                            </div>
+                            <div class="mt-4 flex items-end justify-between">
+                                <p class="text-3xl font-semibold tabular-nums tracking-tight text-gray-900">${pctTxt(p)}</p>
+                                <p class="pb-1 text-[11px] uppercase tracking-wider text-gray-400">Penyerapan</p>
+                            </div>
+                            <div class="mt-3">${bar(p)}</div>
+                            <dl class="mt-4 divide-y divide-gray-100 border-t border-gray-100">
+                                ${dRow('Pagu', a.pagu)}${dRow('Realisasi', a.sd)}${dRow('Sisa', a.pagu - a.sd, true)}
+                            </dl>
+                            ${warn ? '<p class="mt-2 text-[11px] font-medium text-amber-700">Belum dipetakan oleh admin</p>' : ''}
+                            ${subHtml}
                         </div>
-                        <p class="mt-3 text-2xl font-semibold tabular-nums tracking-tight text-gray-900">${pctTxt(p)}</p>
-                        <p class="text-[11px] text-gray-400">terserap</p>
-                        <div class="mt-2">${bar(p)}</div>
-                        <div class="mt-4 grid grid-cols-3 gap-2">
-                            ${stat('Pagu', a.pagu)}${stat('Terpakai', a.sd)}${stat('Sisa', a.pagu - a.sd)}
-                        </div>
-                        ${warn ? '<p class="mt-3 text-[10px] font-medium text-amber-700">Belum dipetakan oleh admin</p>' : ''}
-                        ${subHtml}
                     </div>`;
                 };
 
                 const totalP = sumP ? sumR / sumP * 100 : 0;
                 $('unit-cards').innerHTML = single
-                    ? wideCard(list[0]) + '<p class="mt-2 text-[11px] text-gray-400">Angka dalam miliar rupiah (arahkan kursor ke angka untuk nilai penuh).</p>'
+                    ? wideCard(list[0]) + '<p class="mt-2 text-[11px] text-gray-400">Angka dalam rupiah.</p>'
                     : `<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">${list.map(compactCard).join('')}</div>
                        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-600">
-                           <span>Total ${list.length} unit terpilih: Pagu <b class="text-gray-900">${short(sumP)}</b> · Terpakai <b class="text-gray-900">${short(sumR)}</b> · Sisa <b class="text-gray-900">${short(sumP - sumR)}</b> · <b class="text-gray-900">${pctTxt(totalP)}</b></span>
-                           <span class="text-gray-400">Angka dalam miliar rupiah. Pilih satu unit saja untuk memfilter per Asdep/Sesdep.</span>
+                           <span>Total ${list.length} unit terpilih: Pagu <b class="text-gray-900">${short(sumP)}</b> · Realisasi <b class="text-gray-900">${short(sumR)}</b> · Sisa <b class="text-gray-900">${short(sumP - sumR)}</b> · <b class="text-gray-900">${pctTxt(totalP)}</b></span>
+                           <span class="text-gray-400">Angka dalam rupiah. Pilih satu unit saja untuk memfilter per Asdep/Sesdep.</span>
                        </div>`;
             }
 
