@@ -3,6 +3,7 @@
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AgendaPdfController;
 use App\Http\Controllers\AnggaranController;
+use App\Http\Controllers\AnggaranPemetaanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\NominatifController;
@@ -112,18 +113,24 @@ Route::middleware('auth')->group(function () {
             ->except(['show', 'create', 'edit']);
     });
 
-    // Monitor anggaran (lihat: semua user login; upload: khusus admin)
+    // Monitor anggaran (lihat: semua user login; upload & pemetaan unit: khusus admin)
     Route::controller(AnggaranController::class)
         ->prefix('anggaran')
         ->name('anggaran.')
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('data', 'data')->name('data');
-            Route::get('export', 'export')->name('export'); // <--- Route Export Excel ditambahkan di sini
+            Route::get('export', 'export')->name('export');
 
             Route::middleware('admin')->group(function () {
                 Route::get('upload', 'uploadForm')->name('upload');
                 Route::post('upload', 'uploadStore')->name('upload.store');
+
+                // Pemetaan RO -> Unit (Deputi/Biro -> Asdep)
+                Route::get('pemetaan', [AnggaranPemetaanController::class, 'index'])->name('pemetaan');
+                Route::post('pemetaan', [AnggaranPemetaanController::class, 'store'])->name('pemetaan.store');
+                Route::put('pemetaan/{pemetaan}', [AnggaranPemetaanController::class, 'update'])->name('pemetaan.update');
+                Route::delete('pemetaan/{pemetaan}', [AnggaranPemetaanController::class, 'destroy'])->name('pemetaan.destroy');
             });
         });
 

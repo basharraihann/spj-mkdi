@@ -126,7 +126,8 @@
                         'items' => [
                             [
                                 'route' => 'anggaran.index',
-                                'active' => request()->routeIs('anggaran.*'),
+                                // Jangan ikut menyala di halaman Pemetaan Unit
+                                'active' => request()->routeIs('anggaran.*') && !request()->routeIs('anggaran.pemetaan*'),
                                 'label' => __('Realisasi Anggaran'),
                                 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
                             ],
@@ -135,6 +136,14 @@
                 ];
 
                 if (Auth::user()?->isAdmin()) {
+                    // Pemetaan Unit: masuk ke kelompok "Anggaran" (indeks 1), hanya terlihat oleh admin
+                    $groups[1]['items'][] = [
+                        'route' => 'anggaran.pemetaan',
+                        'active' => request()->routeIs('anggaran.pemetaan*'),
+                        'label' => __('Pemetaan Unit'),
+                        'icon' => 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
+                    ];
+
                     $groups[] = [
                         'label' => null,
                         'items' => [
@@ -193,7 +202,7 @@
                         @foreach ($group['items'] as $item)
                             <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                                 class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                     stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
@@ -225,7 +234,7 @@
                 @else
                     <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                         class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                         <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                         </svg>
