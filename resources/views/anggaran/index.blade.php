@@ -117,17 +117,7 @@
 
             {{-- ===== Filter ===== --}}
             <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                    @foreach (['keg' => 'Kegiatan', 'ro' => 'RO / SubOutput', 'komp' => 'Komponen', 'sub' => 'SubKomponen', 'akun' => 'Akun'] as $k => $label)
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1 font-medium">{{ $label }}</label>
-                            <select id="f-{{ $k }}"
-                                class="w-full truncate rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
-                        </div>
-                    @endforeach
-                </div>
-
-                <div>
+                <div class="border-b border-gray-100 pb-4">
                     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
                         <label class="text-xs text-gray-500 font-medium">Unit Kerja <span id="unit-count"
                                 class="font-normal text-gray-400"></span></label>
@@ -141,9 +131,8 @@
                     </div>
                     <div id="unit-checks" class="space-y-2"></div>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div class="sm:col-span-1">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+                    <div class="lg:col-span-4">
                         <label class="block text-xs text-gray-500 mb-1 font-medium">Cari kode / uraian</label>
                         <div class="relative">
                             <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
@@ -152,38 +141,51 @@
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                             </svg>
-                            <input type="text" id="ang-q" placeholder="mis. CL.7458, ABB.001, 051 atau konsumsi"
+                            <input type="text" id="ang-q" placeholder="mis. 524, CL.7458, ABB.001 atau konsumsi"
                                 autocomplete="off"
                                 class="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white">
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1 font-medium">Tampilkan sampai level</label>
-                        <select id="f-level"
-                            class="w-full rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white">
-                            <option value="all">Semua level (sampai item)</option>
-                            <option value="prog">Program</option>
-                            <option value="keg">Kegiatan</option>
-                            <option value="ro">RO / Sub Output</option>
-                            <option value="komp">Komponen</option>
-                            <option value="sub">Sub Komponen</option>
-                            <option value="akun">Akun</option>
-                            <option value="item">Item</option>
-                        </select>
+                    <div class="lg:col-span-3">
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">Akun</label>
+                        <select id="f-akun"
+                            class="w-full truncate rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1 font-medium">Baris per Halaman</label>
-                        <select id="f-limit"
-                            class="w-full rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white">
-                            <option value="10">10 Baris</option>
-                            <option value="25">25 Baris</option>
-                            <option value="50">50 Baris</option>
-                            <option value="100">100 Baris</option>
-                            <option value="500" selected>500 Baris</option>
-                            <option value="all">Semua Data</option>
-                        </select>
+                    <div class="lg:col-span-3">
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">Kegiatan</label>
+                        <select id="f-keg"
+                            class="w-full truncate rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
+                    </div>
+                    <div class="lg:col-span-2 flex items-center gap-2">
+                        <button type="button" id="btn-adv" aria-expanded="false"
+                            class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
+                            Filter lanjutan
+                            <span id="adv-badge"
+                                class="hidden rounded-full bg-indigo-600 px-1.5 text-[10px] font-semibold leading-4 text-white"></span>
+                        </button>
+                        <button type="button" id="btn-reset"
+                            class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">Reset</button>
                     </div>
                 </div>
+
+                <div id="adv-panel" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-gray-100 pt-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">RO / SubOutput</label>
+                        <select id="f-ro"
+                            class="w-full truncate rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">Komponen</label>
+                        <select id="f-komp"
+                            class="w-full truncate rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 font-medium">SubKomponen</label>
+                        <select id="f-sub"
+                            class="w-full truncate rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
+                    </div>
+                </div>
+
             </div>
 
             {{-- ===== Per unit kerja (dikelompokkan per induk) ===== --}}
@@ -191,15 +193,15 @@
                 <div class="flex items-end justify-between gap-3">
                     <div>
                         <h3 class="text-sm font-semibold text-gray-700">Anggaran per Unit Kerja</h3>
-                        <p class="text-xs text-gray-400">Kartu muncul untuk unit yang dicentang pada filter Unit Kerja
-                            di atas.</p>
+                        <p id="unit-sub" class="text-xs text-gray-400">Kartu muncul untuk unit yang dicentang pada
+                            filter Unit Kerja di atas.</p>
                     </div>
                 </div>
                 <div id="unit-cards"></div>
             </div>
 
             {{-- ===== Tabel hierarki ===== --}}
-            <div class="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+            <div class="bg-white border border-gray-100 rounded-xl shadow-sm [overflow:clip]">
                 <div
                     class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-5 py-3 border-b border-gray-100">
                     <div id="ang-hint" class="text-xs text-gray-500 flex flex-wrap items-center gap-x-4 gap-y-1"></div>
@@ -222,10 +224,19 @@
                             </svg>
                             Tutup semua
                         </button>
-                        <button type="button" id="btn-reset"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition">
-                            Reset filter
-                        </button>
+                        <label class="inline-flex items-center gap-2 text-xs text-gray-500">Level
+                            <select id="f-level"
+                                class="rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-xs text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                                <option value="all">Semua (sampai item)</option>
+                                <option value="prog">Program</option>
+                                <option value="keg">Kegiatan</option>
+                                <option value="ro">RO / Sub Output</option>
+                                <option value="komp">Komponen</option>
+                                <option value="sub">Sub Komponen</option>
+                                <option value="akun">Akun</option>
+                                <option value="item">Item</option>
+                            </select>
+                        </label>
                     </div>
                 </div>
 
@@ -234,22 +245,24 @@
                     class="hidden px-5 py-2.5 bg-gray-50 border-b border-gray-200 text-xs text-gray-700 flex flex-wrap items-center gap-x-2 gap-y-1">
                 </div>
 
-                <div class="tbl-wrap overflow-auto" style="max-height: 72vh;">
-                    <table class="min-w-[1240px] w-full text-sm">
-                        <thead class="bg-gray-50 text-xs text-gray-500 sticky top-0 z-10 shadow-[0_1px_0_0_#e5e7eb]">
-                            <tr>
-                                <th class="text-left px-4 py-3 font-semibold" style="min-width:300px">Kode</th>
-                                <th class="text-left px-3 py-3 font-semibold" style="min-width:340px">Uraian</th>
-                                <th class="text-right px-3 py-3 font-semibold">Pagu Revisi</th>
-                                <th class="text-right px-3 py-3 font-semibold">Lock Pagu</th>
-                                <th class="text-right px-3 py-3 font-semibold">Real. Periode Lalu</th>
-                                <th class="text-right px-3 py-3 font-semibold">Real. Periode Ini</th>
-                                <th class="text-right px-3 py-3 font-semibold">Real. s.d. Periode</th>
-                                <th class="text-center px-3 py-3 font-semibold">%</th>
-                                <th class="text-right px-4 py-3 font-semibold">Sisa Anggaran</th>
+                <div class="tbl-wrap">
+                    <table class="w-full text-xs">
+                        <thead
+                            class="bg-gray-100 text-[11px] text-gray-600 sticky top-0 z-10 shadow-[0_1px_0_0_#d1d5db]">
+                            <tr class="divide-x divide-gray-200">
+                                <th class="text-left px-3 py-1.5 font-semibold" style="min-width:200px">Kode</th>
+                                <th class="text-left px-2 py-1.5 font-semibold" style="min-width:220px">Uraian</th>
+                                <th class="text-left px-2 py-1.5 font-semibold">Unit</th>
+                                <th class="text-right px-2 py-1.5 font-semibold">Pagu Revisi</th>
+                                <th class="text-right px-2 py-1.5 font-semibold hidden xl:table-cell">Lock Pagu</th>
+                                <th class="text-right px-2 py-1.5 font-semibold hidden xl:table-cell">Real. Lalu</th>
+                                <th class="text-right px-2 py-1.5 font-semibold hidden xl:table-cell">Real. Ini</th>
+                                <th class="text-right px-2 py-1.5 font-semibold">Real. s.d.</th>
+                                <th class="text-right px-2 py-1.5 font-semibold">%</th>
+                                <th class="text-right px-2 py-1.5 font-semibold">Sisa</th>
                             </tr>
                         </thead>
-                        <tbody id="ang-tb" class="divide-y divide-gray-100"></tbody>
+                        <tbody id="ang-tb" class="divide-y divide-gray-200"></tbody>
                     </table>
                     <p id="ang-norow" class="hidden py-14 text-center text-sm text-gray-400">Tidak ada baris yang cocok.
                         Ubah kata kunci atau reset filter.</p>
@@ -259,6 +272,15 @@
                     class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 border-t border-gray-100">
                     <p id="ang-cnt" class="text-xs text-gray-500"></p>
                     <div class="flex items-center gap-2">
+                        <select id="f-limit" aria-label="Baris per halaman"
+                            class="rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-xs text-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                            <option value="10">10 baris</option>
+                            <option value="25">25 baris</option>
+                            <option value="50">50 baris</option>
+                            <option value="100">100 baris</option>
+                            <option value="500" selected>500 baris</option>
+                            <option value="all">Semua data</option>
+                        </select>
                         <button id="btn-prev"
                             class="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition">Sebelumnya</button>
                         <span id="page-info" class="text-xs text-gray-600 font-medium">Halaman 1</span>
@@ -314,15 +336,7 @@
             const LV_DEPTH = { prog: 0, keg: 1, ro: 2, komp: 3, sub: 4, akun: 5, item: 6 };
 
             // Tampilan netral: hanya level atas yang diberi latar abu-abu tipis
-            const LV_STYLE = {
-                prog: { row: 'bg-gray-100/80' },
-                keg: { row: 'bg-gray-50' },
-                ro: { row: '' },
-                komp: { row: '' },
-                sub: { row: '' },
-                akun: { row: '' },
-                item: { row: '' },
-            };
+            const LV_STYLE = { prog: { row: '' }, keg: { row: '' }, ro: { row: '' }, komp: { row: '' }, sub: { row: '' }, akun: { row: '' }, item: { row: '' } };
 
             function lvKode(it, lv) {
                 if (lv.key !== 'prog') return String(it[lv.kode] ?? '').trim();
@@ -394,6 +408,7 @@
                     const leaf = {
                         id: node.id + '|#' + idx, lv: ITEM, depth: LEVELS.length, kode, uraian,
                         hay: (kode + ' ' + uraian).toLowerCase(), v, children: [], parent: node,
+                        us: new Set([it.unit]), ss: it.sub_unit ? new Set([it.sub_unit]) : new Set(),
                     };
                     node.children.push(leaf);
                     byId.set(leaf.id, leaf);
@@ -420,16 +435,21 @@
             function openAll() { byId.forEach((n) => { if (n.children.length) open.add(n.id); }); }
             function openDefault() { open = new Set(); byId.forEach((n) => { if (n.children.length && n.depth <= 1) open.add(n.id); }); }
 
+            // Pilihan Kegiatan..Akun hanya memuat data milik unit yang dicentang (bila ada)
+            const inUnit = (it) => (!U.units.size || U.units.has(it.unit)) && (!U.sub || it.sub_unit === U.sub);
+            const clip = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
             function fillSel() {
                 CH.forEach((k, i) => {
                     const seen = new Set();
                     let html = '<option value="">Semua</option>';
                     items.forEach((it) => {
                         const kode = it[k + '_kode'];
-                        if (!match(it, i) || seen.has(kode)) return;
+                        if (!inUnit(it) || !match(it, i) || seen.has(kode)) return;
                         seen.add(kode);
-                        html += `<option value="${esc(kode)}">${esc(padKode(k, String(kode ?? '')) + ' – ' + (it[k + '_uraian'] || ''))}</option>`;
+                        const full = padKode(k, String(kode ?? '')) + ' – ' + (it[k + '_uraian'] || '');
+                        html += `<option value="${esc(kode)}" title="${esc(full)}">${esc(clip(full, 80))}</option>`;
                     });
+                    if (F[k] && !seen.has(F[k])) F[k] = '';   // pilihan lama tidak ada di unit ini -> kosongkan
                     const sel = $('f-' + k);
                     sel.innerHTML = html;
                     sel.value = F[k];
@@ -440,6 +460,20 @@
             const unitRank = (s) => /^Asdep/i.test(s) ? 0 : /^Sesdep/i.test(s) ? 1 : 2;
             const cmpUnit = (a, b) => a === BELUM ? 1 : b === BELUM ? -1
                 : (unitRank(a) - unitRank(b)) || a.localeCompare(b, 'id', { numeric: true });
+
+            const getTerms = () => {
+                const q = $('ang-q').value.trim();
+                return q ? q.toLowerCase().split(/[,;\n]+/).map((t) => t.trim()).filter(Boolean) : [];
+            };
+            // Item dianggap cocok bila dirinya atau salah satu induknya (program..akun) memuat kata kunci
+            const matchQ = (it, terms) => {
+                if (!terms.length) return true;
+                const parts = [];
+                LEVELS.forEach((lv) => { const raw = lvKode(it, lv); parts.push(padKode(lv.key, raw), raw, lvUraian(it, lv)); });
+                parts.push(String(it.item_kode ?? ''), String(it.item_uraian ?? ''));
+                const hay = parts.join(' | ').toLowerCase();
+                return terms.some((t) => hay.includes(t));
+            };
 
             const isD = (u) => /^D\d+$/.test(u);
             const orderUnits = (arr) => [...arr].sort((a, b) => (isD(b) - isD(a))
@@ -458,7 +492,7 @@
                 $('unit-checks').innerHTML =
                     (d.length ? `<div class="flex flex-wrap gap-2">${d.map(chip).join('')}</div>` : '') +
                     (o.length ? `<div class="flex flex-wrap gap-2">${o.map(chip).join('')}</div>` : '');
-                $('unit-count').textContent = U.units.size ? `· ${U.units.size} dari ${units.length} dipilih` : '· belum ada yang dipilih (tabel menampilkan semua unit)';
+                $('unit-count').textContent = U.units.size ? `· ${U.units.size} dari ${units.length} dipilih` : '· belum ada yang dipilih (menampilkan total semua unit). Pilih unit dulu agar pilihan filter di bawah menyesuaikan.';
             }
 
             function updateExportLink() {
@@ -480,8 +514,9 @@
                 section.classList.toggle('hidden', U.units.size === 0);
                 if (!U.units.size) { $('unit-cards').innerHTML = ''; return; }
 
+                const terms = getTerms();
                 const by = new Map();
-                items.filter((it) => match(it, 5) && U.units.has(it.unit)).forEach((it) => {
+                items.filter((it) => match(it, 5) && U.units.has(it.unit) && matchQ(it, terms)).forEach((it) => {
                     const v = vals(it);
                     let a = by.get(it.unit);
                     if (!a) { a = { unit: it.unit, pagu: 0, sd: 0, subs: new Map() }; by.set(it.unit, a); }
@@ -492,6 +527,10 @@
                         x.pagu += v.pagu; x.sd += v.sd;
                     }
                 });
+                $('unit-sub').textContent = terms.length
+                    ? 'Hasil pencarian "' + terms.join(', ') + '" per unit (angka hanya dari kode yang cocok).'
+                    : 'Kartu muncul untuk unit yang dicentang pada filter Unit Kerja di atas.';
+                const empty = (a) => terms.length && !a.pagu && !a.sd;
                 const list = orderUnits([...U.units]).map((u) => by.get(u) || { unit: u, pagu: 0, sd: 0, subs: new Map() });
                 const single = list.length === 1;
                 const sumP = list.reduce((t, a) => t + a.pagu, 0);
@@ -509,6 +548,9 @@
 
                 // ---------- Satu unit dipilih: kartu lebar + rincian bisa diklik ----------
                 const wideCard = (a) => {
+                    if (empty(a)) return `<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                        <h4 class="text-lg font-semibold text-gray-900">${esc(a.unit)}</h4>
+                        <p class="mt-2 text-sm text-gray-400">Tidak ada kode yang cocok dengan pencarian di unit ini.</p></div>`;
                     const p = a.pagu ? a.sd / a.pagu * 100 : 0;
                     const warn = a.unit === BELUM;
                     const subs = sortedSubs(a);
@@ -553,6 +595,9 @@
 
                 // ---------- Beberapa unit dipilih: kartu ringkas berdampingan ----------
                 const compactCard = (a) => {
+                    if (empty(a)) return `<div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-4">
+                        <h4 class="truncate text-sm font-semibold text-gray-400">${esc(a.unit)}</h4>
+                        <p class="mt-3 text-xs text-gray-400">Tidak ada kode yang cocok.</p></div>`;
                     const p = a.pagu ? a.sd / a.pagu * 100 : 0;
                     const warn = a.unit === BELUM;
                     const subs = sortedSubs(a);
@@ -631,7 +676,18 @@
                 bar.classList.remove('hidden');
             }
 
+            // Filter lanjutan (RO, Komponen, SubKomponen): terlipat, otomatis terbuka bila ada yang terisi
+            let advPrev = 0;
+            function updateAdv() {
+                const n = ['ro', 'komp', 'sub'].filter((k) => F[k]).length;
+                if (n > advPrev) { $('adv-panel').classList.remove('hidden'); $('btn-adv').setAttribute('aria-expanded', 'true'); }
+                advPrev = n;
+                const bd = $('adv-badge');
+                bd.textContent = n; bd.classList.toggle('hidden', n === 0);
+            }
+
             function render() {
+                updateAdv();
                 const q = $('ang-q').value.trim();
                 const terms = q ? q.toLowerCase().split(/[,;\n]+/).map((t) => t.trim()).filter(Boolean) : [];
                 qActive = terms.length > 0;
@@ -722,61 +778,56 @@
                         else if (r.id.startsWith(sel.id + '|')) { bg = 'bg-gray-50'; }
                     }
 
-                    // chip unit: hanya bila semua item di bawah baris ini milik satu unit
-                    let unitChip = '';
+                    // kolom Unit: terisi bila semua item di bawah baris ini milik satu unit
+                    let unitCell = '<span class="text-gray-300">–</span>';
                     if (r.us && r.us.size === 1) {
                         const u = [...r.us][0];
-                        const s = r.ss.size === 1 ? [...r.ss][0] : '';
-                        const cls = u === BELUM ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700';
-                        unitChip = `<span class="rounded px-1.5 py-0.5 text-[10px] font-medium ${cls}">${esc(s || u)}</span>`;
+                        const sName = r.ss.size === 1 ? [...r.ss][0] : '';
+                        const label = sName ? (/\(langsung\)/.test(sName) ? u : sName.replace(/\s+D\d+$/i, '') + ' ' + u) : u;
+                        unitCell = `<span class="${u === BELUM ? 'text-amber-700' : 'text-gray-700'}">${esc(label)}</span>`;
+                    } else if (r.us && r.us.size > 1) {
+                        unitCell = `<span class="text-gray-400">${r.us.size} unit</span>`;
                     }
 
                     const chev = expandable
-                        ? `<button type="button" data-act="toggle" aria-label="Buka/tutup" aria-expanded="${opened}" class="shrink-0 w-5 h-5 mr-1 rounded flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
-                               <svg class="chev w-3.5 h-3.5 ${opened ? 'is-open' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                           </button>`
-                        : '<span class="shrink-0 w-5 h-5 mr-1"></span>';
+                        ? `<button type="button" data-act="toggle" aria-label="Buka/tutup" aria-expanded="${opened}" class="shrink-0 w-4 h-4 mr-1 rounded flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
+                               <svg class="chev w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                           </button>`.replace('class="chev w-3 h-3"', `class="chev w-3 h-3 ${opened ? 'is-open' : ''}"`)
+                        : '<span class="shrink-0 w-4 h-4 mr-1"></span>';
 
-                    const kids = hasKids
-                        ? `<div class="mt-0.5 text-[11px] text-gray-400">${r.children.length} ${esc(r.children[0].lv.label.toLowerCase())}${(r.depth >= maxDepth) ? ' · tersembunyi (batas level)' : ''}</div>`
+                    const hint = hasKids
+                        ? `${r.children.length} ${r.children[0].lv.label.toLowerCase()}${(r.depth >= maxDepth) ? ' · tersembunyi (batas level)' : ''}`
                         : '';
 
                     const focusBtn = (r.depth >= 1 && r.depth <= 5)
-                        ? `<button type="button" data-act="focus" title="Fokus ke ${esc(r.lv.label)} ini (filter)" class="row-actions ml-auto shrink-0 rounded-md border border-gray-200 bg-white p-1 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 transition">
-                               <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" /></svg>
+                        ? `<button type="button" data-act="focus" title="Fokus ke ${esc(r.lv.label)} ini (filter)" class="row-actions ml-auto shrink-0 rounded border border-gray-200 bg-white p-0.5 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 transition">
+                               <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" /></svg>
                            </button>`
                         : '';
 
-                    const indent = 12 + Math.min(r.depth, 7) * 18;
+                    const indent = 6 + Math.min(r.depth, 7) * 14;
+                    const num = 'px-2 py-1 text-right whitespace-nowrap tabular-nums align-middle';
 
-                    return `<tr class="tree-row group cursor-pointer ${bg} ${ring}" data-id="${esc(r.id)}">
-                        <td class="py-2.5 pr-3 align-top whitespace-nowrap">
-                            <div class="flex items-center gap-1.5" style="padding-left:${indent}px">
-                                ${chev}
-                                <span class="font-mono text-xs ${isGroup ? 'text-gray-800' : 'text-gray-500'}">${hl(r.kode || '—', re)}</span>
-                                ${relChip}
-                                ${unitChip}
+                    return `<tr class="tree-row group cursor-pointer divide-x divide-gray-100 ${bg} ${ring}" data-id="${esc(r.id)}"${hint ? ` title="${esc(hint)}"` : ''}>
+                        <td class="py-1 pr-2 align-middle whitespace-nowrap">
+                            <div class="flex items-center" style="padding-left:${indent}px">
+                                ${chev}<span class="tabular-nums text-gray-800">${hl(r.kode || '—', re)}</span>${relChip ? `<span class="ml-1.5">${relChip}</span>` : ''}
                             </div>
                         </td>
-                        <td class="py-2.5 px-3 align-top">
-                            <div class="flex items-start gap-2">
-                                <div class="min-w-0">
-                                    <div class="leading-snug text-gray-800 ${bold}">${hl(r.uraian, re)}</div>
-                                    ${kids}
-                                </div>
+                        <td class="py-1 px-2 align-middle">
+                            <div class="flex items-center gap-2">
+                                <span class="min-w-0 leading-snug text-gray-800">${hl(r.uraian, re)}</span>
                                 ${focusBtn}
                             </div>
                         </td>
-                        <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums align-top ${numBold}">${rp(v.pagu)}</td>
-                        <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums align-top ${numBold}">${rp(v.lock)}</td>
-                        <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums align-top ${numBold}">${v.lalu === null ? dash : rp(v.lalu)}</td>
-                        <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums align-top ${numBold}">${v.ini === null ? dash : rp(v.ini)}</td>
-                        <td class="px-3 py-2.5 text-right whitespace-nowrap tabular-nums align-top ${numBold}">${rp(v.sd)}</td>
-                        <td class="px-3 py-2.5 align-top" style="min-width:96px">
-                            <div class="text-center text-xs font-medium tabular-nums text-gray-700">${(pct * 100).toFixed(2).replace('.', ',')} %</div>
-                            <div class="mt-1 h-1 overflow-hidden rounded-full bg-gray-200"><div class="h-full rounded-full bg-indigo-500" style="width:${Math.min(100, pct * 100)}%"></div></div>
-                        </td>
-                        <td class="px-4 py-2.5 text-right whitespace-nowrap tabular-nums align-top ${numBold}">${rp(v.pagu - v.sd)}</td>
+                        <td class="py-1 px-2 align-middle whitespace-nowrap">${unitCell}</td>
+                        <td class="${num}">${rp(v.pagu)}</td>
+                        <td class="${num} hidden xl:table-cell">${rp(v.lock)}</td>
+                        <td class="${num} hidden xl:table-cell">${v.lalu === null ? dash : rp(v.lalu)}</td>
+                        <td class="${num} hidden xl:table-cell">${v.ini === null ? dash : rp(v.ini)}</td>
+                        <td class="${num}">${rp(v.sd)}</td>
+                        <td class="${num}">${(pct * 100).toFixed(2).replace('.', ',')} %</td>
+                        <td class="${num}">${rp(v.pagu - v.sd)}</td>
                     </tr>`;
                 }).join('');
 
@@ -804,6 +855,7 @@
                 U.sub = '';
                 currentPage = 1;
                 pendingOpen = (U.units.size && U.units.size < total) ? 'all' : 'default';
+                fillSel();
                 fillUnitSel();
                 render();
             }
@@ -839,9 +891,15 @@
                 if (!b) return;
                 U.sub = U.sub === b.dataset.sub ? '' : b.dataset.sub;
                 currentPage = 1; pendingOpen = 'all';
+                fillSel();
                 render();
             });
 
+            $('btn-adv').addEventListener('click', () => {
+                const p = $('adv-panel');
+                p.classList.toggle('hidden');
+                $('btn-adv').setAttribute('aria-expanded', String(!p.classList.contains('hidden')));
+            });
             $('f-level').addEventListener('change', () => { currentPage = 1; render(); });
             $('f-limit').addEventListener('change', () => { currentPage = 1; render(); });
             $('ang-q').addEventListener('input', () => { currentPage = 1; forceClosed = new Set(); render(); });
