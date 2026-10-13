@@ -32,16 +32,6 @@
             transform: rotate(90deg);
         }
 
-        .tbl-wrap::-webkit-scrollbar {
-            height: 10px;
-            width: 10px;
-        }
-
-        .tbl-wrap::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 8px;
-        }
-
         @media (prefers-reduced-motion: reduce) {
 
             .tree-row,
@@ -52,7 +42,7 @@
         }
     </style>
 
-    <div class="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
         {{-- ===== Judul & aksi ===== --}}
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -245,18 +235,29 @@
                     class="hidden px-5 py-2.5 bg-gray-50 border-b border-gray-200 text-xs text-gray-700 flex flex-wrap items-center gap-x-2 gap-y-1">
                 </div>
 
-                <div class="tbl-wrap">
-                    <table class="w-full text-xs">
+                {{-- Tabel muat penuh di lebar kartu: kolom berukuran tetap (persen), tanpa scroll samping --}}
+                <div>
+                    <table class="w-full table-fixed text-[11px] leading-tight">
+                        <colgroup>
+                            <col style="width:13%">
+                            <col style="width:23.5%">
+                            <col style="width:9%">
+                            <col style="width:10%">
+                            <col style="width:10%">
+                            <col style="width:9%">
+                            <col style="width:10%">
+                            <col style="width:5.5%">
+                            <col style="width:10%">
+                        </colgroup>
                         <thead
                             class="bg-gray-100 text-[11px] text-gray-600 sticky top-0 z-10 shadow-[0_1px_0_0_#d1d5db]">
                             <tr class="divide-x divide-gray-200">
-                                <th class="text-left px-3 py-1.5 font-semibold" style="min-width:200px">Kode</th>
-                                <th class="text-left px-2 py-1.5 font-semibold" style="min-width:220px">Uraian</th>
+                                <th class="text-left px-2 py-1.5 font-semibold">Kode</th>
+                                <th class="text-left px-2 py-1.5 font-semibold">Uraian</th>
                                 <th class="text-left px-2 py-1.5 font-semibold">Unit</th>
                                 <th class="text-right px-2 py-1.5 font-semibold">Pagu Revisi</th>
-                                <th class="text-right px-2 py-1.5 font-semibold hidden xl:table-cell">Lock Pagu</th>
-                                <th class="text-right px-2 py-1.5 font-semibold hidden xl:table-cell">Real. Lalu</th>
-                                <th class="text-right px-2 py-1.5 font-semibold hidden xl:table-cell">Real. Ini</th>
+                                <th class="text-right px-2 py-1.5 font-semibold">Real. Lalu</th>
+                                <th class="text-right px-2 py-1.5 font-semibold">Real. Ini</th>
                                 <th class="text-right px-2 py-1.5 font-semibold">Real. s.d.</th>
                                 <th class="text-right px-2 py-1.5 font-semibold">%</th>
                                 <th class="text-right px-2 py-1.5 font-semibold">Sisa</th>
@@ -805,29 +806,29 @@
                            </button>`
                         : '';
 
-                    const indent = 6 + Math.min(r.depth, 7) * 14;
+                    // indentasi lebih rapat supaya kolom Kode tidak melebar
+                    const indent = 4 + Math.min(r.depth, 7) * 10;
                     const num = 'px-2 py-1 text-right whitespace-nowrap tabular-nums align-middle';
 
                     return `<tr class="tree-row group cursor-pointer divide-x divide-gray-100 ${bg} ${ring}" data-id="${esc(r.id)}"${hint ? ` title="${esc(hint)}"` : ''}>
-                        <td class="py-1 pr-2 align-middle whitespace-nowrap">
-                            <div class="flex items-center" style="padding-left:${indent}px">
-                                ${chev}<span class="tabular-nums text-gray-800">${hl(r.kode || '—', re)}</span>${relChip ? `<span class="ml-1.5">${relChip}</span>` : ''}
+                        <td class="py-1 pr-1 align-middle">
+                            <div class="flex flex-wrap items-center" style="padding-left:${indent}px">
+                                ${chev}<span class="tabular-nums text-gray-800 ${bold}">${hl(r.kode || '—', re)}</span>${relChip ? `<span class="ml-1">${relChip}</span>` : ''}
                             </div>
                         </td>
                         <td class="py-1 px-2 align-middle">
-                            <div class="flex items-center gap-2">
-                                <span class="min-w-0 leading-snug text-gray-800">${hl(r.uraian, re)}</span>
+                            <div class="flex items-center gap-1">
+                                <span class="min-w-0 leading-snug text-gray-800 ${bold} break-words">${hl(r.uraian, re)}</span>
                                 ${focusBtn}
                             </div>
                         </td>
-                        <td class="py-1 px-2 align-middle whitespace-nowrap">${unitCell}</td>
-                        <td class="${num}">${rp(v.pagu)}</td>
-                        <td class="${num} hidden xl:table-cell">${rp(v.lock)}</td>
-                        <td class="${num} hidden xl:table-cell">${v.lalu === null ? dash : rp(v.lalu)}</td>
-                        <td class="${num} hidden xl:table-cell">${v.ini === null ? dash : rp(v.ini)}</td>
-                        <td class="${num}">${rp(v.sd)}</td>
+                        <td class="py-1 px-2 align-middle break-words">${unitCell}</td>
+                        <td class="${num} ${numBold}">${rp(v.pagu)}</td>
+                        <td class="${num} ${numBold}">${v.lalu === null ? dash : rp(v.lalu)}</td>
+                        <td class="${num} ${numBold}">${v.ini === null ? dash : rp(v.ini)}</td>
+                        <td class="${num} ${numBold}">${rp(v.sd)}</td>
                         <td class="${num}">${(pct * 100).toFixed(2).replace('.', ',')} %</td>
-                        <td class="${num}">${rp(v.pagu - v.sd)}</td>
+                        <td class="${num} ${numBold}">${rp(v.pagu - v.sd)}</td>
                     </tr>`;
                 }).join('');
 

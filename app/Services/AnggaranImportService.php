@@ -128,6 +128,9 @@ class AnggaranImportService
                 else
                     $real = (is_numeric($r[22] ?? null) ? $r[22] : 0) + (is_numeric($r[23] ?? null) ? $r[23] : 0);
 
+                $realLalu = is_numeric($r[22] ?? null) ? $r[22] : 0;
+                $realIni = is_numeric($r[23] ?? null) ? $r[23] : 0;
+
                 $p = fn($k) => $ctx[$k] ?? ['c' => '', 'n' => ''];
                 $items[] = [
                     'keg_kode' => $p('keg')['c'],
@@ -143,6 +146,8 @@ class AnggaranImportService
                     'item_kode' => $code,
                     'item_uraian' => $name,
                     'pagu' => (int) round($pagu),
+                    'realisasi_lalu' => (int) round($realLalu),
+                    'realisasi_ini' => (int) round($realIni),
                     'realisasi' => (int) round($real),
                 ];
                 continue;

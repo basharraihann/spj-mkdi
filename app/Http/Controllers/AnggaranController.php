@@ -50,6 +50,8 @@ class AnggaranController extends Controller
                 'item_kode',
                 'item_uraian',
                 'pagu',
+                'realisasi_lalu',   // baru
+                'realisasi_ini',    // baru
                 'realisasi',
             ])
             ->map(fn($i) => $i->toArray() + $resolver->resolve($i)) // + 'unit', 'induk', 'sub_unit'
