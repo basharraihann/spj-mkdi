@@ -5,8 +5,6 @@
         </h2>
     </x-slot>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
         .tree-row {
             transition: background-color .12s ease;
@@ -63,16 +61,6 @@
                 <p id="ang-meta" class="mt-1 text-sm text-gray-500">Memuat data...</p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <button id="btn-toggle-chart" type="button" onclick="toggleChart()"
-                    class="inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm">
-                    <svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none"
-                        viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-                    </svg>
-                    <span id="lbl-toggle-chart">Sembunyikan Grafik</span>
-                </button>
-
                 <a id="btn-export" href="{{ route('anggaran.export') }}"
                     class="inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm">
                     <svg class="w-4 h-4 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -127,51 +115,6 @@
                 </div>
             </div>
 
-            {{-- ===== Per unit kerja (dikelompokkan per induk) ===== --}}
-            <div id="section-unit" class="space-y-3">
-                <div class="flex items-end justify-between gap-3">
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-700">Anggaran per Unit Kerja</h3>
-                        <p class="text-xs text-gray-400">Klik kartu unit untuk menampilkan rinciannya di tabel di bawah.
-                            Klik panah (&rsaquo;) untuk melihat Asdep dan Sesdep.</p>
-                    </div>
-                    <button type="button" id="btn-unit-clear"
-                        class="hidden rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition">
-                        Tampilkan semua unit
-                    </button>
-                </div>
-                <div id="unit-cards"></div>
-            </div>
-
-            {{-- ===== Grafik ===== --}}
-            <div id="section-chart" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-2">Serapan Anggaran</h3>
-                    <div class="relative flex items-center justify-center my-auto py-2" style="height: 170px;">
-                        <canvas id="chart-donut"></canvas>
-                    </div>
-                    <div class="flex justify-between items-center text-xs text-gray-600 pt-3 border-t border-gray-100">
-                        <span class="flex items-center gap-1.5"><span
-                                class="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block"></span>Realisasi: <b
-                                id="lbl-chart-real">Rp 0</b></span>
-                        <span class="flex items-center gap-1.5"><span
-                                class="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block"></span>Sisa: <b
-                                id="lbl-chart-sisa">Rp 0</b></span>
-                    </div>
-                </div>
-
-                <div
-                    class="lg:col-span-2 bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-sm font-semibold text-gray-700">Pagu dan Realisasi</h3>
-                        <span id="chart-bar-note" class="text-xs text-gray-400">7 pagu terbesar</span>
-                    </div>
-                    <div class="relative w-full" style="height: 190px;">
-                        <canvas id="chart-bar"></canvas>
-                    </div>
-                </div>
-            </div>
-
             {{-- ===== Filter ===== --}}
             <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -184,17 +127,19 @@
                     @endforeach
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1 font-medium">Unit Kerja</label>
-                        <select id="f-unit"
-                            class="w-full rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"></select>
+                <div>
+                    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <label class="text-xs text-gray-500 font-medium">Unit Kerja <span id="unit-count"
+                                class="font-normal text-gray-400"></span></label>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" id="btn-unit-all"
+                                class="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition">Pilih
+                                semua</button>
+                            <button type="button" id="btn-unit-none"
+                                class="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition">Kosongkan</button>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1 font-medium">Asdep / Sesdep</label>
-                        <select id="f-subunit"
-                            class="w-full rounded-lg border border-gray-200 py-2 px-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white disabled:bg-gray-50 disabled:text-gray-400"></select>
-                    </div>
+                    <div id="unit-checks" class="space-y-2"></div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -239,6 +184,18 @@
                         </select>
                     </div>
                 </div>
+            </div>
+
+            {{-- ===== Per unit kerja (dikelompokkan per induk) ===== --}}
+            <div id="section-unit" class="hidden space-y-3">
+                <div class="flex items-end justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-700">Anggaran per Unit Kerja</h3>
+                        <p class="text-xs text-gray-400">Kartu muncul untuk unit yang dicentang pada filter Unit Kerja
+                            di atas.</p>
+                    </div>
+                </div>
+                <div id="unit-cards"></div>
             </div>
 
             {{-- ===== Tabel hierarki ===== --}}
@@ -314,21 +271,6 @@
     </div>
 
     <script>
-        let donutChartInstance = null;
-        let barChartInstance = null;
-
-        function toggleChart() {
-            const sec = document.getElementById('section-chart');
-            const lbl = document.getElementById('lbl-toggle-chart');
-            if (sec.classList.contains('hidden')) {
-                sec.classList.remove('hidden');
-                lbl.textContent = 'Sembunyikan Grafik';
-            } else {
-                sec.classList.add('hidden');
-                lbl.textContent = 'Tampilkan Grafik';
-            }
-        }
-
         (function () {
             const CH = ['keg', 'ro', 'komp', 'sub', 'akun'];
             const $ = (id) => document.getElementById(id);
@@ -339,7 +281,7 @@
 
             // Filter unit kerja (dari dropdown atau klik kartu).
             // unit = kelompok/induk (mis. D1 atau BIRO UHM), sub = unit kerja di dalamnya (mis. "Asdep 1 D1").
-            const U = { unit: '', sub: '' };
+            const U = { units: new Set(), sub: '' };
             const openUnits = new Set();   // kelompok yang rinciannya sedang dibuka
             const BELUM = 'Belum dipetakan';
             const pctTxt = (x) => x.toFixed(1).replace('.', ',') + ' %';
@@ -499,14 +441,24 @@
             const cmpUnit = (a, b) => a === BELUM ? 1 : b === BELUM ? -1
                 : (unitRank(a) - unitRank(b)) || a.localeCompare(b, 'id', { numeric: true });
 
+            const isD = (u) => /^D\d+$/.test(u);
+            const orderUnits = (arr) => [...arr].sort((a, b) => (isD(b) - isD(a))
+                || (a === BELUM ? 1 : b === BELUM ? -1 : 0)
+                || a.localeCompare(b, 'id', { numeric: true }));
+
+            // Daftar centang unit kerja
             function fillUnitSel() {
-                const units = [...new Set(items.map((i) => i.unit))].sort(cmpUnit);
-                $('f-unit').innerHTML = '<option value="">Semua unit</option>' + units.map((u) => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
-                $('f-unit').value = U.unit;
-                const subs = [...new Set(items.filter((i) => !U.unit || i.unit === U.unit).map((i) => i.sub_unit).filter(Boolean))].sort(cmpUnit);
-                $('f-subunit').innerHTML = '<option value="">Semua</option>' + subs.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-                $('f-subunit').value = U.sub;
-                $('f-subunit').disabled = subs.length === 0;
+                const units = orderUnits(new Set(items.map((i) => i.unit)));
+                const chip = (u) => {
+                    const on = U.units.has(u);
+                    return `<label class="inline-flex cursor-pointer select-none items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition ${on ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'} ${u === BELUM && !on ? 'border-amber-200 text-amber-800' : ''}">
+                        <input type="checkbox" value="${esc(u)}" ${on ? 'checked' : ''} class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">${esc(u)}</label>`;
+                };
+                const d = units.filter(isD), o = units.filter((u) => !isD(u));
+                $('unit-checks').innerHTML =
+                    (d.length ? `<div class="flex flex-wrap gap-2">${d.map(chip).join('')}</div>` : '') +
+                    (o.length ? `<div class="flex flex-wrap gap-2">${o.map(chip).join('')}</div>` : '');
+                $('unit-count').textContent = U.units.size ? `· ${U.units.size} dari ${units.length} dipilih` : '· belum ada yang dipilih (tabel menampilkan semua unit)';
             }
 
             function updateExportLink() {
@@ -515,18 +467,21 @@
                 const q = $('ang-q').value.trim();
                 if (q) p.set('q', q);
                 if ($('f-level').value !== 'all') p.set('level', $('f-level').value);
-                if (U.unit) p.set('unit', U.unit);
+                if (U.units.size) p.set('unit', [...U.units].join(','));
                 if (U.sub) p.set('sub_unit', U.sub);
                 const base = @json(route('anggaran.export'));
                 $('btn-export').href = base + (p.toString() ? '?' + p.toString() : '');
             }
 
-            // ---- kartu per unit kerja ----
-            // Dihitung dari data yang lolos filter Kegiatan..Akun, TANPA filter unit,
-            // supaya semua unit tetap terlihat dan bisa dipindah-pindah.
+            // ---- kartu unit kerja (hanya untuk unit yang dicentang) ----
+            // Dihitung dari data yang lolos filter Kegiatan..Akun, TANPA filter unit.
             function renderUnitCards() {
+                const section = $('section-unit');
+                section.classList.toggle('hidden', U.units.size === 0);
+                if (!U.units.size) { $('unit-cards').innerHTML = ''; return; }
+
                 const by = new Map();
-                items.filter((it) => match(it, 5)).forEach((it) => {
+                items.filter((it) => match(it, 5) && U.units.has(it.unit)).forEach((it) => {
                     const v = vals(it);
                     let a = by.get(it.unit);
                     if (!a) { a = { unit: it.unit, pagu: 0, sd: 0, subs: new Map() }; by.set(it.unit, a); }
@@ -537,58 +492,87 @@
                         x.pagu += v.pagu; x.sd += v.sd;
                     }
                 });
-
-                const isD = (u) => /^D\d+$/.test(u);
-                const deputi = [...by.values()].filter((a) => isD(a.unit))
-                    .sort((a, b) => a.unit.localeCompare(b.unit, 'id', { numeric: true }));
-                const others = [...by.values()].filter((a) => !isD(a.unit))
-                    .sort((a, b) => a.unit === BELUM ? 1 : b.unit === BELUM ? -1 : b.pagu - a.pagu);
-                const sumP = [...by.values()].reduce((t, a) => t + a.pagu, 0);
-                const sumR = [...by.values()].reduce((t, a) => t + a.sd, 0);
+                const list = orderUnits([...U.units]).map((u) => by.get(u) || { unit: u, pagu: 0, sd: 0, subs: new Map() });
+                const single = list.length === 1;
+                const sumP = list.reduce((t, a) => t + a.pagu, 0);
+                const sumR = list.reduce((t, a) => t + a.sd, 0);
 
                 const money = (v) => `<span title="Rp ${rp(v)}">${short(v)}</span>`;
                 const bar = (p, h = 'h-1.5') => `<div class="${h} w-full overflow-hidden rounded-full bg-gray-100">
                     <div class="h-full rounded-full bg-indigo-500 transition-all" style="width:${Math.min(100, p)}%"></div></div>`;
-                const chevron = (isOpen) => `<svg class="chev w-3.5 h-3.5 ${isOpen ? 'is-open' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>`;
+                const chevron = (o) => `<svg class="chev w-3.5 h-3.5 ${o ? 'is-open' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>`;
                 const stat = (label, v) => `<div>
                     <p class="text-[10px] uppercase tracking-wide text-gray-400">${label}</p>
-                    <p class="mt-0.5 text-sm font-medium tabular-nums text-gray-800">${money(v)}</p></div>`;
+                    <p class="mt-0.5 text-sm font-semibold tabular-nums text-gray-900">${money(v)}</p></div>`;
+                const subLabel = (unit, name) => /\(langsung\)/.test(name) ? 'Langsung ke ' + unit : name.replace(/\s+D\d+$/i, '');
+                const sortedSubs = (a) => [...a.subs.entries()].sort((x, y) => cmpUnit(x[0], y[0]));
 
-                // Baris kecil untuk Asdep / Sesdep di dalam kartu
-                const subRow = (unit, name, label, x) => {
-                    const p = x.pagu ? x.sd / x.pagu * 100 : 0;
-                    const on = U.unit === unit && U.sub === name;
-                    return `<div data-unit="${esc(unit)}" data-sub="${esc(name)}" aria-selected="${on}"
-                        class="cursor-pointer rounded-lg px-2.5 py-2 transition ${on ? 'bg-indigo-50' : 'hover:bg-gray-50'}">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <span class="truncate text-xs ${on ? 'font-semibold text-indigo-700' : 'text-gray-600'}">${esc(label)}</span>
-                            <span class="shrink-0 text-xs font-medium tabular-nums text-gray-800">${pctTxt(p)}</span>
+                // ---------- Satu unit dipilih: kartu lebar + rincian bisa diklik ----------
+                const wideCard = (a) => {
+                    const p = a.pagu ? a.sd / a.pagu * 100 : 0;
+                    const warn = a.unit === BELUM;
+                    const subs = sortedSubs(a);
+                    const subCard = ([name, x]) => {
+                        const sp = x.pagu ? x.sd / x.pagu * 100 : 0;
+                        const on = U.sub === name;
+                        return `<div data-sub="${esc(name)}" aria-selected="${on}"
+                            class="cursor-pointer rounded-lg border px-3.5 py-3 transition ${on ? 'border-indigo-400 bg-indigo-50/60 ring-1 ring-indigo-400' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}">
+                            <div class="flex items-baseline justify-between gap-3">
+                                <span class="truncate text-xs font-medium ${on ? 'text-indigo-700' : 'text-gray-700'}">${esc(subLabel(a.unit, name))}</span>
+                                <span class="shrink-0 text-sm font-semibold tabular-nums text-gray-900">${pctTxt(sp)}</span>
+                            </div>
+                            <div class="mt-2">${bar(sp, 'h-1')}</div>
+                            <div class="mt-2 flex justify-between text-[11px] tabular-nums text-gray-500">
+                                <span>Pagu <b class="font-medium text-gray-700">${short(x.pagu)}</b></span>
+                                <span>Sisa <b class="font-medium text-gray-700">${short(x.pagu - x.sd)}</b></span>
+                            </div>
+                        </div>`;
+                    };
+                    return `<div class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                        <div class="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+                            <div>
+                                <p class="text-[11px] uppercase tracking-wide text-gray-400">Unit terpilih</p>
+                                <h4 class="mt-0.5 text-lg font-semibold ${warn ? 'text-amber-800' : 'text-gray-900'}">${esc(a.unit)}</h4>
+                                ${warn ? '<p class="mt-1 text-[11px] font-medium text-amber-700">Belum dipetakan oleh admin</p>' : ''}
+                            </div>
+                            <div class="flex flex-wrap items-end gap-x-8 gap-y-3">
+                                ${stat('Pagu', a.pagu)}${stat('Terpakai', a.sd)}${stat('Sisa', a.pagu - a.sd)}
+                                <div class="text-right">
+                                    <p class="text-[10px] uppercase tracking-wide text-gray-400">Penyerapan</p>
+                                    <p class="text-2xl font-semibold tabular-nums tracking-tight text-gray-900">${pctTxt(p)}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mt-1.5">${bar(p, 'h-1')}</div>
-                        <div class="mt-1 flex justify-between text-[10px] tabular-nums text-gray-400">
-                            <span>Pagu ${short(x.pagu)}</span><span>Sisa ${short(x.pagu - x.sd)}</span>
-                        </div>
+                        <div class="mt-4">${bar(p)}</div>
+                        ${subs.length ? `<div class="mt-5 border-t border-gray-100 pt-4">
+                            <p class="mb-2.5 text-[11px] text-gray-400">Rincian Asdep / Sesdep &middot; klik untuk mempersempit tabel, klik lagi untuk membatalkan</p>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">${subs.map(subCard).join('')}</div>
+                        </div>` : ''}
                     </div>`;
                 };
 
-                // Kartu Deputi (besar)
-                const deputiCard = (a) => {
+                // ---------- Beberapa unit dipilih: kartu ringkas berdampingan ----------
+                const compactCard = (a) => {
                     const p = a.pagu ? a.sd / a.pagu * 100 : 0;
-                    const on = U.unit === a.unit && !U.sub;
-                    const active = U.unit === a.unit;
-                    const subs = [...a.subs.entries()].sort((x, y) => cmpUnit(x[0], y[0]));
+                    const warn = a.unit === BELUM;
+                    const subs = sortedSubs(a);
                     const isOpen = openUnits.has(a.unit);
-                    const subHtml = isOpen && subs.length ? `<div class="mt-4 space-y-0.5 border-t border-gray-100 pt-3">
+                    const subHtml = isOpen && subs.length ? `<div class="mt-4 space-y-2.5 border-t border-gray-100 pt-3">
                         ${subs.map(([name, x]) => {
-                        const label = /\(langsung\)/.test(name) ? 'Langsung ke ' + a.unit : name.replace(/\s+D\d+$/i, '');
-                        return subRow(a.unit, name, label, x);
+                        const sp = x.pagu ? x.sd / x.pagu * 100 : 0;
+                        return `<div>
+                                <div class="flex items-baseline justify-between gap-3">
+                                    <span class="truncate text-xs text-gray-600">${esc(subLabel(a.unit, name))}</span>
+                                    <span class="shrink-0 text-xs font-medium tabular-nums text-gray-800">${pctTxt(sp)}</span>
+                                </div>
+                                <div class="mt-1">${bar(sp, 'h-1')}</div>
+                            </div>`;
                     }).join('')}</div>` : '';
-                    return `<div data-unit="${esc(a.unit)}" aria-selected="${on}"
-                        class="cursor-pointer rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md ${active ? 'border-indigo-400 ring-1 ring-indigo-400' : 'border-gray-100 hover:border-gray-200'}">
-                        <div class="flex items-center justify-between">
-                            <h4 class="text-sm font-semibold text-gray-900">${esc(a.unit)}</h4>
+                    return `<div class="rounded-xl border bg-white p-4 shadow-sm ${warn ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100'}">
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="truncate text-sm font-semibold ${warn ? 'text-amber-800' : 'text-gray-900'}">${esc(a.unit)}</h4>
                             ${subs.length ? `<button type="button" data-toggle="${esc(a.unit)}" aria-label="Lihat rincian ${esc(a.unit)}" aria-expanded="${isOpen}"
-                                class="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition">${chevron(isOpen)}</button>` : ''}
+                                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition">${chevron(isOpen)}</button>` : ''}
                         </div>
                         <p class="mt-3 text-2xl font-semibold tabular-nums tracking-tight text-gray-900">${pctTxt(p)}</p>
                         <p class="text-[11px] text-gray-400">terserap</p>
@@ -596,87 +580,19 @@
                         <div class="mt-4 grid grid-cols-3 gap-2">
                             ${stat('Pagu', a.pagu)}${stat('Terpakai', a.sd)}${stat('Sisa', a.pagu - a.sd)}
                         </div>
+                        ${warn ? '<p class="mt-3 text-[10px] font-medium text-amber-700">Belum dipetakan oleh admin</p>' : ''}
                         ${subHtml}
                     </div>`;
                 };
 
-                // Kartu Biro & Lainnya (ringkas)
-                const miniCard = (a) => {
-                    const p = a.pagu ? a.sd / a.pagu * 100 : 0;
-                    const on = U.unit === a.unit;
-                    const warn = a.unit === BELUM;
-                    return `<div data-unit="${esc(a.unit)}" aria-selected="${on}"
-                        class="cursor-pointer rounded-xl border bg-white px-4 py-3 shadow-sm transition hover:shadow-md ${on ? 'border-indigo-400 ring-1 ring-indigo-400' : (warn ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100 hover:border-gray-200')}">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <h4 class="truncate text-sm font-semibold ${warn ? 'text-amber-800' : 'text-gray-900'}">${esc(a.unit)}</h4>
-                            <span class="shrink-0 text-sm font-semibold tabular-nums text-gray-900">${pctTxt(p)}</span>
-                        </div>
-                        <div class="mt-2">${bar(p, 'h-1')}</div>
-                        <div class="mt-2 flex justify-between text-[11px] tabular-nums text-gray-500">
-                            <span>Pagu <b class="font-medium text-gray-700">${short(a.pagu)}</b></span>
-                            <span>Sisa <b class="font-medium text-gray-700">${short(a.pagu - a.sd)}</b></span>
-                        </div>
-                        ${warn ? '<p class="mt-2 text-[10px] font-medium text-amber-700">Belum dipetakan oleh admin</p>' : ''}
-                    </div>`;
-                };
-
                 const totalP = sumP ? sumR / sumP * 100 : 0;
-
-                $('unit-cards').innerHTML = `
-                    <div class="space-y-5">
-                        ${deputi.length ? `<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">${deputi.map(deputiCard).join('')}</div>` : ''}
-                        ${others.length ? `<div>
-                            <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Biro &amp; Lainnya</p>
-                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">${others.map(miniCard).join('')}</div>
-                        </div>` : ''}
-                        <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-600">
-                            <span>Total semua unit: Pagu <b class="text-gray-900">${short(sumP)}</b> · Terpakai <b class="text-gray-900">${short(sumR)}</b> · Sisa <b class="text-gray-900">${short(sumP - sumR)}</b> · <b class="text-gray-900">${pctTxt(totalP)}</b></span>
-                            <span class="text-gray-400">Angka dalam miliar rupiah (arahkan kursor untuk nilai penuh)</span>
-                        </div>
-                    </div>`;
-                $('btn-unit-clear').classList.toggle('hidden', !U.unit);
-            }
-
-            function updateCharts(P, R, pool, levelKey) {
-                const sisa = Math.max(0, P - R);
-
-                $('lbl-chart-real').textContent = 'Rp ' + rp(R);
-                $('lbl-chart-sisa').textContent = 'Rp ' + rp(sisa);
-
-                const ctxDonut = $('chart-donut').getContext('2d');
-                if (donutChartInstance) donutChartInstance.destroy();
-                donutChartInstance = new Chart(ctxDonut, {
-                    type: 'doughnut',
-                    data: { labels: ['Realisasi', 'Sisa'], datasets: [{ data: [R, sisa], backgroundColor: ['#4f46e5', '#e5e7eb'], borderWidth: 0 }] },
-                    options: {
-                        responsive: true, maintainAspectRatio: false, cutout: '72%',
-                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: Rp ${rp(ctx.raw)}` } } }
-                    }
-                });
-
-                const top = [...pool].sort((a, b) => b.v.pagu - a.v.pagu).slice(0, 7);
-                const lvLabel = levelKey === 'all' ? 'item' : (LEVELS.find((l) => l.key === levelKey)?.label || 'item').toLowerCase();
-                $('chart-bar-note').textContent = '7 pagu terbesar · level ' + lvLabel;
-                const ctxBar = $('chart-bar').getContext('2d');
-                if (barChartInstance) barChartInstance.destroy();
-                barChartInstance = new Chart(ctxBar, {
-                    type: 'bar',
-                    data: {
-                        labels: top.map((x) => x.kode || '-'),
-                        datasets: [
-                            { label: 'Pagu', data: top.map((x) => x.v.pagu), backgroundColor: '#c7d2fe', borderRadius: 4 },
-                            { label: 'Realisasi', data: top.map((x) => x.v.sd), backgroundColor: '#4f46e5', borderRadius: 4 }
-                        ]
-                    },
-                    options: {
-                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'top', align: 'end' },
-                            tooltip: { callbacks: { title: (c) => { const n = top[c[0].dataIndex]; return (n.kode || '-') + (n.uraian ? ' – ' + n.uraian.slice(0, 60) : ''); }, label: (c) => ` ${c.dataset.label}: Rp ${rp(c.raw)}` } }
-                        },
-                        scales: { x: { ticks: { callback: (v) => v >= 1e9 ? (v / 1e9).toFixed(1) + ' M' : (v >= 1e6 ? (v / 1e6).toFixed(0) + ' jt' : v) } } }
-                    }
-                });
+                $('unit-cards').innerHTML = single
+                    ? wideCard(list[0]) + '<p class="mt-2 text-[11px] text-gray-400">Angka dalam miliar rupiah (arahkan kursor ke angka untuk nilai penuh).</p>'
+                    : `<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">${list.map(compactCard).join('')}</div>
+                       <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-600">
+                           <span>Total ${list.length} unit terpilih: Pagu <b class="text-gray-900">${short(sumP)}</b> · Terpakai <b class="text-gray-900">${short(sumR)}</b> · Sisa <b class="text-gray-900">${short(sumP - sumR)}</b> · <b class="text-gray-900">${pctTxt(totalP)}</b></span>
+                           <span class="text-gray-400">Angka dalam miliar rupiah. Pilih satu unit saja untuk memfilter per Asdep/Sesdep.</span>
+                       </div>`;
             }
 
             // highlight kata kunci pada teks
@@ -731,7 +647,7 @@
 
                 // 1) bangun pohon dari data yang lolos filter bertingkat + filter unit
                 const scoped = items.filter((it) => match(it, 5)
-                    && (!U.unit || it.unit === U.unit)
+                    && (!U.units.size || U.units.has(it.unit))
                     && (!U.sub || it.sub_unit === U.sub));
                 curRoot = buildTree(scoped);
                 if (pendingOpen === 'all') { open = new Set(); openAll(); }
@@ -757,9 +673,6 @@
                 $('s-sisa').textContent = 'Rp ' + rp(P - R);
                 $('s-pct').textContent = P ? pctAll.toFixed(2).replace('.', ',') + ' %' : '-';
                 $('s-bar').style.width = Math.min(100, pctAll) + '%';
-
-                const pool = levelKey === 'all' ? leaves : all.filter((n) => n.depth === LV_DEPTH[levelKey]);
-                updateCharts(P, R, pool, levelKey);
                 updateExportLink();
 
                 // 4) petunjuk di atas tabel
@@ -886,10 +799,11 @@
                 render();
             }
 
-            function setUnit(unit, sub) {
-                U.unit = unit; U.sub = sub || '';
+            function afterUnitsChange() {
+                const total = new Set(items.map((i) => i.unit)).size;
+                U.sub = '';
                 currentPage = 1;
-                pendingOpen = U.unit ? 'all' : 'default';
+                pendingOpen = (U.units.size && U.units.size < total) ? 'all' : 'default';
                 fillUnitSel();
                 render();
             }
@@ -905,35 +819,28 @@
                     render();
                 });
             });
-            $('f-unit').addEventListener('change', function () { if (this.value) openUnits.add(this.value); setUnit(this.value, ''); });
-            $('f-subunit').addEventListener('change', function () {
-                U.sub = this.value; currentPage = 1; pendingOpen = 'all'; render();
+            $('unit-checks').addEventListener('change', (e) => {
+                const cb = e.target.closest('input[type=checkbox]');
+                if (!cb) return;
+                cb.checked ? U.units.add(cb.value) : U.units.delete(cb.value);
+                afterUnitsChange();
             });
+            $('btn-unit-all').addEventListener('click', () => { items.forEach((i) => U.units.add(i.unit)); afterUnitsChange(); });
+            $('btn-unit-none').addEventListener('click', () => { U.units.clear(); afterUnitsChange(); });
             $('unit-cards').addEventListener('click', (e) => {
                 const t = e.target.closest('[data-toggle]');
-                if (t) {                        // panah: buka/tutup rincian saja
+                if (t) {                        // panah (mode beberapa unit): buka/tutup rincian
                     const u = t.dataset.toggle;
                     openUnits.has(u) ? openUnits.delete(u) : openUnits.add(u);
                     renderUnitCards();
                     return;
                 }
-                const b = e.target.closest('[data-unit]');
+                const b = e.target.closest('[data-sub]');   // mode satu unit: klik Asdep/Sesdep
                 if (!b) return;
-                const unit = b.dataset.unit, sub = b.dataset.sub || '';
-                if (sub) {                      // baris Asdep/Sesdep: klik lagi = kembali ke filter kelompoknya
-                    const same = U.unit === unit && U.sub === sub;
-                    U.unit = unit;
-                    U.sub = same ? '' : sub;
-                    openUnits.add(unit);
-                    currentPage = 1; pendingOpen = 'all';
-                    fillUnitSel(); render();
-                } else {                        // kartu Deputi / biro: klik lagi = lepas filter
-                    const off = U.unit === unit && !U.sub;
-                    if (!off) openUnits.add(unit);
-                    setUnit(off ? '' : unit, '');
-                }
+                U.sub = U.sub === b.dataset.sub ? '' : b.dataset.sub;
+                currentPage = 1; pendingOpen = 'all';
+                render();
             });
-            $('btn-unit-clear').addEventListener('click', () => setUnit('', ''));
 
             $('f-level').addEventListener('change', () => { currentPage = 1; render(); });
             $('f-limit').addEventListener('change', () => { currentPage = 1; render(); });
@@ -952,7 +859,7 @@
             });
             $('btn-reset').addEventListener('click', () => {
                 CH.forEach((k) => { F[k] = ''; });
-                U.unit = ''; U.sub = '';
+                U.units = new Set(); U.sub = '';
                 $('ang-q').value = '';
                 $('f-level').value = 'all';
                 selectedId = null; forceClosed = new Set();
