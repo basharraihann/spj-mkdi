@@ -752,11 +752,11 @@
 
                     const totalP = sumP ? sumR / sumP * 100 : 0;
                     $('unit-cards').innerHTML = single
-                        ? wideCard(list[0]) + '<p class="mt-2 text-[11px] text-gray-400">Angka dalam miliar rupiah (arahkan kursor ke angka untuk nilai penuh).</p>'
-                        : `<div class="space-y-4">${list.map(wideCard).join('')}</div>
+                        ? wideCard(list[0]) + '<p class="mt-2 text-[11px] text-gray-400">Angka dalam rupiah.</p>'
+                        : `<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">${list.map(compactCard).join('')}</div>
                        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-600">
-                           <span>Total ${list.length} unit terpilih: Pagu <b class="text-gray-900">${short(sumP)}</b> · Terpakai <b class="text-gray-900">${short(sumR)}</b> · Sisa <b class="text-gray-900">${short(sumP - sumR)}</b> · <b class="text-gray-900">${pctTxt(totalP)}</b></span>
-                           <span class="text-gray-400">Angka dalam miliar rupiah. Klik kartu unit untuk membuka rincian Asdep/Sesdep.</span>
+                           <span>Total ${list.length} unit terpilih: Pagu <b class="text-gray-900">${short(sumP)}</b> · Realisasi <b class="text-gray-900">${short(sumR)}</b> · Sisa <b class="text-gray-900">${short(sumP - sumR)}</b> · <b class="text-gray-900">${pctTxt(totalP)}</b></span>
+                           <span class="text-gray-400">Angka dalam rupiah. Pilih satu unit saja untuk memfilter per Asdep/Sesdep.</span>
                        </div>`;
                 }
 
