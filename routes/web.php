@@ -13,6 +13,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\NominatifCustomController;
+use App\Http\Controllers\SuratTugasController;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -106,6 +107,29 @@ Route::middleware('auth')->group(function () {
                 Route::delete('{nominatif}', 'destroy')->name('destroy');
                 Route::get('{nominatif}/pdf', 'pdf')->name('pdf');
             });
+        });
+
+    // Surat Tugas perdin (draf -> terbit bernomor otomatis -> selesai/batal)
+    Route::prefix('surat-tugas')
+        ->name('surat-tugas.')
+        ->controller(SuratTugasController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('create', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+
+            // Atur counter nomor (khusus admin) - harus di atas route {suratTugas}
+            Route::post('counter', 'setCounter')->middleware('admin')->name('counter');
+
+            Route::get('{suratTugas}', 'show')->name('show');
+            Route::get('{suratTugas}/edit', 'edit')->name('edit');
+            Route::put('{suratTugas}', 'update')->name('update');
+            Route::delete('{suratTugas}', 'destroy')->name('destroy');
+
+            Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
+            Route::post('{suratTugas}/terbitkan', 'terbitkan')->name('terbitkan');
+            Route::post('{suratTugas}/selesai', 'selesai')->name('selesai');
+            Route::post('{suratTugas}/batal', 'batal')->name('batal');
         });
 
     Route::middleware(['auth'])->group(function () {
