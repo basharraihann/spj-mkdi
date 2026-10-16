@@ -1,26 +1,18 @@
 <style>
-    /* ===== Tema: gradien putih -> biru ===== */
     .sb-aside {
         background-image: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #eef3fb 100%);
         border-color: #e2e8f0;
     }
-
-    /* Menu aktif: sederhana, latar biru sangat muda + teks navy */
     .sb-active {
         background-color: #e6edf8;
         color: #1e3a8a;
     }
-
-    /* ===== Sidebar muat tanpa scroll ===== */
     .sb-nav {
         scrollbar-width: none;
     }
-
     .sb-nav::-webkit-scrollbar {
         display: none;
     }
-
-    /* Layar pendek: rapatkan otomatis */
     @media (max-height: 820px) {
         .sb-nav {
             padding-top: .5rem !important;

@@ -10,6 +10,20 @@
         peserta: @js(array_values($pesertaInit)),
         pegawai: @js($pegawaiOptions),
         pick: '',
+        kode: @js(old('kode_klasifikasi', $st->kode_klasifikasi)),
+        tanggal: @js(old('tanggal', optional($st->tanggal)->format('Y-m-d'))),
+        ttd: @js([
+            'nama' => old('nama_penandatangan', $st->nama_penandatangan),
+            'nip' => old('nip_penandatangan', $st->nip_penandatangan),
+            'jabatan' => old('jabatan_penandatangan', $st->jabatan_penandatangan),
+        ]),
+        pickTtd: '',
+        get tahun() { return this.tanggal ? this.tanggal.substring(0, 4) : new Date().getFullYear(); },
+        setTtd() {
+            const p = this.pegawai.find(x => String(x.id) === String(this.pickTtd));
+            if (!p) return;
+            this.ttd = { nama: p.nama, nip: p.nip || '', jabatan: p.jabatan || this.ttd.jabatan };
+        },
         addPegawai() {
             const p = this.pegawai.find(x => String(x.id) === String(this.pick));
             if (!p) return;
@@ -20,7 +34,7 @@
     }" class="space-y-6">
 
     @if ($errors->any())
-        <div class="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+        <div class="rounded-lg border p-4 text-sm" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c;">
             <ul class="list-disc pl-5">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
         </div>
     @endif
@@ -35,12 +49,15 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Tanggal Surat</label>
-                <input type="date" name="tanggal" value="{{ old('tanggal', optional($st->tanggal)->format('Y-m-d')) }}" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                <input type="date" name="tanggal" x-model="tanggal" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Kode Klasifikasi</label>
-                <input type="text" name="kode_klasifikasi" value="{{ old('kode_klasifikasi', $st->kode_klasifikasi) }}" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
-                <p class="text-xs text-gray-500 mt-1">Nomor otomatis dibuat saat diterbitkan.</p>
+                <label class="block text-sm font-medium text-gray-700">Nomor ST (bagian tengah)</label>
+                <input type="text" name="kode_klasifikasi" x-model="kode" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                <p class="text-xs text-gray-500 mt-1">
+                    Nomor urut otomatis saat terbit. Contoh nomor:
+                    <span class="font-medium text-gray-700" x-text="'204/' + kode + '/' + tahun"></span>
+                </p>
             </div>
         </div>
     </div>
@@ -125,18 +142,30 @@
     {{-- Penandatangan --}}
     <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
         <h3 class="font-semibold text-gray-800">Penandatangan</h3>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Pilih dari data pegawai</label>
+            <select x-model="pickTtd" @change="setTtd()" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                <option value="">— pilih penandatangan —</option>
+                <template x-for="p in pegawai" :key="p.id">
+                    <option :value="p.id" x-text="p.nama + (p.jabatan ? ' — ' + p.jabatan : '')"></option>
+                </template>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">Nama, NIP, dan jabatan terisi otomatis dan masih bisa diubah.</p>
+        </div>
+
         <div class="grid md:grid-cols-3 gap-4">
             <div class="md:col-span-3">
                 <label class="block text-sm font-medium text-gray-700">Jabatan</label>
-                <input type="text" name="jabatan_penandatangan" value="{{ old('jabatan_penandatangan', $st->jabatan_penandatangan) }}" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                <input type="text" name="jabatan_penandatangan" x-model="ttd.jabatan" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700">Nama</label>
-                <input type="text" name="nama_penandatangan" value="{{ old('nama_penandatangan', $st->nama_penandatangan) }}" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                <input type="text" name="nama_penandatangan" x-model="ttd.nama" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">NIP (opsional)</label>
-                <input type="text" name="nip_penandatangan" value="{{ old('nip_penandatangan', $st->nip_penandatangan) }}" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                <input type="text" name="nip_penandatangan" x-model="ttd.nip" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
             </div>
         </div>
     </div>

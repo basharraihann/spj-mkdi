@@ -47,6 +47,7 @@ class SuratTugasRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'kode_klasifikasi' => 'nomor ST',
             'untuk' => 'poin "Untuk"',
             'peserta' => 'peserta',
             'peserta.*.nama' => 'nama peserta',

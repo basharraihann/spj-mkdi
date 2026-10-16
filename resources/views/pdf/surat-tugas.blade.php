@@ -10,28 +10,30 @@
 <meta charset="utf-8">
 <title>Surat Tugas {{ $st->nomor_tampil }}</title>
 <style>
-    @page { margin: 1.6cm 2cm 1.6cm 2cm; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; line-height: 1.35; }
+    @page { margin: 1.2cm 1.5cm 1.5cm 1.5cm; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; color: #000; line-height: 1.2; }
     table { border-collapse: collapse; }
     .kop td { vertical-align: middle; }
     .kop-text { text-align: center; padding-left: 8px; }
-    .kop-text .b { font-weight: bold; font-size: 13pt; }
-    .kop-text .s { font-size: 11pt; }
+    .kop-text .b { font-weight: bold; font-size: 14pt; }
+    .kop-text .s { font-size: 12pt; }
     .garis { border-top: 3px solid #000; margin: 6px 0 22px; }
     .judul { text-align: center; font-weight: bold; font-size: 12pt; margin: 0; }
     .nomor { text-align: center; margin: 2px 0 18px; }
     .row td { vertical-align: top; padding-bottom: 14px; text-align: justify; }
-    .lbl { width: 14%; }
-    .sep { width: 3%; text-align: center; }
+    .isi { padding: 0 1.2cm 0 1cm; }
+    .lbl { width: 21%; }
+    .sep { width: 6%; text-align: left; }
     ol { margin: 0; padding-left: 20px; }
     ol li { padding-left: 4px; margin-bottom: 2px; text-align: justify; }
     .memberi { text-align: center; font-weight: bold; margin: 4px 0 14px; }
-    .ttd { margin-left: 52%; margin-top: 10px; }
-    .ttd .space { height: 70px; }
+    .ttd { margin-left: 57%; margin-top: 8px; }
+    .ttd .space { height: 85px; }
     .lampiran { page-break-before: always; }
-    .lamp-head td { padding: 1px 0; }
+    .lamp-head td { padding: 0; }
+    .lamp-wrap { margin-left: 57%; margin-top: 4px; }
     .daftar { width: 100%; margin-top: 8px; }
-    .daftar th, .daftar td { border: 1px solid #000; padding: 5px 7px; vertical-align: top; }
+    .daftar th, .daftar td { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
     .daftar th { text-align: center; }
 </style>
 </head>
@@ -49,6 +51,7 @@
     </tr>
 </table>
 <div class="garis"></div>
+<div class="isi">
 
 <p class="judul">SURAT TUGAS</p>
 <p class="nomor">NOMOR: {{ $st->nomor_tampil }}</p>
@@ -91,13 +94,15 @@
 
 {{-- Lampiran --}}
 <div class="lampiran">
-    <p style="font-weight:bold; margin:0 0 6px;">Lampiran Surat Tugas</p>
+    <div class="lamp-wrap">
+    <div>Lampiran Surat Tugas</div>
     <table class="lamp-head">
         <tr><td width="70">Nomor</td><td width="12">:</td><td>{{ $st->nomor_tampil }}</td></tr>
         <tr><td>Tanggal</td><td>:</td><td>{{ $st->tanggal_indo }}</td></tr>
     </table>
+    </div>
 
-    <p class="judul" style="margin-top:16px;">DAFTAR PESERTA YANG DITUGASKAN</p>
+    <p class="judul" style="margin-top:22px;">DAFTAR PESERTA YANG DITUGASKAN</p>
 
     <table class="daftar">
         <thead>
@@ -121,5 +126,6 @@
     </div>
 </div>
 
+</div>
 </body>
 </html>
