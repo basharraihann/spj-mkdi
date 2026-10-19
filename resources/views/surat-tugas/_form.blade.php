@@ -11,7 +11,10 @@
     $untuk = old('untuk', $st->untuk ?: ['']);
 
     $pesertaInit = collect(old('peserta', $peserta))
-        ->map(fn($p) => array_merge(['jenis' => 'pns'], (array) $p))
+        ->map(fn($p) => array_merge(
+            ['jenis' => 'pns', 'pegawai_id' => null, 'nama' => '', 'nip' => '', 'jabatan' => '', 'tanggal_mulai' => '', 'tanggal_selesai' => ''],
+            array_filter((array) $p, fn($v) => $v !== null)
+        ))
         ->values()->all();
 
     $provinsiTerpilih = old('provinsi', $st->provinsi ?? '');
@@ -27,11 +30,12 @@
         pick: { pns: '', non_pns: '' },
         kode: @js(old('kode_klasifikasi', $st->kode_klasifikasi)),
         tanggal: @js(old('tanggal', optional($st->tanggal)->format('Y-m-d'))),
+        mulai: @js(old('tanggal_mulai', optional($st->tanggal_mulai)->format('Y-m-d'))),
+        selesai: @js(old('tanggal_selesai', optional($st->tanggal_selesai)->format('Y-m-d'))),
         nomorUrut: @js($st->nomor_urut),
         nomor: @js($st->nomor),
         tahunNomor: @js($st->tahun),
         ambilUrl: @js(route('surat-tugas.nomor-berikutnya')),
-        mintaNomor: false,
         loadingNomor: false,
         errNomor: '',
         ttd: @js([
@@ -41,7 +45,9 @@
         ]),
         pickTtd: '',
 
+        // Nomor terisi otomatis (pratinjau, belum mengubah counter). Dikunci saat Simpan.
         async ambilNomor() {
+            if (this.nomorUrut || !this.tanggal || !this.kode) return;
             this.loadingNomor = true; this.errNomor = '';
             try {
                 const res = await fetch(this.ambilUrl, {
@@ -56,7 +62,6 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || 'Gagal mengambil nomor.');
                 this.nomor = data.nomor;
-                this.mintaNomor = true;
             } catch (e) {
                 this.errNomor = e.message;
             } finally {
@@ -64,17 +69,18 @@
             }
         },
 
+        idx(jenis) { return this.peserta.map((p, i) => i).filter(i => this.peserta[i].jenis === jenis); },
         pool(jenis) { return this.pegawai.filter(x => x.status === jenis); },
         count(jenis) { return this.peserta.filter(x => x.jenis === jenis).length; },
         addPegawai(jenis) {
             const p = this.pegawai.find(x => String(x.id) === String(this.pick[jenis]));
             if (!p) return;
             if (this.peserta.some(x => String(x.pegawai_id) === String(p.id))) { this.pick[jenis] = ''; return; }
-            this.peserta.push({ jenis: jenis, pegawai_id: p.id, nama: p.nama, nip: p.nip || '', jabatan: p.jabatan || '' });
+            this.peserta.push({ jenis: jenis, pegawai_id: p.id, nama: p.nama, nip: p.nip || '', jabatan: p.jabatan || '', tanggal_mulai: '', tanggal_selesai: '' });
             this.pick[jenis] = '';
         },
         addManual(jenis) {
-            this.peserta.push({ jenis: jenis, pegawai_id: null, nama: '', nip: '', jabatan: '' });
+            this.peserta.push({ jenis: jenis, pegawai_id: null, nama: '', nip: '', jabatan: '', tanggal_mulai: '', tanggal_selesai: '' });
         },
         setTtd() {
             const p = this.penandatangan.find(x => String(x.id) === String(this.pickTtd));
@@ -83,8 +89,8 @@
                 : { nama: '', nip: '', jabatan: '' };
         }
     }" x-init="pickTtd = (penandatangan.find(x => x.nama === ttd.nama)?.id) ?? '';
-            $watch('tanggal', () => { if (!nomorUrut) mintaNomor = false; });
-            $watch('kode', () => { if (!nomorUrut) mintaNomor = false; })" class="space-y-6">
+            if (!nomorUrut) { ambilNomor(); }
+            $watch('tanggal', () => { if (!nomorUrut && tanggal) ambilNomor(); })" class="space-y-6">
 
     @if ($errors->any())
         <div class="rounded-lg border p-4 text-sm" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c;">
@@ -111,33 +117,19 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Nomor ST</label>
-                <div class="mt-1 flex gap-2">
-                    <input type="text" name="kode_klasifikasi" x-model="kode" placeholder="Kode klasifikasi"
-                        :readonly="!!nomorUrut" :class="nomorUrut ? 'bg-gray-50' : ''"
-                        class="w-full rounded-lg border-gray-300 text-sm">
-                    <button type="button" @click="ambilNomor()"
-                        :disabled="loadingNomor || !!nomorUrut || !kode || !tanggal"
-                        class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span x-show="!loadingNomor">Ambil Nomor</span>
-                        <span x-show="loadingNomor">Memproses...</span>
-                    </button>
-                </div>
 
-                <input type="hidden" name="minta_nomor" :value="mintaNomor ? 1 : 0">
+                {{-- kode klasifikasi tetap dikirim, tapi tidak diedit dari form --}}
+                <input type="hidden" name="kode_klasifikasi" :value="kode">
+                {{-- ST baru / draf tanpa nomor: nomor diambil otomatis saat Simpan --}}
+                <input type="hidden" name="minta_nomor" :value="nomorUrut ? 0 : 1">
 
-                {{-- nomor sudah tersimpan (terkunci) --}}
-                <p class="text-xs mt-1" x-show="nomorUrut">
-                    Nomor ST: <span class="font-semibold text-gray-800" x-text="nomor"></span>
-                    <span class="text-gray-500">(sudah terkunci)</span>
+                <input type="text" readonly :value="nomor || (loadingNomor ? 'Memuat nomor…' : '—')"
+                    class="mt-1 w-full rounded-lg border-gray-300 bg-gray-50 text-sm font-semibold">
+
+                <p class="text-xs text-gray-500 mt-1" x-show="!nomorUrut">
+                    Nomor terisi otomatis dan baru terkunci setelah klik Simpan.
                 </p>
-                {{-- hasil Ambil Nomor, belum tersimpan --}}
-                <p class="text-xs mt-1" x-show="!nomorUrut && mintaNomor">
-                    Nomor ST: <span class="font-semibold text-gray-800" x-text="nomor"></span>
-                    <span class="text-gray-500">(baru terkunci setelah klik Simpan)</span>
-                </p>
-                <p class="text-xs text-gray-500 mt-1" x-show="!nomorUrut && !mintaNomor">
-                    Klik Ambil Nomor untuk melihat nomor berikutnya. Nomor dikunci saat Simpan.
-                </p>
+                <p class="text-xs text-gray-500 mt-1" x-show="nomorUrut">Nomor sudah terkunci.</p>
                 <p class="text-xs text-red-600 mt-1" x-show="errNomor" x-text="errNomor"></p>
             </div>
         </div>
@@ -150,14 +142,12 @@
         <div class="grid md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Tanggal Mulai</label>
-                <input type="date" name="tanggal_mulai"
-                    value="{{ old('tanggal_mulai', optional($st->tanggal_mulai)->format('Y-m-d')) }}"
+                <input type="date" name="tanggal_mulai" x-model="mulai"
                     class="mt-1 w-full rounded-lg border-gray-300 text-sm">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Tanggal Selesai</label>
-                <input type="date" name="tanggal_selesai"
-                    value="{{ old('tanggal_selesai', optional($st->tanggal_selesai)->format('Y-m-d')) }}"
+                <input type="date" name="tanggal_selesai" x-model="selesai" :min="mulai || null"
                     class="mt-1 w-full rounded-lg border-gray-300 text-sm">
             </div>
         </div>
@@ -191,12 +181,6 @@
                     </select>
                 </div>
             </div>
-        </div>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Tujuan / Lokasi</label>
-            <input type="text" name="tujuan" value="{{ old('tujuan', $st->tujuan) }}"
-                placeholder="mis. Hotel / kantor / tempat acara" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
         </div>
     </div>
 
@@ -256,9 +240,16 @@
         </div>
     </div>
 
-    {{-- Peserta: PNS & Non PNS --}}
+    {{-- Peserta: PNS & Non PNS, tiap orang bisa punya tanggal tugas sendiri --}}
     <div class="bg-white rounded-xl shadow-sm border p-5 space-y-6">
-        <h3 class="font-semibold text-gray-800">Daftar Peserta (Lampiran)</h3>
+        <div>
+            <h3 class="font-semibold text-gray-800">Daftar Peserta (Lampiran)</h3>
+            <p class="text-xs text-gray-500 mt-1">
+                Isi <b>tanggal tugas</b> bila peserta berangkat di hari yang berbeda dalam satu nomor ST (bergantian).
+                Kosongkan kalau berangkat selama rentang pelaksanaan ST. Tanggal harus di dalam Tanggal Mulai sampai
+                Tanggal Selesai di atas.
+            </p>
+        </div>
 
         @foreach ([
                 'pns' => ['label' => 'PNS', 'nipPlaceholder' => 'NIP'],
@@ -285,28 +276,46 @@
                 </div>
 
                 <div class="space-y-2">
-                    {{-- loop semua peserta (index tetap utuh), tampilkan yang sesuai jenis --}}
-                    <template x-for="(p, i) in peserta" :key="i">
-                        <div x-show="p.jenis === '{{ $jenis }}'"
-                            class="grid md:grid-cols-12 gap-2 items-start border rounded-lg p-3">
-                            <input type="hidden" :name="`peserta[${i}][jenis]`" :value="p.jenis">
-                            <input type="hidden" :name="`peserta[${i}][pegawai_id]`" :value="p.pegawai_id ?? ''">
-                            <div class="md:col-span-4">
-                                <input type="text" :name="`peserta[${i}][nama]`" x-model="p.nama" placeholder="Nama"
-                                    class="w-full rounded-lg border-gray-300 text-sm">
+                    {{-- tiap peserta hanya dirender SEKALI (di kelompok jenisnya), index tetap utuh --}}
+                    <template x-for="i in idx('{{ $jenis }}')" :key="'{{ $jenis }}-' + i">
+                        <div class="border rounded-lg p-3 space-y-2">
+                            <input type="hidden" :name="`peserta[${i}][jenis]`" :value="peserta[i].jenis">
+                            <input type="hidden" :name="`peserta[${i}][pegawai_id]`" :value="peserta[i].pegawai_id ?? ''">
+
+                            <div class="grid md:grid-cols-12 gap-2 items-start">
+                                <div class="md:col-span-4">
+                                    <input type="text" :name="`peserta[${i}][nama]`" x-model="peserta[i].nama"
+                                        placeholder="Nama" class="w-full rounded-lg border-gray-300 text-sm">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <input type="text" :name="`peserta[${i}][nip]`" x-model="peserta[i].nip"
+                                        placeholder="{{ $cfg['nipPlaceholder'] }}"
+                                        class="w-full rounded-lg border-gray-300 text-sm">
+                                </div>
+                                <div class="md:col-span-4">
+                                    <input type="text" :name="`peserta[${i}][jabatan]`" x-model="peserta[i].jabatan"
+                                        placeholder="Jabatan" class="w-full rounded-lg border-gray-300 text-sm">
+                                </div>
+                                <div class="md:col-span-1 md:text-right">
+                                    <button type="button" @click="peserta.splice(i,1)"
+                                        class="text-red-500 text-sm">Hapus</button>
+                                </div>
                             </div>
-                            <div class="md:col-span-3">
-                                <input type="text" :name="`peserta[${i}][nip]`" x-model="p.nip"
-                                    placeholder="{{ $cfg['nipPlaceholder'] }}"
-                                    class="w-full rounded-lg border-gray-300 text-sm">
-                            </div>
-                            <div class="md:col-span-4">
-                                <input type="text" :name="`peserta[${i}][jabatan]`" x-model="p.jabatan"
-                                    placeholder="Jabatan" class="w-full rounded-lg border-gray-300 text-sm">
-                            </div>
-                            <div class="md:col-span-1 text-right">
-                                <button type="button" @click="peserta.splice(i,1)"
-                                    class="text-red-500 text-sm">Hapus</button>
+
+                            <div class="grid grid-cols-2 md:grid-cols-12 gap-2">
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs text-gray-500 mb-1">Tanggal tugas (mulai)</label>
+                                    <input type="date" :name="`peserta[${i}][tanggal_mulai]`"
+                                        x-model="peserta[i].tanggal_mulai" :min="mulai || null" :max="selesai || null"
+                                        class="w-full rounded-lg border-gray-300 text-sm">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs text-gray-500 mb-1">Sampai (opsional)</label>
+                                    <input type="date" :name="`peserta[${i}][tanggal_selesai]`"
+                                        x-model="peserta[i].tanggal_selesai"
+                                        :min="peserta[i].tanggal_mulai || mulai || null" :max="selesai || null"
+                                        class="w-full rounded-lg border-gray-300 text-sm">
+                                </div>
                             </div>
                         </div>
                     </template>

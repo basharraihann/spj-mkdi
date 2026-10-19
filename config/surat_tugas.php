@@ -7,7 +7,7 @@ return [
     'email' => 'kemenkopangan@kemenkopangan.go.id',
 
     // Taruh file logo Garuda di public/images/logo-kemenko.png
-    'logo' => 'images/logo-kemenko.png',
+    'logo' => 'images/logo.png',
 
     'kode_klasifikasi' => 'KA.00.04',
     'tempat' => 'Jakarta',

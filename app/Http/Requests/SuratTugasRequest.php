@@ -51,6 +51,10 @@ class SuratTugasRequest extends FormRequest
             'peserta.*.nama' => ['required', 'string', 'max:255'],
             'peserta.*.nip' => ['nullable', 'string', 'max:30'],
             'peserta.*.jabatan' => ['nullable', 'string', 'max:255'],
+
+            // Tanggal tugas per orang (opsional): harus di dalam rentang pelaksanaan ST
+            'peserta.*.tanggal_mulai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai', 'before_or_equal:tanggal_selesai'],
+            'peserta.*.tanggal_selesai' => ['nullable', 'date', 'after_or_equal:peserta.*.tanggal_mulai', 'before_or_equal:tanggal_selesai'],
         ];
     }
 
@@ -66,8 +70,20 @@ class SuratTugasRequest extends FormRequest
             'peserta' => 'peserta',
             'peserta.*.jenis' => 'jenis peserta',
             'peserta.*.nama' => 'nama peserta',
+            'peserta.*.tanggal_mulai' => 'tanggal tugas (mulai) peserta',
+            'peserta.*.tanggal_selesai' => 'tanggal tugas (sampai) peserta',
             'jabatan_penandatangan' => 'jabatan penandatangan',
             'nama_penandatangan' => 'penandatangan',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'peserta.*.tanggal_mulai.after_or_equal' => 'Tanggal tugas peserta tidak boleh sebelum tanggal mulai pelaksanaan ST.',
+            'peserta.*.tanggal_mulai.before_or_equal' => 'Tanggal tugas peserta tidak boleh melewati tanggal selesai pelaksanaan ST.',
+            'peserta.*.tanggal_selesai.after_or_equal' => 'Tanggal tugas (sampai) peserta tidak boleh sebelum tanggal mulainya.',
+            'peserta.*.tanggal_selesai.before_or_equal' => 'Tanggal tugas peserta tidak boleh melewati tanggal selesai pelaksanaan ST.',
         ];
     }
 }

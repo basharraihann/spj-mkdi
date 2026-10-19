@@ -7,6 +7,7 @@
         'batal' => 'background:#fee2e2;color:#b91c1c;',
     ][$st->status] ?? 'background:#f3f4f6;color:#374151;';
     $label = 'text-xs font-semibold uppercase tracking-wide text-gray-500';
+    $adaTanggal = $st->peserta->contains(fn($p) => (bool) $p->tanggal_mulai);
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -32,13 +33,11 @@
             @endif
 
             {{-- Aksi --}}
-            {{-- Aksi --}}
             <div class="flex flex-wrap items-center gap-2">
-                @if ($st->status === 'terbit')
+                @if ($st->status === 'terbit' && \Illuminate\Support\Facades\Route::has('surat-tugas.selesai'))
                     <form method="POST" action="{{ route('surat-tugas.selesai', $st) }}">
                         @csrf
-                        <button class="px-4 py-2 rounded-lg text-sm" style="background:#16a34a;color:#fff;">Tandai
-                            Selesai</button>
+                        <button class="px-4 py-2 rounded-lg text-sm" style="background:#16a34a;color:#fff;">Tandai Selesai</button>
                     </form>
                 @endif
 
@@ -101,6 +100,7 @@
                                         <th class="px-3 py-2 w-10 font-medium">No</th>
                                         <th class="px-3 py-2 font-medium">Nama / NIP</th>
                                         <th class="px-3 py-2 font-medium">Jabatan</th>
+                                        @if ($adaTanggal)<th class="px-3 py-2 font-medium">Tanggal Tugas</th>@endif
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y">
@@ -109,8 +109,12 @@
                                             <td class="px-3 py-2 text-gray-500">{{ $i + 1 }}</td>
                                             <td class="px-3 py-2">{{ $p->nama }}@if ($p->nip)
                                             <div class="text-xs text-gray-500">NIP. {{ $p->nip }}</div>@endif
+                                                <div class="text-xs text-gray-400">{{ $p->jenis_label }}</div>
                                             </td>
                                             <td class="px-3 py-2">{{ $p->jabatan }}</td>
+                                            @if ($adaTanggal)
+                                                <td class="px-3 py-2 whitespace-nowrap">{{ $p->tanggal_tugas_indo ?? 'Sesuai rentang ST' }}</td>
+                                            @endif
                                         </tr>
                                     @endforeach
                                 </tbody>

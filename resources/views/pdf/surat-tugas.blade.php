@@ -3,6 +3,7 @@
     $logo = file_exists($logoPath)
         ? 'data:image/'.pathinfo($logoPath, PATHINFO_EXTENSION).';base64,'.base64_encode(file_get_contents($logoPath))
         : null;
+    $adaTanggal = $st->peserta->contains(fn ($p) => (bool) $p->tanggal_mulai);
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -106,7 +107,12 @@
 
     <table class="daftar">
         <thead>
-            <tr><th width="35">No</th><th>Nama/NIP</th><th width="38%">Jabatan</th></tr>
+            <tr>
+                <th width="35">No</th>
+                <th>Nama/NIP</th>
+                <th width="{{ $adaTanggal ? '30%' : '38%' }}">Jabatan</th>
+                @if ($adaTanggal)<th width="22%">Tanggal Tugas</th>@endif
+            </tr>
         </thead>
         <tbody>
             @foreach ($st->peserta as $i => $p)
@@ -114,6 +120,7 @@
                 <td style="text-align:center">{{ $i + 1 }}</td>
                 <td>{{ $p->nama }}@if ($p->nip)<br>NIP. {{ $p->nip }}@endif</td>
                 <td>{{ $p->jabatan }}</td>
+                @if ($adaTanggal)<td>{{ $p->tanggal_tugas_indo ?? '-' }}</td>@endif
             </tr>
             @endforeach
         </tbody>

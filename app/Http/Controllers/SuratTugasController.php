@@ -104,9 +104,15 @@ class SuratTugasController extends Controller
 
         return view('surat-tugas.edit', [
             'st' => $suratTugas,
-            'peserta' => $suratTugas->peserta
-                ->map->only(['jenis', 'pegawai_id', 'nama', 'nip', 'jabatan'])
-                ->values()->all(),
+            'peserta' => $suratTugas->peserta->map(fn($p) => [
+                'jenis' => $p->jenis ?: 'pns',
+                'pegawai_id' => $p->pegawai_id,
+                'nama' => $p->nama,
+                'nip' => $p->nip,
+                'jabatan' => $p->jabatan,
+                'tanggal_mulai' => optional($p->tanggal_mulai)->format('Y-m-d') ?? '',
+                'tanggal_selesai' => optional($p->tanggal_selesai)->format('Y-m-d') ?? '',
+            ])->values()->all(),
             'pegawaiOptions' => $this->pegawaiOptions(),
             'penandatanganOptions' => $this->penandatanganOptions(),
             'kabKotaMap' => $this->kabKotaMap(),
@@ -208,8 +214,16 @@ class SuratTugasController extends Controller
                 ->pluck('pegawai_id')->map(fn($id) => (int) $id)->values(),
             'peserta_manual' => $suratTugas->peserta->whereNull('pegawai_id')
                 ->pluck('nama')->values(),
+            // tanggal tugas per orang (null = ikut rentang ST)
+            'peserta_tanggal' => $suratTugas->peserta->whereNotNull('pegawai_id')
+                ->map(fn($p) => [
+                    'pegawai_id' => (int) $p->pegawai_id,
+                    'tanggal_mulai' => $tgl($p->tanggal_mulai),
+                    'tanggal_selesai' => $tgl($p->tanggal_mulai ? ($p->tanggal_selesai ?? $p->tanggal_mulai) : null),
+                ])->values(),
         ]);
     }
+
     public function pdf(SuratTugas $suratTugas)
     {
         $suratTugas->load('peserta');
@@ -257,18 +271,31 @@ class SuratTugasController extends Controller
         ];
     }
 
+    /** Simpan peserta: PNS dulu, lalu Non PNS (urutan input dipertahankan di tiap kelompok). */
     private function syncPeserta(SuratTugas $st, ?array $peserta): void
     {
         $st->peserta()->delete();
 
+        $rows = [];
         foreach (array_values($peserta ?? []) as $i => $p) {
+            $rows[] = ['i' => $i, 'p' => $p];
+        }
+        usort($rows, fn($a, $b) => [($a['p']['jenis'] ?? 'pns') === 'non_pns' ? 1 : 0, $a['i']]
+            <=> [($b['p']['jenis'] ?? 'pns') === 'non_pns' ? 1 : 0, $b['i']]);
+
+        foreach ($rows as $n => $r) {
+            $p = $r['p'];
+            $mulai = $p['tanggal_mulai'] ?? null;
+
             $st->peserta()->create([
-                'pegawai_id' => $p['pegawai_id'] ?: null,
-                'jenis' => $p['jenis'] ?? 'pns',
-                'urutan' => $i + 1,
+                'pegawai_id' => ($p['pegawai_id'] ?? null) ?: null,
+                'jenis' => ($p['jenis'] ?? 'pns') === 'non_pns' ? 'non_pns' : 'pns',
+                'urutan' => $n + 1,
                 'nama' => $p['nama'],
                 'nip' => $p['nip'] ?? null,
                 'jabatan' => $p['jabatan'] ?? null,
+                'tanggal_mulai' => $mulai ?: null,
+                'tanggal_selesai' => $mulai ? (($p['tanggal_selesai'] ?? null) ?: null) : null,
             ]);
         }
     }
