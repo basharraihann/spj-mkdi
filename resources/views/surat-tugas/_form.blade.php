@@ -19,7 +19,24 @@
 
     $provinsiTerpilih = old('provinsi', $st->provinsi ?? '');
     $kotaTerpilih = old('kota', $st->kota ?? '');
+
+    // Kelas yang dipakai berulang supaya tampilan seragam di seluruh form
+    $fLabel = 'block text-xs font-medium text-slate-600';
+    $fInput = 'mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-600 focus:ring-blue-600';
+    $fReadonly = 'mt-1 w-full rounded-lg border-slate-300 bg-slate-50 text-sm';
+    $fInputPlain = 'w-full rounded-lg border-slate-300 text-sm focus:border-blue-600 focus:ring-blue-600';
+    $fCard = 'overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm';
+    $fHead = 'border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-6';
+    $fBody = 'space-y-4 px-4 py-4 sm:px-6 sm:py-5';
+    $fLink = 'text-sm font-medium text-blue-700 hover:underline focus:outline-none focus-visible:underline';
+    $fHapus = 'rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50';
 @endphp
+
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
 
 <div x-data="{
         dasar: @js($dasarLain),
@@ -27,7 +44,10 @@
         peserta: @js($pesertaInit),
         pegawai: @js($pegawaiOptions),
         penandatangan: @js($penandatanganOptions),
-        pick: { pns: '', non_pns: '' },
+        cari: { pns: '', non_pns: '' },
+        provinsi: @js($provinsiTerpilih),
+        kota: @js($kotaTerpilih),
+        kabKotaMap: @js($kabKotaMap),
         kode: @js(old('kode_klasifikasi', $st->kode_klasifikasi)),
         tanggal: @js(old('tanggal', optional($st->tanggal)->format('Y-m-d'))),
         mulai: @js(old('tanggal_mulai', optional($st->tanggal_mulai)->format('Y-m-d'))),
@@ -44,6 +64,8 @@
             'jabatan' => old('jabatan_penandatangan', $st->jabatan_penandatangan),
         ]),
         pickTtd: '',
+
+        get daftarKota() { return this.kabKotaMap[this.provinsi] ?? []; },
 
         // Nomor terisi otomatis (pratinjau, belum mengubah counter). Dikunci saat Simpan.
         async ambilNomor() {
@@ -72,12 +94,20 @@
         idx(jenis) { return this.peserta.map((p, i) => i).filter(i => this.peserta[i].jenis === jenis); },
         pool(jenis) { return this.pegawai.filter(x => x.status === jenis); },
         count(jenis) { return this.peserta.filter(x => x.jenis === jenis).length; },
-        addPegawai(jenis) {
-            const p = this.pegawai.find(x => String(x.id) === String(this.pick[jenis]));
-            if (!p) return;
-            if (this.peserta.some(x => String(x.pegawai_id) === String(p.id))) { this.pick[jenis] = ''; return; }
+        terpilih(id) { return this.peserta.some(x => String(x.pegawai_id) === String(id)); },
+        daftar(jenis) {
+            const q = (this.cari[jenis] || '').toLowerCase().trim();
+            return this.pool(jenis).filter(p => !q || [p.nama, p.nip, p.jabatan].some(v => (v || '').toLowerCase().includes(q)));
+        },
+        toggle(jenis, p) {
+            const k = this.peserta.findIndex(x => String(x.pegawai_id) === String(p.id));
+            if (k >= 0) {
+                const x = this.peserta[k];
+                if ((x.tanggal_mulai || x.tanggal_selesai) && !confirm('Tanggal tugas ' + x.nama + ' sudah diisi. Tetap dihapus?')) return;
+                this.peserta.splice(k, 1);
+                return;
+            }
             this.peserta.push({ jenis: jenis, pegawai_id: p.id, nama: p.nama, nip: p.nip || '', jabatan: p.jabatan || '', tanggal_mulai: '', tanggal_selesai: '' });
-            this.pick[jenis] = '';
         },
         addManual(jenis) {
             this.peserta.push({ jenis: jenis, pegawai_id: null, nama: '', nip: '', jabatan: '', tanggal_mulai: '', tanggal_selesai: '' });
@@ -90,91 +120,76 @@
         }
     }" x-init="pickTtd = (penandatangan.find(x => x.nama === ttd.nama)?.id) ?? '';
             if (!nomorUrut) { ambilNomor(); }
-            $watch('tanggal', () => { if (!nomorUrut && tanggal) ambilNomor(); })" class="space-y-6">
+            $watch('tanggal', () => { if (!nomorUrut && tanggal) ambilNomor(); })" class="space-y-5">
 
     @if ($errors->any())
-        <div class="rounded-lg border p-4 text-sm" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c;">
-            <ul class="list-disc pl-5">@foreach ($errors->all() as $e)
-            <li>{{ $e }}</li>@endforeach
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+            <p class="font-medium">Surat tugas belum bisa disimpan. Periksa isian berikut:</p>
+            <ul class="mt-2 list-disc pl-5">
+                @foreach ($errors->all() as $e)
+                    <li>{{ $e }}</li>
+                @endforeach
             </ul>
         </div>
     @endif
 
-    {{-- Info surat --}}
-    <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-800">Informasi Surat</h3>
-        <div class="grid md:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Tempat</label>
-                <input type="text" name="tempat" value="{{ old('tempat', $st->tempat) }}"
-                    class="mt-1 w-full rounded-lg border-gray-300 text-sm">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Tanggal Surat</label>
-                <input type="date" name="tanggal" x-model="tanggal" :min="nomorUrut ? tahunNomor + '-01-01' : null"
-                    :max="nomorUrut ? tahunNomor + '-12-31' : null"
-                    class="mt-1 w-full rounded-lg border-gray-300 text-sm">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Nomor ST</label>
-
-                {{-- kode klasifikasi tetap dikirim, tapi tidak diedit dari form --}}
-                <input type="hidden" name="kode_klasifikasi" :value="kode">
-                {{-- ST baru / draf tanpa nomor: nomor diambil otomatis saat Simpan --}}
-                <input type="hidden" name="minta_nomor" :value="nomorUrut ? 0 : 1">
-
-                <input type="text" readonly :value="nomor || (loadingNomor ? 'Memuat nomor…' : '—')"
-                    class="mt-1 w-full rounded-lg border-gray-300 bg-gray-50 text-sm font-semibold">
-
-                <p class="text-xs text-gray-500 mt-1" x-show="!nomorUrut">
-                    Nomor terisi otomatis dan baru terkunci setelah klik Simpan.
-                </p>
-                <p class="text-xs text-gray-500 mt-1" x-show="nomorUrut">Nomor sudah terkunci.</p>
-                <p class="text-xs text-red-600 mt-1" x-show="errNomor" x-text="errNomor"></p>
-            </div>
+    {{-- Informasi surat & pelaksanaan --}}
+    <section class="{{ $fCard }}">
+        <div class="{{ $fHead }}">
+            <h3 class="text-sm font-semibold text-slate-900">Informasi surat dan pelaksanaan</h3>
+            <p class="mt-0.5 text-xs text-slate-500">Tempat, tanggal, nomor, rentang pelaksanaan, dan lokasi tujuan.</p>
         </div>
-    </div>
+        <div class="{{ $fBody }}">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                    <label class="{{ $fLabel }}">Tempat</label>
+                    <input type="text" name="tempat" value="{{ old('tempat', $st->tempat) }}" class="{{ $fInput }}">
+                </div>
+                <div>
+                    <label class="{{ $fLabel }}">Tanggal surat</label>
+                    <input type="date" name="tanggal" x-model="tanggal" :min="nomorUrut ? tahunNomor + '-01-01' : null"
+                        :max="nomorUrut ? tahunNomor + '-12-31' : null" class="{{ $fInput }}">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="{{ $fLabel }}">Nomor ST</label>
 
-    {{-- Pelaksanaan --}}
-    <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-800">Pelaksanaan Tugas</h3>
+                    {{-- kode klasifikasi tetap dikirim, tapi tidak diedit dari form --}}
+                    <input type="hidden" name="kode_klasifikasi" :value="kode">
+                    {{-- ST baru / draf tanpa nomor: nomor diambil otomatis saat Simpan --}}
+                    <input type="hidden" name="minta_nomor" :value="nomorUrut ? 0 : 1">
 
-        <div class="grid md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Tanggal Mulai</label>
-                <input type="date" name="tanggal_mulai" x-model="mulai"
-                    class="mt-1 w-full rounded-lg border-gray-300 text-sm">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Tanggal Selesai</label>
-                <input type="date" name="tanggal_selesai" x-model="selesai" :min="mulai || null"
-                    class="mt-1 w-full rounded-lg border-gray-300 text-sm">
-            </div>
-        </div>
+                    <input type="text" readonly :value="nomor || (loadingNomor ? 'Memuat nomor…' : '—')"
+                        class="{{ $fReadonly }} font-semibold tabular-nums text-gray-900">
+                    <p class="mt-1 text-xs text-slate-500"
+                        x-text="nomorUrut ? 'Nomor sudah terkunci.' : 'Terisi otomatis, terkunci setelah klik Simpan.'">
+                    </p>
+                    <p class="mt-1 text-xs text-red-600" x-show="errNomor" x-text="errNomor"></p>
+                </div>
 
-        <div class="grid md:grid-cols-2 gap-4"
-            x-data="lokasi(@js(['provinsi' => $provinsiTerpilih, 'kota' => $kotaTerpilih, 'map' => $kabKotaMap]))">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Provinsi</label>
-                <div class="relative mt-1">
-                    <select name="provinsi" x-model="provinsi" @change="ubahProvinsi()" required
-                        class="js-searchable w-full rounded-lg border-gray-300 text-sm"
-                        data-placeholder="Cari provinsi...">
-                        <option value="" disabled {{ $provinsiTerpilih ? '' : 'selected' }}>— Pilih Provinsi —</option>
+                <div>
+                    <label class="{{ $fLabel }}">Tanggal mulai</label>
+                    <input type="date" name="tanggal_mulai" x-model="mulai" class="{{ $fInput }}">
+                </div>
+                <div>
+                    <label class="{{ $fLabel }}">Tanggal selesai</label>
+                    <input type="date" name="tanggal_selesai" x-model="selesai" :min="mulai || null"
+                        class="{{ $fInput }}">
+                </div>
+                <div>
+                    <label class="{{ $fLabel }}">Provinsi</label>
+                    <select name="provinsi" x-model="provinsi" @change="kota = ''" required class="{{ $fInput }}">
+                        <option value="">— Pilih Provinsi —</option>
                         @foreach (array_keys($kabKotaMap) as $p)
                             <option value="{{ $p }}" @selected($provinsiTerpilih === $p)>{{ $p }}</option>
                         @endforeach
                     </select>
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Kota/Kabupaten</label>
-                <div class="relative mt-1">
+                <div>
+                    <label class="{{ $fLabel }}">Kota/Kabupaten</label>
                     <select name="kota" x-model="kota" required :disabled="!provinsi"
-                        class="js-searchable w-full rounded-lg border-gray-300 text-sm disabled:bg-gray-50 disabled:cursor-not-allowed"
-                        data-placeholder="Cari kota/kabupaten...">
-                        <option value="" disabled selected
-                            x-text="!provinsi ? 'Pilih provinsi dulu' : '— Pilih Kota/Kabupaten —'"></option>
+                        class="{{ $fInput }} disabled:cursor-not-allowed disabled:bg-slate-50">
+                        <option value="" x-text="!provinsi ? 'Pilih provinsi dulu' : '— Pilih Kota/Kabupaten —'">
+                        </option>
                         <template x-for="k in daftarKota" :key="k">
                             <option :value="k" x-text="k" :selected="kota === k"></option>
                         </template>
@@ -182,193 +197,248 @@
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    {{-- Menimbang & Dasar --}}
-    <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-800">Menimbang &amp; Dasar</h3>
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Menimbang</label>
-            <textarea name="menimbang" rows="3" class="mt-1 w-full rounded-lg border-gray-300 text-sm"
-                placeholder="Bahwa dalam rangka melaksanakan ... dianggap perlu dibuatkan surat tugas ...">{{ old('menimbang', $st->menimbang) }}</textarea>
+    {{-- Menimbang & dasar --}}
+    <section class="{{ $fCard }}">
+        <div class="{{ $fHead }}">
+            <h3 class="text-sm font-semibold text-slate-900">Menimbang dan dasar</h3>
+            <p class="mt-0.5 text-xs text-slate-500">Dasar pertama bersifat tetap. Dasar lain bisa ditambah.</p>
         </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Dasar</label>
-
-            {{-- Dasar 1: tetap --}}
-            <div class="flex gap-2 mb-2">
-                <span class="pt-2 text-sm text-gray-500 w-5">1.</span>
-                <input type="hidden" name="dasar[]" value="{{ $dasarTetap }}">
-                <div class="flex-1 rounded-lg border bg-gray-50 text-gray-700 text-sm px-3 py-2">{{ $dasarTetap }}</div>
-                <span class="text-xs text-gray-400 px-2 pt-2 w-14 text-center">Tetap</span>
+        <div class="{{ $fBody }}">
+            <div>
+                <label class="{{ $fLabel }}">Menimbang</label>
+                <textarea name="menimbang" rows="3" class="{{ $fInput }}"
+                    placeholder="Bahwa dalam rangka melaksanakan ... dianggap perlu dibuatkan surat tugas ...">{{ old('menimbang', $st->menimbang) }}</textarea>
             </div>
+            <div>
+                <label class="{{ $fLabel }} mb-1">Dasar</label>
 
-            <template x-for="(d, i) in dasar" :key="i">
-                <div class="flex gap-2 mb-2">
-                    <span class="pt-2 text-sm text-gray-500 w-5" x-text="(i+2)+'.'"></span>
-                    <textarea name="dasar[]" rows="2" x-model="dasar[i]"
-                        class="flex-1 rounded-lg border-gray-300 text-sm"></textarea>
-                    <button type="button" @click="dasar.splice(i,1)"
-                        class="text-red-500 text-sm px-2 w-14">Hapus</button>
+                {{-- Dasar 1: tetap --}}
+                <div class="mb-2 flex gap-2">
+                    <span class="w-5 pt-2 text-sm text-slate-500">1.</span>
+                    <input type="hidden" name="dasar[]" value="{{ $dasarTetap }}">
+                    <div class="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                        {{ $dasarTetap }}
+                    </div>
+                    <span class="w-16 pt-2 text-center text-xs text-slate-400">Tetap</span>
                 </div>
-            </template>
-            <button type="button" @click="dasar.push('')" class="text-sm text-blue-600 hover:underline">+ Tambah
-                dasar</button>
-        </div>
-    </div>
 
-    {{-- Kepada & Untuk --}}
-    <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-800">Memberi Tugas</h3>
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Kepada</label>
-            <input type="text" name="kepada" value="{{ old('kepada', $st->kepada) }}"
-                class="mt-1 w-full rounded-lg border-gray-300 text-sm">
+                <template x-for="(d, i) in dasar" :key="i">
+                    <div class="mb-2 flex gap-2">
+                        <span class="w-5 pt-2 text-sm text-slate-500" x-text="(i+2)+'.'"></span>
+                        <textarea name="dasar[]" rows="2" x-model="dasar[i]"
+                            class="flex-1 {{ $fInputPlain }}"></textarea>
+                        <div class="w-16 pt-1.5 text-center">
+                            <button type="button" @click="dasar.splice(i,1)" class="{{ $fHapus }}">Hapus</button>
+                        </div>
+                    </div>
+                </template>
+                <button type="button" @click="dasar.push('')" class="{{ $fLink }}">+ Tambah dasar</button>
+            </div>
         </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Untuk</label>
-            <template x-for="(u, i) in untuk" :key="i">
-                <div class="flex gap-2 mb-2">
-                    <span class="pt-2 text-sm text-gray-500 w-5" x-text="(i+1)+'.'"></span>
-                    <textarea name="untuk[]" rows="2" x-model="untuk[i]"
-                        class="flex-1 rounded-lg border-gray-300 text-sm"></textarea>
-                    <button type="button" @click="untuk.splice(i,1)" class="text-red-500 text-sm px-2">Hapus</button>
-                </div>
-            </template>
-            <button type="button" @click="untuk.push('')" class="text-sm text-blue-600 hover:underline">+ Tambah
-                poin</button>
-        </div>
-    </div>
+    </section>
 
-    {{-- Peserta: PNS & Non PNS, tiap orang bisa punya tanggal tugas sendiri --}}
-    <div class="bg-white rounded-xl shadow-sm border p-5 space-y-6">
-        <div>
-            <h3 class="font-semibold text-gray-800">Daftar Peserta (Lampiran)</h3>
-            <p class="text-xs text-gray-500 mt-1">
-                Isi <b>tanggal tugas</b> bila peserta berangkat di hari yang berbeda dalam satu nomor ST (bergantian).
-                Kosongkan kalau berangkat selama rentang pelaksanaan ST. Tanggal harus di dalam Tanggal Mulai sampai
-                Tanggal Selesai di atas.
+    {{-- Kepada & untuk --}}
+    <section class="{{ $fCard }}">
+        <div class="{{ $fHead }}">
+            <h3 class="text-sm font-semibold text-slate-900">Memberi tugas</h3>
+            <p class="mt-0.5 text-xs text-slate-500">Penerima tugas dan uraian tugas yang dilaksanakan.</p>
+        </div>
+        <div class="{{ $fBody }}">
+            <div>
+                <label class="{{ $fLabel }}">Kepada</label>
+                <input type="text" name="kepada" value="{{ old('kepada', $st->kepada) }}" class="{{ $fInput }}">
+            </div>
+            <div>
+                <label class="{{ $fLabel }} mb-1">Untuk</label>
+                <template x-for="(u, i) in untuk" :key="i">
+                    <div class="mb-2 flex gap-2">
+                        <span class="w-5 pt-2 text-sm text-slate-500" x-text="(i+1)+'.'"></span>
+                        <textarea name="untuk[]" rows="2" x-model="untuk[i]"
+                            class="flex-1 {{ $fInputPlain }}"></textarea>
+                        <div class="pt-1.5">
+                            <button type="button" @click="untuk.splice(i,1)" class="{{ $fHapus }}">Hapus</button>
+                        </div>
+                    </div>
+                </template>
+                <button type="button" @click="untuk.push('')" class="{{ $fLink }}">+ Tambah poin</button>
+            </div>
+        </div>
+    </section>
+
+    {{-- Peserta: PNS & Non PNS tampil bersamaan, dibedakan warna --}}
+    <section class="{{ $fCard }}">
+        <div class="{{ $fHead }}">
+            <h3 class="text-sm font-semibold text-slate-900">Daftar peserta (lampiran)</h3>
+            <p class="mt-0.5 text-xs text-slate-500">
+                Klik ikon kalender bila peserta berangkat di hari berbeda. Kosongkan jika mengikuti seluruh rentang ST
+                (tanggal harus di dalam Tanggal Mulai sampai Tanggal Selesai).
             </p>
         </div>
 
-        @foreach ([
-                'pns' => ['label' => 'PNS', 'nipPlaceholder' => 'NIP'],
-                'non_pns' => ['label' => 'Non PNS', 'nipPlaceholder' => 'NIK / NIP (opsional)'],
-            ] as $jenis => $cfg)
-            <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                    <h4 class="text-sm font-semibold text-gray-700">{{ $cfg['label'] }}</h4>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
-                        x-text="count('{{ $jenis }}') + ' orang'"></span>
-                </div>
+        <div class="grid items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-2">
+            @foreach ([
+                    'pns' => [
+                        'label' => 'PNS',
+                        'nipPh' => 'NIP',
+                        'wrap' => 'border-slate-200 bg-slate-50',
+                        'badge' => 'border-blue-200 bg-blue-50 text-blue-700',
+                        'title' => 'text-blue-700',
+                        'row' => 'border-slate-200 border-l-4 border-l-blue-500 bg-white',
+                        'check' => 'text-blue-600 focus:ring-blue-600',
+                        'focus' => 'focus:border-blue-600 focus:ring-blue-600',
+                    ],
+                    'non_pns' => [
+                        'label' => 'Non PNS',
+                        'nipPh' => 'NIK / NIP (opsional)',
+                        'wrap' => 'border-slate-200 bg-slate-50',
+                        'badge' => 'border-amber-200 bg-amber-50 text-amber-700',
+                        'title' => 'text-amber-700',
+                        'row' => 'border-slate-200 border-l-4 border-l-amber-400 bg-white',
+                        'check' => 'text-amber-500 focus:ring-amber-500',
+                        'focus' => 'focus:border-amber-500 focus:ring-amber-500',
+                    ],
+                ] as $jenis => $cfg)
+                <div class="space-y-3 rounded-xl border p-3 sm:p-4 {{ $cfg['wrap'] }}">
+                    <div class="flex items-center gap-2">
+                        <h4 class="rounded-full border px-3 py-1 text-sm font-semibold {{ $cfg['badge'] }}">
+                            {{ $cfg['label'] }}
+                        </h4>
+                        <span class="text-xs text-slate-500" x-text="count('{{ $jenis }}') + ' orang'"></span>
+                    </div>
 
-                <div class="flex flex-wrap gap-2">
-                    <select x-model="pick.{{ $jenis }}" class="flex-1 min-w-[12rem] rounded-lg border-gray-300 text-sm">
-                        <option value="">— pilih pegawai {{ $cfg['label'] }} —</option>
-                        <template x-for="p in pool('{{ $jenis }}')" :key="p.id">
-                            <option :value="p.id" x-text="p.nama + (p.nip ? ' (' + p.nip + ')' : '')"></option>
+                    <div class="flex flex-wrap gap-2">
+                        <input type="search" x-model="cari.{{ $jenis }}"
+                            placeholder="Cari pegawai {{ $cfg['label'] }} (nama / NIP / jabatan)…"
+                            class="min-w-[12rem] flex-1 rounded-lg border-slate-300 bg-white text-sm {{ $cfg['focus'] }}">
+                        <button type="button" @click="addManual('{{ $jenis }}')"
+                            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">+
+                            Isi manual</button>
+                    </div>
+
+                    {{-- ceklis pegawai: klik untuk menambah / mencabut --}}
+                    <div
+                        class="max-h-44 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                        <template x-for="p in daftar('{{ $jenis }}')" :key="p.id">
+                            <label class="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-slate-50">
+                                <input type="checkbox" :checked="terpilih(p.id)" @change="toggle('{{ $jenis }}', p)"
+                                    class="h-4 w-4 rounded border-slate-300 {{ $cfg['check'] }}">
+                                <span class="font-medium text-slate-800" x-text="p.nama"></span>
+                                <span class="truncate text-xs text-slate-500"
+                                    x-text="[p.nip, p.jabatan].filter(Boolean).join(' · ')"></span>
+                            </label>
                         </template>
-                    </select>
-                    <button type="button" @click="addPegawai('{{ $jenis }}')"
-                        class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Tambah</button>
-                    <button type="button" @click="addManual('{{ $jenis }}')" class="px-3 py-2 rounded-lg border text-sm">Isi
-                        manual</button>
-                </div>
+                        <p x-show="daftar('{{ $jenis }}').length === 0" class="px-3 py-3 text-sm text-slate-500"
+                            x-text="pool('{{ $jenis }}').length === 0 ? 'Belum ada data pegawai {{ $cfg['label'] }}.' : 'Tidak ada yang cocok.'">
+                        </p>
+                    </div>
 
-                <div class="space-y-2">
-                    {{-- tiap peserta hanya dirender SEKALI (di kelompok jenisnya), index tetap utuh --}}
-                    <template x-for="i in idx('{{ $jenis }}')" :key="'{{ $jenis }}-' + i">
-                        <div class="border rounded-lg p-3 space-y-2">
-                            <input type="hidden" :name="`peserta[${i}][jenis]`" :value="peserta[i].jenis">
-                            <input type="hidden" :name="`peserta[${i}][pegawai_id]`" :value="peserta[i].pegawai_id ?? ''">
+                    <div class="space-y-2">
+                        {{-- tiap peserta hanya dirender SEKALI (di kelompok jenisnya), index tetap utuh --}}
+                        <template x-for="i in idx('{{ $jenis }}')" :key="'{{ $jenis }}-' + i">
+                            <div x-data="{ open: !!(peserta[i].tanggal_mulai || peserta[i].tanggal_selesai) }"
+                                class="rounded-lg border p-2 {{ $cfg['row'] }}">
+                                <input type="hidden" :name="`peserta[${i}][jenis]`" :value="peserta[i].jenis">
+                                <input type="hidden" :name="`peserta[${i}][pegawai_id]`"
+                                    :value="peserta[i].pegawai_id ?? ''">
 
-                            <div class="grid md:grid-cols-12 gap-2 items-start">
-                                <div class="md:col-span-4">
+                                <div class="flex items-center gap-2">
                                     <input type="text" :name="`peserta[${i}][nama]`" x-model="peserta[i].nama"
-                                        placeholder="Nama" class="w-full rounded-lg border-gray-300 text-sm">
-                                </div>
-                                <div class="md:col-span-3">
-                                    <input type="text" :name="`peserta[${i}][nip]`" x-model="peserta[i].nip"
-                                        placeholder="{{ $cfg['nipPlaceholder'] }}"
-                                        class="w-full rounded-lg border-gray-300 text-sm">
-                                </div>
-                                <div class="md:col-span-4">
-                                    <input type="text" :name="`peserta[${i}][jabatan]`" x-model="peserta[i].jabatan"
-                                        placeholder="Jabatan" class="w-full rounded-lg border-gray-300 text-sm">
-                                </div>
-                                <div class="md:col-span-1 md:text-right">
+                                        placeholder="Nama"
+                                        class="min-w-0 flex-1 rounded-lg border-slate-300 text-sm {{ $cfg['focus'] }}">
+                                    <button type="button" @click="open = !open" title="Atur tanggal tugas sendiri"
+                                        :aria-pressed="open"
+                                        :class="open ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'"
+                                        class="shrink-0 rounded-lg border p-2 transition">
+                                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                            fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                            stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="3" y="4.5" width="18" height="16" rx="2" />
+                                            <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+                                        </svg>
+                                    </button>
                                     <button type="button" @click="peserta.splice(i,1)"
-                                        class="text-red-500 text-sm">Hapus</button>
+                                        class="shrink-0 {{ $fHapus }}">Hapus</button>
                                 </div>
-                            </div>
+                                <div class="mt-2 grid grid-cols-2 gap-2">
+                                    <input type="text" :name="`peserta[${i}][nip]`" x-model="peserta[i].nip"
+                                        placeholder="{{ $cfg['nipPh'] }}"
+                                        class="min-w-0 rounded-lg border-slate-300 text-sm {{ $cfg['focus'] }}">
+                                    <input type="text" :name="`peserta[${i}][jabatan]`" x-model="peserta[i].jabatan"
+                                        placeholder="Jabatan"
+                                        class="min-w-0 rounded-lg border-slate-300 text-sm {{ $cfg['focus'] }}">
+                                </div>
 
-                            <div class="grid grid-cols-2 md:grid-cols-12 gap-2">
-                                <div class="md:col-span-3">
-                                    <label class="block text-xs text-gray-500 mb-1">Tanggal tugas (mulai)</label>
-                                    <input type="date" :name="`peserta[${i}][tanggal_mulai]`"
-                                        x-model="peserta[i].tanggal_mulai" :min="mulai || null" :max="selesai || null"
-                                        class="w-full rounded-lg border-gray-300 text-sm">
-                                </div>
-                                <div class="md:col-span-3">
-                                    <label class="block text-xs text-gray-500 mb-1">Sampai (opsional)</label>
-                                    <input type="date" :name="`peserta[${i}][tanggal_selesai]`"
-                                        x-model="peserta[i].tanggal_selesai"
-                                        :min="peserta[i].tanggal_mulai || mulai || null" :max="selesai || null"
-                                        class="w-full rounded-lg border-gray-300 text-sm">
+                                {{-- tetap di DOM (x-show) supaya nilai tanggal ikut terkirim --}}
+                                <div x-show="open" x-cloak class="mt-2 grid gap-2 sm:grid-cols-2">
+                                    <div>
+                                        <label class="mb-1 block text-xs text-slate-500">Tanggal tugas (mulai)</label>
+                                        <input type="date" :name="`peserta[${i}][tanggal_mulai]`"
+                                            x-model="peserta[i].tanggal_mulai" :min="mulai || null" :max="selesai || null"
+                                            class="w-full rounded-lg border-slate-300 text-sm {{ $cfg['focus'] }}">
+                                    </div>
+                                    <div>
+                                        <label class="mb-1 block text-xs text-slate-500">Sampai (opsional)</label>
+                                        <input type="date" :name="`peserta[${i}][tanggal_selesai]`"
+                                            x-model="peserta[i].tanggal_selesai"
+                                            :min="peserta[i].tanggal_mulai || mulai || null" :max="selesai || null"
+                                            class="w-full rounded-lg border-slate-300 text-sm {{ $cfg['focus'] }}">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </template>
-                    <p x-show="count('{{ $jenis }}') === 0" class="text-sm text-gray-500">Belum ada peserta
-                        {{ $cfg['label'] }}.
-                    </p>
+                        </template>
+                        <p x-show="count('{{ $jenis }}') === 0" class="text-sm text-slate-500">Belum ada peserta
+                            {{ $cfg['label'] }}.
+                        </p>
+                    </div>
                 </div>
-            </div>
-
-            @if ($jenis === 'pns')
-            <hr> @endif
-        @endforeach
-    </div>
+            @endforeach
+        </div>
+    </section>
 
     {{-- Penandatangan --}}
-    <div class="bg-white rounded-xl shadow-sm border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-800">Penandatangan</h3>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Pilih penandatangan</label>
-            <select x-model="pickTtd" @change="setTtd()" class="mt-1 w-full rounded-lg border-gray-300 text-sm">
-                <option value="">— pilih penandatangan —</option>
-                <template x-for="p in penandatangan" :key="p.id">
-                    <option :value="p.id" x-text="p.nama + (p.jabatan ? ' — ' + p.jabatan : '')"></option>
-                </template>
-            </select>
-            <p class="text-xs text-gray-500 mt-1">Daftar diambil dari data pegawai yang ditetapkan sebagai
+    <section class="{{ $fCard }}">
+        <div class="{{ $fHead }}">
+            <h3 class="text-sm font-semibold text-slate-900">Penandatangan</h3>
+            <p class="mt-0.5 text-xs text-slate-500">Daftar diambil dari data pegawai yang ditetapkan sebagai
                 penandatangan.</p>
         </div>
-
-        <div class="grid md:grid-cols-3 gap-4">
-            <div class="md:col-span-3">
-                <label class="block text-sm font-medium text-gray-700">Jabatan</label>
-                <input type="text" name="jabatan_penandatangan" x-model="ttd.jabatan" readonly
-                    class="mt-1 w-full rounded-lg border-gray-300 bg-gray-50 text-sm">
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Nama</label>
-                <input type="text" name="nama_penandatangan" x-model="ttd.nama" readonly
-                    class="mt-1 w-full rounded-lg border-gray-300 bg-gray-50 text-sm">
-            </div>
+        <div class="{{ $fBody }}">
             <div>
-                <label class="block text-sm font-medium text-gray-700">NIP</label>
-                <input type="text" name="nip_penandatangan" x-model="ttd.nip" readonly
-                    class="mt-1 w-full rounded-lg border-gray-300 bg-gray-50 text-sm">
+                <label class="{{ $fLabel }}">Pilih penandatangan</label>
+                <select x-model="pickTtd" @change="setTtd()" class="{{ $fInput }}">
+                    <option value="">— pilih penandatangan —</option>
+                    <template x-for="p in penandatangan" :key="p.id">
+                        <option :value="p.id" x-text="p.nama + (p.jabatan ? ' — ' + p.jabatan : '')"></option>
+                    </template>
+                </select>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div class="sm:col-span-3">
+                    <label class="{{ $fLabel }}">Jabatan</label>
+                    <input type="text" name="jabatan_penandatangan" x-model="ttd.jabatan" readonly
+                        class="{{ $fReadonly }}">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="{{ $fLabel }}">Nama</label>
+                    <input type="text" name="nama_penandatangan" x-model="ttd.nama" readonly class="{{ $fReadonly }}">
+                </div>
+                <div>
+                    <label class="{{ $fLabel }}">NIP</label>
+                    <input type="text" name="nip_penandatangan" x-model="ttd.nip" readonly class="{{ $fReadonly }}">
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="flex justify-end gap-2 pb-4">
-        <a href="{{ route('surat-tugas.index') }}" class="px-4 py-2 rounded-lg border text-sm">Batal</a>
-        <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm">Simpan</button>
+    {{-- Aksi --}}
+    <div
+        class="sticky bottom-0 z-10 -mx-4 flex justify-end gap-2 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border sm:shadow-sm">
+        <a href="{{ route('surat-tugas.index') }}"
+            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Batal</a>
+        <button type="submit"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">Simpan</button>
     </div>
 </div>
-
-@include('partials.searchable-select')

@@ -1,35 +1,46 @@
 @php
-    $btn = 'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition';
-    $lbl = 'block text-sm font-medium text-gray-600 mb-1';
+    // Tombol kecil yang dipakai berulang di tiap baris
+    $btn = 'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1';
+    $lbl = 'block text-sm font-medium text-slate-600 mb-1';
+
+    // Warna garis di sisi kiri baris, mengikuti status ST
+    $rail = [
+        'draf' => 'border-l-slate-300',
+        'terbit' => 'border-l-blue-600',
+        'selesai' => 'border-l-emerald-500',
+        'batal' => 'border-l-red-400',
+    ];
 @endphp
 <x-app-layout>
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
 
-            {{-- Header + kartu info + filter --}}
-            <div class="bg-white rounded-2xl border shadow-sm p-5 sm:p-6 space-y-5">
+            {{-- Kepala halaman: sama dengan halaman Memorandum (judul, pil jumlah, banner nomor, pencarian) --}}
+            <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 class="text-2xl font-semibold text-gray-900">Surat Tugas</h2>
-                        <p class="text-sm text-gray-500 mt-1">Diurutkan dari yang terbaru.</p>
+                        <h2 class="text-xl font-semibold text-gray-900">Surat Tugas</h2>
+                        <p class="mt-0.5 text-xs text-gray-500">Diurutkan dari yang terbaru.</p>
                     </div>
-                    <span class="rounded-full border bg-gray-50 px-4 py-1.5 text-sm text-gray-600">
+                    <span class="rounded-full border bg-gray-50 px-3 py-1 text-xs text-gray-600">
                         {{ $items->count() }} dari {{ $items->total() }} surat tugas
                     </span>
                 </div>
 
                 <div
-                    class="rounded-2xl border border-blue-100 bg-blue-50/60 p-5 flex flex-wrap items-center justify-between gap-4">
+                    class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
                     <div>
-                        <div class="text-sm font-medium text-blue-700">Nomor ST berikutnya</div>
-                        <div class="text-3xl font-semibold text-gray-900 mt-0.5 break-all">{{ $nomorBerikutnya }}</div>
-                        <div class="text-sm text-gray-500 mt-1">Nomor final ditetapkan saat surat tugas disimpan. Tahun
+                        <div class="text-xs font-medium text-blue-700">Nomor ST berikutnya</div>
+                        <div class="mt-0.5 break-all text-xl font-semibold tabular-nums text-gray-900">
+                            {{ $nomorBerikutnya }}
+                        </div>
+                        <div class="mt-0.5 text-xs text-gray-500">Nomor final ditetapkan saat surat tugas disimpan.
+                            Tahun
                             {{ $tahun }}.
                         </div>
                     </div>
                     <a href="{{ route('surat-tugas.create') }}"
-                        class="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
-                        style="background:#2563eb;color:#fff;">
+                        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" d="M12 5v14M5 12h14" />
                         </svg>
@@ -39,11 +50,13 @@
 
                 <form method="GET" class="flex flex-wrap items-end gap-3">
                     <div class="w-full sm:w-96">
-                        <label class="{{ $lbl }}">Cari</label>
-                        <input type="text" name="q" value="{{ request('q') }}" placeholder="Nomor surat atau perihal..."
-                            class="w-full rounded-xl border-gray-300 text-sm">
+                        <label for="q" class="{{ $lbl }} !text-xs">Cari</label>
+                        <input id="q" type="text" name="q" value="{{ request('q') }}"
+                            placeholder="Nomor surat atau perihal..."
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-600 focus:ring-blue-600">
                     </div>
-                    <button class="rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-50">Cari</button>
+                    <button
+                        class="rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cari</button>
                     @if (request('q'))
                         <a href="{{ route('surat-tugas.index') }}"
                             class="px-2 py-2 text-sm text-gray-500 hover:text-gray-800">Reset</a>
@@ -51,49 +64,72 @@
                 </form>
             </div>
 
-            {{-- Daftar --}}
-            <div
-                class="hidden md:grid grid-cols-12 gap-4 px-5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                <div class="col-span-7">Kegiatan</div>
-                <div class="col-span-5">Nomor &amp; Aksi</div>
-            </div>
+            {{-- Daftar surat tugas --}}
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
-            @forelse ($items as $it)
-                <div class="bg-white rounded-2xl border shadow-sm p-5 grid md:grid-cols-12 gap-4">
-                    {{-- Kiri: kegiatan --}}
-                    <div class="md:col-span-7 flex gap-4">
+                <div
+                    class="hidden grid-cols-12 gap-4 border-b border-slate-200 bg-slate-50 px-6 py-3 text-xs font-medium text-slate-500 md:grid">
+                    <div class="col-span-3">Nomor dan status</div>
+                    <div class="col-span-6">Kegiatan</div>
+                    <div class="col-span-3 text-right">Aksi</div>
+                </div>
+
+                <div class="divide-y divide-slate-100">
+                    @forelse ($items as $it)
+                        @php
+                            // Edit dan hapus hanya untuk draf, dan hanya admin atau pembuat ST
+                            $bolehKelola = $it->isDraf() && ($isAdmin || (int) $it->created_by === (int) auth()->id());
+                        @endphp
+
                         <div
-                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-sm text-gray-600">
-                            {{ $items->firstItem() + $loop->index }}
-                        </div>
-                        <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-2 text-sm">
-                                <span
-                                    class="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">Surat
-                                    Tugas</span>
-                                <span class="text-gray-500">{{ $it->tanggal_indo }}</span>
-                            </div>
-                            <p class="mt-2 font-semibold text-gray-900 leading-snug">
-                                {{ \Illuminate\Support\Str::limit($it->untuk[0] ?? '-', 160) }}
-                            </p>
-                            <dl class="mt-3 grid grid-cols-[auto,1fr] gap-x-6 gap-y-1 text-sm">
-                                <dt class="text-gray-400">Penandatangan</dt>
-                                <dd class="text-gray-800">{{ $it->nama_penandatangan ?: '-' }}</dd>
-                                <dt class="text-gray-400">Peserta</dt>
-                                <dd class="text-gray-800">{{ $it->peserta_count }} orang</dd>
-                            </dl>
-                        </div>
-                    </div>
+                            class="grid gap-4 border-l-4 px-6 py-4 transition hover:bg-slate-50/70 md:grid-cols-12 md:items-center {{ $rail[$it->status] ?? 'border-l-slate-300' }}">
 
-                    {{-- Kanan: nomor + aksi --}}
-                    <div class="md:col-span-5">
-                        <div class="rounded-xl border bg-gray-50/60 p-4">
-                            <div class="font-semibold text-gray-900 break-all">
-                                {{ $it->nomor ?? 'Belum bernomor' }}
-                            </div>
-                            <div class="mt-3 flex flex-wrap items-center gap-2">
+                            {{-- Nomor, tanggal, status --}}
+                            <div class="min-w-0 md:col-span-3">
                                 <a href="{{ route('surat-tugas.show', $it) }}"
-                                    class="{{ $btn }} border-blue-200 bg-white text-blue-700 hover:bg-blue-50">
+                                    class="break-all text-sm font-semibold tabular-nums text-slate-900 hover:text-blue-700 focus:outline-none focus-visible:underline">
+                                    @if ($it->nomor)
+                                        {{ $it->nomor }}
+                                    @else
+                                        <span class="font-medium italic text-slate-500">Belum bernomor</span>
+                                    @endif
+                                </a>
+                                <div class="mt-0.5 text-xs text-slate-500">{{ $it->tanggal_indo }}</div>
+                                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {{ $it->status_badge }}">
+                                        {{ $it->status_label }}
+                                    </span>
+                                    {{-- Tusi tampil kalau controller memuat relasinya (with('tusi')) --}}
+                                    @if ($it->relationLoaded('tusi') && $it->tusi)
+                                        <span
+                                            class="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs text-slate-600">
+                                            {{ $it->tusi->nama }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            {{-- Kegiatan --}}
+                            <div class="min-w-0 md:col-span-6">
+                                <p class="line-clamp-2 text-sm font-medium leading-snug text-slate-900">
+                                    {{ \Illuminate\Support\Str::limit($it->untuk[0] ?? '-', 200) }}
+                                </p>
+                                <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
+                                    <span>Penandatangan: {{ $it->nama_penandatangan ?: '-' }}</span>
+                                    <span>{{ $it->peserta_count }} peserta</span>
+                                    @if ($it->rentang_tanggal)
+                                        <span>Pelaksanaan: {{ $it->rentang_tanggal }}</span>
+                                    @endif
+                                    @if ($it->lokasi)
+                                        <span>{{ $it->lokasi }}</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            {{-- Aksi --}}
+                            <div class="flex flex-wrap items-center gap-2 md:col-span-3 md:justify-end">
+                                <a href="{{ route('surat-tugas.show', $it) }}"
+                                    class="{{ $btn }} border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                                         <path
@@ -103,7 +139,7 @@
                                     Lihat
                                 </a>
                                 <a href="{{ route('surat-tugas.pdf', $it) }}" target="_blank"
-                                    class="{{ $btn }} border-blue-200 bg-white text-blue-700 hover:bg-blue-50">
+                                    class="{{ $btn }} border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                                         <path
@@ -111,52 +147,71 @@
                                     </svg>
                                     PDF
                                 </a>
-                                @if ($it->isDraf())
+                                @if ($bolehKelola)
                                     <a href="{{ route('surat-tugas.edit', $it) }}"
                                         class="{{ $btn }} border-amber-200 bg-white text-amber-700 hover:bg-amber-50">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                            stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                                            <path
-                                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                                        </svg>
                                         Edit
                                     </a>
+                                    <form method="POST" action="{{ route('surat-tugas.destroy', $it) }}" class="inline"
+                                        onsubmit="return confirm('Hapus surat tugas ini? Tindakan ini tidak bisa dibatalkan.')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit"
+                                            class="{{ $btn }} border-red-200 bg-white text-red-600 hover:bg-red-50">
+                                            Hapus
+                                        </button>
+                                    </form>
                                 @endif
-                                <form method="POST" action="{{ route('surat-tugas.destroy', $it) }}" class="inline"
-                                    onsubmit="return confirm('Hapus surat tugas ini? Tindakan ini tidak bisa dibatalkan.')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                        class="{{ $btn }} border-red-200 bg-white text-red-600 hover:bg-red-50">Hapus</button>
-                                </form>
                             </div>
                         </div>
-                    </div>
+                    @empty
+                        <div class="px-6 py-14 text-center">
+                            @if (request('q'))
+                                <p class="font-medium text-slate-700">Tidak ada surat tugas yang cocok dengan
+                                    "{{ request('q') }}".</p>
+                                <a href="{{ route('surat-tugas.index') }}"
+                                    class="mt-2 inline-block text-sm text-blue-700 hover:underline">Tampilkan semua
+                                    surat tugas</a>
+                            @else
+                                <p class="font-medium text-slate-700">Belum ada surat tugas.</p>
+                                <a href="{{ route('surat-tugas.create') }}"
+                                    class="mt-2 inline-block text-sm text-blue-700 hover:underline">Buat surat tugas
+                                    pertama</a>
+                            @endif
+                        </div>
+                    @endforelse
                 </div>
-            @empty
-                <div class="bg-white rounded-2xl border shadow-sm p-10 text-center text-gray-500">Belum ada surat tugas.
-                </div>
-            @endforelse
+            </div>
 
             <div>{{ $items->links() }}</div>
 
-            {{-- Atur counter (admin) --}}
+            {{-- Atur counter nomor (admin), dilipat supaya tidak mengganggu --}}
             @if ($isAdmin)
-                <form method="POST" action="{{ route('surat-tugas.counter') }}"
-                    class="bg-white rounded-2xl border shadow-sm p-5 flex flex-wrap items-end gap-4 text-sm">
-                    @csrf
-                    <div>
-                        <label class="{{ $lbl }}">Tahun</label>
-                        <input type="number" name="tahun" value="{{ $tahun }}"
-                            class="rounded-xl border-gray-300 text-sm w-28">
-                    </div>
-                    <div>
-                        <label class="{{ $lbl }}">Nomor terakhir terpakai</label>
-                        <input type="number" name="last_number" value="{{ $counter }}"
-                            class="rounded-xl border-gray-300 text-sm w-40">
-                    </div>
-                    <button class="rounded-xl border px-4 py-2 font-medium hover:bg-gray-50">Atur counter</button>
-                    <p class="text-gray-500">Contoh: isi 203 agar ST berikutnya bernomor 204. Counter hanya boleh naik.</p>
-                </form>
+                <details class="rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <summary
+                        class="cursor-pointer select-none px-6 py-4 text-sm font-medium text-slate-700 hover:text-slate-900">
+                        Atur counter nomor surat tugas
+                    </summary>
+                    <form method="POST" action="{{ route('surat-tugas.counter') }}"
+                        class="flex flex-wrap items-end gap-4 border-t border-slate-100 px-6 py-5 text-sm">
+                        @csrf
+                        <div>
+                            <label class="{{ $lbl }}">Tahun</label>
+                            <input type="number" name="tahun" value="{{ $tahun }}"
+                                class="w-28 rounded-lg border-slate-300 text-sm">
+                        </div>
+                        <div>
+                            <label class="{{ $lbl }}">Nomor terakhir terpakai</label>
+                            <input type="number" name="last_number" value="{{ $counter }}"
+                                class="w-40 rounded-lg border-slate-300 text-sm">
+                        </div>
+                        <button
+                            class="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50">
+                            Simpan counter
+                        </button>
+                        <p class="text-slate-500">Contoh: isi 203 agar ST berikutnya bernomor 204. Counter hanya boleh
+                            naik.</p>
+                    </form>
+                </details>
             @endif
         </div>
     </div>
