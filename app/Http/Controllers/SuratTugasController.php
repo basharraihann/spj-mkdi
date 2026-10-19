@@ -412,12 +412,36 @@ class SuratTugasController extends Controller
 
         foreach ($pns->concat($nonPns)->values() as $n => $p) {
             $mulai = $p['tanggal_mulai'] ?? null;
+            $nama = trim((string) ($p['nama'] ?? ''));
+
+            // Ambil pegawai_id jika sudah ada
+            $pegawaiId = ($p['pegawai_id'] ?? null) ?: null;
+
+            // Jika pegawai_id kosong tetapi nama terisi, buat/hubungkan otomatis ke Master Pegawai
+            if (!$pegawaiId && $nama !== '') {
+                $jenisStatus = ($p['jenis'] ?? 'pns') === 'non_pns' ? 'Non PNS' : 'PNS';
+                
+                // Cek apakah pegawai dengan nama ini sudah ada di database
+                $pegawai = Pegawai::where('nama', $nama)->first();
+
+                if (!$pegawai) {
+                    // Jika belum ada, otomatis buatkan record baru di Master Pegawai
+                    $pegawai = Pegawai::create([
+                        'nama' => $nama,
+                        'nip' => $p['nip'] ?? null,
+                        'jabatan' => !empty($p['jabatan']) ? $p['jabatan'] : '-',
+                        'status_kepegawaian' => $jenisStatus,
+                    ]);
+                }
+
+                $pegawaiId = $pegawai->id;
+            }
 
             $st->peserta()->create([
-                'pegawai_id' => ($p['pegawai_id'] ?? null) ?: null,
+                'pegawai_id' => $pegawaiId,
                 'jenis' => ($p['jenis'] ?? 'pns') === 'non_pns' ? 'non_pns' : 'pns',
                 'urutan' => $n + 1,
-                'nama' => $p['nama'],
+                'nama' => $nama,
                 'nip' => $p['nip'] ?? null,
                 'jabatan' => $p['jabatan'] ?? null,
                 'tanggal_mulai' => $mulai ?: null,

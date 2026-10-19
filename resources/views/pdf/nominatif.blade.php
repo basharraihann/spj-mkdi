@@ -7,12 +7,12 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 10mm 8mm;
+            margin: 8mm 8mm; /* Reduced top/bottom margin slightly */
         }
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
+            font-size: 10.5px; /* Slightly reduced font size */
         }
 
         .kop {
@@ -27,24 +27,30 @@
 
         .rupiah {
             text-align: right;
-            margin-bottom: 3px;
-            font-size: 11px;
+            margin-bottom: 2px;
+            font-size: 10px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
+            page-break-inside: auto;
+        }
+
+        tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
 
         td,
         th {
             border: 1px solid #000;
-            padding: 3px 4px;
+            padding: 2px 3px; /* Compact padding to fit all rows on page 1 */
             text-align: center;
             vertical-align: middle;
-            font-size: 11px;
-            line-height: 1.3;
+            font-size: 10px;
+            line-height: 1.25;
             word-wrap: normal;
             overflow-wrap: normal;
             word-break: normal;
@@ -52,7 +58,7 @@
 
         th {
             background: #eee;
-            font-size: 11px;
+            font-size: 10px;
         }
 
         .text-left {
@@ -68,13 +74,13 @@
         }
 
         .row-data td {
-            height: 56px;
+            height: auto; /* Height adapts automatically without forcing 56px */
         }
 
         .ket-col {
             vertical-align: middle;
             text-align: center;
-            line-height: 1.3;
+            line-height: 1.25;
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
@@ -89,12 +95,15 @@
 
         .ttd-wrap {
             width: 100%;
-            margin-top: 25px;
+            margin-top: 12px; /* Slightly reduced top margin */
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
 
         .ttd-wrap table {
             border: none;
             table-layout: auto;
+            page-break-inside: avoid !important;
         }
 
         .ttd-wrap td {
@@ -102,8 +111,8 @@
             text-align: left;
             vertical-align: top;
             padding: 0 10px;
-            font-size: 11px;
-            line-height: 1.35;
+            font-size: 10px;
+            line-height: 1.3;
         }
 
         .ttd-wrap td:nth-child(2) {
@@ -115,12 +124,12 @@
         }
 
         .ttd-header {
-            min-height: 45px;
+            min-height: 35px;
             display: block;
         }
 
         .ttd-space {
-            height: 75px;
+            height: 45px; /* Compact signature area so it easily fits on page 1 */
             display: block;
         }
     </style>
@@ -188,15 +197,12 @@
         $lebarTanggal = max(round($sisaLebar * 0.35, 2), 8);
         $lebarKeterangan = max(round($sisaLebar - $lebarTanggal, 2), 12);
 
-        // Tujuan tampil: gabungan Kab/Kota + Provinsi.
-        // $agenda->tujuan = Provinsi (kolom lama), $agenda->kota_tujuan = Kab/Kota (kolom baru, nullable).
         $tujuanTampil = trim(
             collect([$agenda->kota_tujuan ?? null, $agenda->tujuan ?? null])
                 ->filter()
                 ->implode(', '),
         );
 
-        // Format nominal: kalau kosong/null/0 tampil "-", selain itu format angka.
         $formatNominal = fn($nilai) => ($nilai ?? 0) > 0 ? number_format($nilai) : '-';
     @endphp
 
@@ -225,8 +231,7 @@
                 <th rowspan="2" style="width:3.5%">Lama</th>
                 <th rowspan="2" style="width:{{ $lebarTanggal }}%">Tanggal Perjalanan</th>
                 @if ($kolomAktif->isNotEmpty())
-                    <th colspan="{{ $kolomAktif->count() }}" @if ($jumlahKolomBiaya === 1)
-                    style="width:{{ $totalLebarKolomBiaya }}%" @endif>
+                    <th colspan="{{ $kolomAktif->count() }}" @if ($jumlahKolomBiaya === 1) style="width:{{ $totalLebarKolomBiaya }}%" @endif>
                         Rincian Biaya
                     </th>
                 @endif
@@ -251,8 +256,6 @@
                 $totals = $kolomAktif->mapWithKeys(fn($key) => [$key => 0])->all();
                 $totals['jumlah'] = 0;
 
-                // Keterangan: judul/uraian kegiatan aja, TANPA nambahin provinsi/kab-kota
-                // tujuan di akhir (uraian_kegiatan biasanya udah nyebut lokasinya sendiri).
                 $ketList = $pegawaiList->map(function ($p) use ($agenda) {
                     return $p->pivot->keterangan
                         ?? ('Perjalanan dinas dalam rangka ' . $agenda->uraian_kegiatan);
@@ -286,8 +289,6 @@
                     }
                     $totals['jumlah'] += $jumlah;
 
-                    // Tanggal & lama perjalanan PER PESERTA, sesuai isian di halaman peserta.
-                    // Kolom pivot kosong (null) = ikut rentang penuh surat tugas di agenda.
                     $tglMulaiP = \Carbon\Carbon::parse(($p->pivot->tanggal_mulai ?? null) ?: $agenda->tanggal_mulai);
                     $tglSelesaiP = \Carbon\Carbon::parse(($p->pivot->tanggal_selesai ?? null) ?: $agenda->tanggal_selesai);
                     $lamaHari = (int) $tglMulaiP->copy()->startOfDay()
@@ -296,7 +297,7 @@
                 <tr class="row-data">
                     <td>{{ $i + 1 }}</td>
                     <td class="col-nama">{{ $p->nama_gelar ?? $p->nama }}</td>
-                    <td>{{ $p->jabatan }}</td>
+                    <td>{{ $p->jabatan ?? '-' }}</td>
                     <td>{{ $p->golongan ?? '-' }}</td>
                     <td>{{ $tujuanTampil }}</td>
                     <td>{{ $lamaHari }} hari</td>
