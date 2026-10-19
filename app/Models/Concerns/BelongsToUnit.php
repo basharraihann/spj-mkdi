@@ -10,7 +10,7 @@ trait BelongsToUnit
 {
     protected static function bootBelongsToUnit(): void
     {
-        // Non-admin hanya lihat data unit sendiri
+        // Non-admin hanya lihat data unit sendiri (admin lihat semua)
         static::addGlobalScope('unit', function (Builder $builder) {
             $user = auth()->user();
 
@@ -22,11 +22,11 @@ trait BelongsToUnit
             }
         });
 
-        // Non-admin: unit_id otomatis diisi dari akunnya
+        // unit_id otomatis diisi dari akun yang membuat (admin maupun non-admin)
         static::creating(function ($model) {
             $user = auth()->user();
 
-            if ($user && !$user->isAdmin()) {
+            if ($user) {
                 $model->unit_id = $user->unit_id;
             }
         });
