@@ -7,12 +7,15 @@ use App\Models\KabupatenKota;
 use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\SuratTugasCounter;
+use App\Models\Tusi;
+use App\Services\LaporanStService;
 use App\Services\SuratTugasNumberService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class SuratTugasController extends Controller
 {
@@ -29,7 +32,7 @@ class SuratTugasController extends Controller
 
     public function index(Request $request)
     {
-        $q = SuratTugas::withCount('peserta')->latest('tanggal')->latest('id');
+        $q = SuratTugas::with('tusi')->withCount('peserta')->latest('tanggal')->latest('id');
 
         if ($s = $request->query('q')) {
             $q->where(function ($w) use ($s) {
@@ -37,6 +40,13 @@ class SuratTugasController extends Controller
                     ->orWhere('untuk', 'like', "%{$s}%")
                     ->orWhere('menimbang', 'like', "%{$s}%");
             });
+        }
+
+        // filter tusi: ?tusi=none -> belum dikelompokkan, ?tusi={id} -> tusi tertentu
+        if ($filter = $request->query('tusi')) {
+            $filter === 'none'
+                ? $q->whereNull('tusi_id')
+                : $q->where('tusi_id', (int) $filter);
         }
 
         $tahun = now()->year;
@@ -47,6 +57,8 @@ class SuratTugasController extends Controller
             'counter' => SuratTugasCounter::where('tahun', $tahun)->value('last_number') ?? 0,
             'nomorBerikutnya' => $this->numbers->nomorBerikutnya($tahun, config('surat_tugas.kode_klasifikasi')),
             'isAdmin' => $this->isAdmin(),
+            'tusiOptions' => Tusi::urut()->get(['id', 'nama', 'aktif']),
+            'belumDikelompokkan' => SuratTugas::whereNull('tusi_id')->count(),
         ]);
     }
 
@@ -89,9 +101,17 @@ class SuratTugasController extends Controller
         return $this->keShow($st, 'Draf surat tugas dibuat.');
     }
 
-    public function show(SuratTugas $suratTugas)
+    public function show(SuratTugas $suratTugas, LaporanStService $laporan)
     {
-        return view('surat-tugas.show', ['st' => $suratTugas->load('peserta')]);
+        return view('surat-tugas.show', [
+            'st' => $suratTugas->load('peserta', 'tusi'),
+            'tusiOptions' => Tusi::aktif()->urut()->get(['id', 'nama']),
+            'bolehUbahTusi' => $this->bolehUbahTusi($suratTugas),
+            'bolehKelola' => $this->bolehKelola($suratTugas),
+            'laporan' => $suratTugas->laporan()->with('tindakLanjut', 'dikirimOleh')->first(),
+            'tugasLapor' => $suratTugas->tugasLapor()->with('user:id,name')->get(),
+            'bolehIsiLaporan' => $laporan->bolehIsi($suratTugas, auth()->user()),
+        ]);
     }
 
     public function edit(SuratTugas $suratTugas)
@@ -138,6 +158,71 @@ class SuratTugasController extends Controller
         });
 
         return redirect()->route('surat-tugas.index')->with('success', 'Surat tugas dihapus.');
+    }
+
+    /* =====================================================================
+     |  Pengelompokan (tusi)
+     * ===================================================================== */
+
+    /**
+     * Ubah tusi ST. Terpisah dari update() karena tusi hanya metadata:
+     * ST yang sudah bernomor (dikunci) tetap bisa diklasifikasi.
+     */
+    public function updateTusi(Request $request, SuratTugas $suratTugas): RedirectResponse
+    {
+        abort_unless($this->bolehUbahTusi($suratTugas), 403);
+
+        $data = $request->validate([
+            // hanya tusi aktif, atau tusi yang memang sedang dipakai ST ini
+            'tusi_id' => [
+                'nullable',
+                Rule::exists('tusi', 'id')->where(
+                    fn($q) => $q->where('aktif', true)->orWhere('id', $suratTugas->tusi_id)
+                )
+            ],
+        ]);
+
+        $suratTugas->tusi_id = $data['tusi_id'] ?: null;
+        $suratTugas->save();
+
+        return $this->keShow($suratTugas, 'Pengelompokan ST diperbarui.');
+    }
+
+    /**
+     * Terbitkan ST: nomor dikunci (kalau belum), status jadi terbit, ST tidak bisa diedit lagi,
+     * dan setiap peserta yang punya akun mendapat tugas "Isi Laporan".
+     */
+    public function terbitkan(SuratTugas $suratTugas, LaporanStService $laporan): RedirectResponse
+    {
+        abort_unless($this->bolehKelola($suratTugas), 403);
+
+        try {
+            [$st, $jumlahAkun] = DB::transaction(function () use ($suratTugas, $laporan) {
+                $st = $this->numbers->terbitkan($suratTugas->id);
+
+                return [$st, $laporan->buatTugas($st)];
+            });
+        } catch (\DomainException $e) {
+            return $this->keShow($suratTugas, $e->getMessage(), 'error');
+        }
+
+        $pesan = 'ST diterbitkan dengan nomor ' . $st->nomor . '. ';
+        $pesan .= $jumlahAkun > 0
+            ? "Tugas laporan dikirim ke {$jumlahAkun} akun peserta."
+            : 'Belum ada peserta yang akunnya dipetakan ke pegawai, jadi belum ada tugas laporan.';
+
+        return $this->keShow($st, $pesan, $jumlahAkun > 0 ? 'success' : 'warning');
+    }
+
+    /** Admin atau pembuat ST. Dipakai untuk menerbitkan ST dan mengubah tusi. */
+    private function bolehKelola(SuratTugas $st): bool
+    {
+        return $this->isAdmin() || (int) $st->created_by === (int) auth()->id();
+    }
+
+    private function bolehUbahTusi(SuratTugas $st): bool
+    {
+        return $this->bolehKelola($st);
     }
 
     /* =====================================================================

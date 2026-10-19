@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\SuratTugasController;
+use App\Http\Controllers\LaporanStController;
+use App\Http\Controllers\TugasSayaController;
+use App\Http\Controllers\UserPegawaiController;
+// use App\Http\Controllers\TusiController; // aktifkan kalau pakai halaman master tusi
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -129,10 +133,27 @@ Route::middleware('auth')->group(function () {
             Route::put('{suratTugas}', 'update')->name('update');
             Route::delete('{suratTugas}', 'destroy')->name('destroy');
 
+            // Pengelompokan (tusi): terpisah dari update() supaya ST yang sudah dikunci tetap bisa diklasifikasi
+            Route::patch('{suratTugas}/tusi', 'updateTusi')->name('tusi');
+
+            // Terbitkan ST: kunci isi, buat tugas "Isi Laporan" untuk peserta yang punya akun
+            Route::post('{suratTugas}/terbitkan', 'terbitkan')->name('terbitkan');
+
+            // Simpan draf / kirim laporan hasil ST (otorisasi di LaporanStService::bolehIsi)
+            Route::post('{suratTugas}/laporan', [LaporanStController::class, 'simpan'])->name('laporan.simpan');
+
             Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
             // Data ST untuk mengisi form agenda (JSON)
             Route::get('{suratTugas}/data', 'data')->name('data');
         });
+
+    // Tugas Saya: daftar tugas "Isi Laporan" milik akun yang login (semua user login)
+    Route::get('tugas-saya', [TugasSayaController::class, 'index'])->name('tugas-saya.index');
+
+    // Master tusi (khusus admin, dicek di TusiController). Opsional: aktifkan bersama import di atas.
+    // Route::resource('tusi', TusiController::class)
+    //     ->except(['show', 'create', 'edit'])
+    //     ->parameters(['tusi' => 'tusi']);
 
     Route::middleware(['auth'])->group(function () {
         Route::resource('mak-options', MakOptionController::class)
@@ -158,6 +179,16 @@ Route::middleware('auth')->group(function () {
                 Route::put('pemetaan/{pemetaan}', [AnggaranPemetaanController::class, 'update'])->name('pemetaan.update');
                 Route::delete('pemetaan/{pemetaan}', [AnggaranPemetaanController::class, 'destroy'])->name('pemetaan.destroy');
             });
+        });
+
+    // Pemetaan akun -> pegawai (khusus admin). Menentukan siapa yang mendapat tugas "Isi Laporan".
+    Route::middleware('admin')
+        ->prefix('pemetaan-akun')
+        ->name('pemetaan-akun.')
+        ->controller(UserPegawaiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::put('{user}', 'update')->name('update');
         });
 
     // User Manajemen (Khusus Admin)

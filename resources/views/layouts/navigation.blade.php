@@ -3,16 +3,20 @@
         background-image: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #eef3fb 100%);
         border-color: #e2e8f0;
     }
+
     .sb-active {
         background-color: #e6edf8;
         color: #1e3a8a;
     }
+
     .sb-nav {
         scrollbar-width: none;
     }
+
     .sb-nav::-webkit-scrollbar {
         display: none;
     }
+
     @media (max-height: 820px) {
         .sb-nav {
             padding-top: .5rem !important;
@@ -70,7 +74,16 @@
         <nav class="sb-nav flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-4 pb-2">
 
             @php
+                // Jumlah tugas "Isi Laporan" yang belum diisi milik akun ini (ST batal tidak dihitung)
+                $tugasMenunggu = Auth::check()
+                    ? \App\Models\LaporanStTugas::where('user_id', Auth::id())
+                        ->where('status', \App\Models\LaporanStTugas::STATUS_MENUNGGU)
+                        ->whereHas('suratTugas', fn($q) => $q->where('status', '!=', 'batal'))
+                        ->count()
+                    : 0;
+
                 // Menu dikelompokkan. 'label' => null berarti item tanpa judul kelompok.
+                // 'badge' (opsional) = angka kecil di sebelah menu.
                 $groups = [
                     [
                         'label' => 'SPJ',
@@ -81,12 +94,19 @@
                                 'label' => __('Dashboard'),
                                 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
                             ],
-                            // ===== BARU: Surat Tugas (di atas Agenda) =====
                             [
                                 'route' => 'surat-tugas.index',
                                 'active' => request()->routeIs('surat-tugas.*'),
                                 'label' => __('Surat Tugas'),
                                 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'
+                            ],
+                            // ===== BARU: Tugas Saya (laporan hasil ST yang harus saya isi) =====
+                            [
+                                'route' => 'tugas-saya.index',
+                                'active' => request()->routeIs('tugas-saya.*'),
+                                'label' => __('Tugas Saya'),
+                                'badge' => $tugasMenunggu,
+                                'icon' => 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4'
                             ],
                             [
                                 'route' => 'agendas.index',
@@ -146,6 +166,13 @@
                     $groups[] = [
                         'label' => null,
                         'items' => [
+                            // Pemetaan Akun (akun user ke pegawai), hanya admin
+                            [
+                                'route' => 'pemetaan-akun.index',
+                                'active' => request()->routeIs('pemetaan-akun.*'),
+                                'label' => __('Pemetaan Akun'),
+                                'icon' => 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1'
+                            ],
                             [
                                 'route' => 'users.index',
                                 'active' => request()->routeIs('users.*'),
@@ -200,14 +227,24 @@
                     <div x-show="open || !(sidebarOpen || !sidebarCollapsed)" class="space-y-1">
                         @foreach ($group['items'] as $item)
                             <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
-                                class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
+                                class="sb-link relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
+                                                                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
                                 :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                     stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                                 </svg>
                                 <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
+
+                                {{-- Badge angka (sidebar melebar) dan titik merah (mode ikon) --}}
+                                @if (!empty($item['badge']))
+                                    <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak
+                                        class="ml-auto inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-semibold leading-5 text-white">
+                                        {{ $item['badge'] > 99 ? '99+' : $item['badge'] }}
+                                    </span>
+                                    <span x-show="!(sidebarOpen || !sidebarCollapsed)" x-cloak
+                                        class="absolute right-3 top-1.5 h-2 w-2 rounded-full bg-red-500"></span>
+                                @endif
                             </a>
                         @endforeach
                     </div>
@@ -234,7 +271,7 @@
                 @else
                     <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                         class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
+                                                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
                         :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                         <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />

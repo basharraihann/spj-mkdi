@@ -3,12 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SuratTugas extends Model
 {
     protected $table = 'surat_tugas';
 
+    /**
+     * `tusi_id` sengaja TIDAK ada di sini: store() dan update() tidak boleh menyentuhnya.
+     * Tusi hanya diubah lewat SuratTugasController@updateTusi.
+     */
     protected $fillable = [
         'nomor',
         'nomor_urut',
@@ -56,6 +62,23 @@ class SuratTugas extends Model
     public function peserta(): HasMany
     {
         return $this->hasMany(SuratTugasPegawai::class)->orderBy('urutan');
+    }
+
+    public function tusi(): BelongsTo
+    {
+        return $this->belongsTo(Tusi::class);
+    }
+
+    /** Laporan hasil ST (satu per ST; belum ada baris = belum diisi). */
+    public function laporan(): HasOne
+    {
+        return $this->hasOne(LaporanSt::class);
+    }
+
+    /** Penugasan "Isi Laporan" per akun peserta. */
+    public function tugasLapor(): HasMany
+    {
+        return $this->hasMany(LaporanStTugas::class);
     }
 
     public function isDraf(): bool
