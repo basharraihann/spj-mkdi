@@ -109,7 +109,7 @@ Route::middleware('auth')->group(function () {
             });
         });
 
-    // Surat Tugas perdin (draf -> terbit bernomor otomatis -> selesai/batal)
+    // Surat Tugas perdin (draf -> nomor dikunci saat Simpan)
     Route::prefix('surat-tugas')
         ->name('surat-tugas.')
         ->controller(SuratTugasController::class)
@@ -121,15 +121,17 @@ Route::middleware('auth')->group(function () {
             // Atur counter nomor (khusus admin) - harus di atas route {suratTugas}
             Route::post('counter', 'setCounter')->middleware('admin')->name('counter');
 
+            // Tombol Ambil Nomor (hanya melihat nomor berikutnya) - harus di atas route {suratTugas}
+            Route::post('nomor-berikutnya', 'nomorBerikutnya')->name('nomor-berikutnya');
+
             Route::get('{suratTugas}', 'show')->name('show');
             Route::get('{suratTugas}/edit', 'edit')->name('edit');
             Route::put('{suratTugas}', 'update')->name('update');
             Route::delete('{suratTugas}', 'destroy')->name('destroy');
 
             Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
-            Route::post('{suratTugas}/terbitkan', 'terbitkan')->name('terbitkan');
-            Route::post('{suratTugas}/selesai', 'selesai')->name('selesai');
-            Route::post('{suratTugas}/batal', 'batal')->name('batal');
+            // Data ST untuk mengisi form agenda (JSON)
+            Route::get('{suratTugas}/data', 'data')->name('data');
         });
 
     Route::middleware(['auth'])->group(function () {

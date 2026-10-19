@@ -151,6 +151,16 @@
                         ->values();
                 @endphp
 
+                {{-- Pilih Surat Tugas (auto-isi form) --}}
+                <div class="mb-6">
+                    @include('agendas.partials.pilih-surat-tugas', [
+                        'suratTugasList' => $suratTugasList ?? [],
+                        'agenda' => null,
+                        'isiPeserta' => true,
+                    ])
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:items-stretch"></div>
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:items-stretch">
 
                     {{-- KOLOM KIRI: pilih peserta (langkah pertama; sticky, tinggi menyesuaikan kolom kanan) --}}

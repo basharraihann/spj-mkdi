@@ -73,6 +73,15 @@ class Agenda extends Model
         return $this->dokumenUploads->where('kategori', $kategori)->first();
     }
 
+    /**
+     * Surat Tugas (modul Surat Tugas) yang jadi sumber data agenda ini.
+     * Hanya referensi: isi agenda disalin saat dipilih, jadi null-nya aman.
+     */
+    public function suratTugas()
+    {
+        return $this->belongsTo(SuratTugas::class);
+    }
+
     public function ppk()
     {
         return $this->belongsTo(Pegawai::class, 'ppk_id');

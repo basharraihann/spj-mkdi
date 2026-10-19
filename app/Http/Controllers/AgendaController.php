@@ -10,8 +10,10 @@ use App\Models\SbmFlatRate;
 use App\Models\PengRiilRate;
 use App\Models\KabupatenKota;
 use App\Models\MakOption;
+use App\Models\SuratTugas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
@@ -107,12 +109,16 @@ class AgendaController extends Controller
 
         $makOptions = MakOption::orderBy('mak')->get();
 
-        return view('agendas.create', compact('pegawaiList', 'provinsiList', 'kabKotaMap', 'makOptions'));
+        // Surat Tugas bernomor yang belum dipakai agenda lain (untuk dropdown "Ambil dari Surat Tugas")
+        $suratTugasList = $this->suratTugasOptions();
+
+        return view('agendas.create', compact('pegawaiList', 'provinsiList', 'kabKotaMap', 'makOptions', 'suratTugasList'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'surat_tugas_id' => 'nullable|exists:surat_tugas,id',
             'nomor_st' => 'required|string',
             'nomor_st_karo' => 'nullable|string',
             'uraian_kegiatan' => 'required|string',
@@ -184,6 +190,9 @@ class AgendaController extends Controller
 
         $makOptions = MakOption::orderBy('mak')->get();
 
+        // ST yang belum dipakai agenda lain, plus ST milik agenda ini sendiri
+        $suratTugasList = $this->suratTugasOptions($agenda->surat_tugas_id);
+
         $selectedPesertaIds = $agenda->pegawai->pluck('id');
         $simpleFieldsCek = array_diff(self::SIMPLE_KOMPONEN_FIELDS, ['peng_riil']);
         $pesertaHasBiayaIds = $agenda->pegawai->filter(function ($p) use ($simpleFieldsCek) {
@@ -222,13 +231,15 @@ class AgendaController extends Controller
             'kabKotaMap',
             'makOptions',
             'selectedPesertaIds',
-            'pesertaHasBiayaIds'
+            'pesertaHasBiayaIds',
+            'suratTugasList'
         ));
     }
 
     public function update(Request $request, Agenda $agenda)
     {
         $validated = $request->validate([
+            'surat_tugas_id' => 'nullable|exists:surat_tugas,id',
             'nomor_st' => 'required|string',
             'nomor_st_karo' => 'nullable|string',
             'uraian_kegiatan' => 'required|string',
@@ -609,6 +620,27 @@ class AgendaController extends Controller
     // AgendaPdfController — jangan ditambahin lagi di sini, biar gak dobel.
 
     /**
+     * Surat Tugas bernomor untuk dropdown "Ambil dari Surat Tugas" di form agenda.
+     * ST yang sudah dipakai agenda lain disembunyikan; $termasukId = ST milik agenda
+     * yang sedang diedit supaya pilihannya tetap tampil.
+     */
+    private function suratTugasOptions(?int $termasukId = null): array
+    {
+        $dipakai = Agenda::whereNotNull('surat_tugas_id')
+            ->when($termasukId, fn($q) => $q->where('surat_tugas_id', '!=', $termasukId))
+            ->pluck('surat_tugas_id');
+
+        return SuratTugas::whereNotNull('nomor')
+            ->whereNotIn('id', $dipakai)
+            ->orderByDesc('tanggal')->orderByDesc('id')
+            ->get(['id', 'nomor', 'untuk'])
+            ->map(fn($s) => [
+                'id' => $s->id,
+                'label' => $s->nomor . ' — ' . Str::limit($s->untuk[0] ?? '-', 70),
+            ])->all();
+    }
+
+    /**
      * Pecah string MAK "7458.ABR.006.075.EE.524119" jadi 4 komponen:
      * kode_giat (3 segmen pertama), kode_komponen, kode_akun_ap, kode_belanja.
      * Return null kalau formatnya gak sesuai (bukan 6 segmen).
@@ -779,15 +811,6 @@ class AgendaController extends Controller
     // gak dipakai lagi. Nomor Memo (PNS/Non-PNS) sekarang diisi manual di form
     // Buat/Edit Agenda (lihat partial administrasi-anggaran), Uraian Memo disusun
     // otomatis dari uraian_kegiatan (lihat validateAdministrasiFields() di atas).
-    // memorandumPdf() di bawah TETAP ADA — itu yang beneran generate PDF-nya,
-    // dipanggil langsung dari halaman show agenda.
-    //
-    // CATATAN: hapus juga 2 route ini dari routes/web.php kalau masih ada:
-    //   - GET  agendas/{agenda}/memorandum/{status}        (agendas.memorandum)
-    //   - POST agendas/{agenda}/memorandum/{status}         (agendas.memorandum.store)
-    // Route agendas.memorandum.pdf (GET) TETAP DIPAKAI, tapi sekarang controller-nya
-    // AgendaPdfController@memorandumPdf, bukan di sini.
-    //
     // memorandumPdf(), generateRincianBiaya(), generatePengeluaranRiil(),
     // generateMergedPdf() SEMUA DIPINDAH ke AgendaPdfController — jangan
     // ditambahin lagi di sini, biar gak dobel.

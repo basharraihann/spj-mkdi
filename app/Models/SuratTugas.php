@@ -10,16 +10,38 @@ class SuratTugas extends Model
     protected $table = 'surat_tugas';
 
     protected $fillable = [
-        'nomor', 'nomor_urut', 'tahun', 'kode_klasifikasi', 'status',
-        'menimbang', 'dasar', 'untuk', 'kepada', 'tempat', 'tanggal',
-        'jabatan_penandatangan', 'nama_penandatangan', 'nip_penandatangan',
-        'arsip_surat_id', 'created_by', 'diterbitkan_at', 'dibatalkan_at', 'alasan_batal',
+        'nomor',
+        'nomor_urut',
+        'tahun',
+        'kode_klasifikasi',
+        'status',
+        'menimbang',
+        'dasar',
+        'untuk',
+        'kepada',
+        'tempat',
+        'tanggal',
+        'tanggal_mulai',
+        'tanggal_selesai',
+        'provinsi',
+        'kota',
+        'tujuan',
+        'jabatan_penandatangan',
+        'nama_penandatangan',
+        'nip_penandatangan',
+        'arsip_surat_id',
+        'created_by',
+        'diterbitkan_at',
+        'dibatalkan_at',
+        'alasan_batal',
     ];
 
     protected $casts = [
         'dasar' => 'array',
         'untuk' => 'array',
         'tanggal' => 'date',
+        'tanggal_mulai' => 'date',
+        'tanggal_selesai' => 'date',
         'diterbitkan_at' => 'datetime',
         'dibatalkan_at' => 'datetime',
     ];
@@ -65,6 +87,32 @@ class SuratTugas extends Model
     /** Nomor untuk ditampilkan (draf: placeholder). */
     public function getNomorTampilAttribute(): string
     {
-        return $this->nomor ?: '.../'.$this->kode_klasifikasi.'/'.$this->tanggal->year;
+        return $this->nomor ?: '.../' . $this->kode_klasifikasi . '/' . $this->tanggal->year;
+    }
+
+    /** "7 – 10 September 2026", atau "7 September 2026" kalau sehari. Null kalau belum diisi. */
+    public function getRentangTanggalAttribute(): ?string
+    {
+        if (!$this->tanggal_mulai) {
+            return null;
+        }
+
+        $a = $this->tanggal_mulai->copy()->locale('id');
+        $b = ($this->tanggal_selesai ?? $this->tanggal_mulai)->copy()->locale('id');
+
+        if ($a->isSameDay($b)) {
+            return $a->translatedFormat('j F Y');
+        }
+        if ($a->isSameMonth($b)) {
+            return $a->translatedFormat('j') . ' – ' . $b->translatedFormat('j F Y');
+        }
+
+        return $a->translatedFormat('j F Y') . ' – ' . $b->translatedFormat('j F Y');
+    }
+
+    /** "Kota Denpasar, Bali" atau null kalau belum diisi. */
+    public function getLokasiAttribute(): ?string
+    {
+        return collect([$this->kota, $this->provinsi])->filter()->implode(', ') ?: null;
     }
 }
