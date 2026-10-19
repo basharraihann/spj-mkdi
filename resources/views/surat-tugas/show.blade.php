@@ -18,111 +18,99 @@
         </div>
     </x-slot>
 
-    <div class="py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+    {{-- Aksi --}}
+    <div class="flex flex-wrap items-center gap-2">
+        @if ($st->status === 'terbit' && \Illuminate\Support\Facades\Route::has('surat-tugas.selesai'))
+            <form method="POST" action="{{ route('surat-tugas.selesai', $st) }}">
+                @csrf
+                <button class="px-4 py-2 rounded-lg text-sm" style="background:#16a34a;color:#fff;">Tandai Selesai</button>
+            </form>
+        @endif
 
-            @if (session('success'))
-                <div class="rounded-lg border text-sm p-3" style="background:#f0fdf4;border-color:#bbf7d0;color:#15803d;">
-                    {{ session('success') }}
+        <a href="{{ route('surat-tugas.index') }}"
+            class="px-4 py-2 rounded-lg border bg-white text-sm sm:ml-auto">Kembali</a>
+    </div>
+
+    {{-- Detail --}}
+    <div class="bg-white rounded-xl shadow-sm border p-5 sm:p-6 space-y-6 text-sm">
+
+        <div class="grid md:grid-cols-3 gap-4 rounded-lg bg-gray-50 p-4">
+            <div>
+                <div class="{{ $label }}">Nomor</div>
+                <div class="mt-1 font-medium break-all">{{ $st->nomor_tampil }}</div>
+            </div>
+            <div>
+                <div class="{{ $label }}">Tempat, Tanggal</div>
+                <div class="mt-1 font-medium">{{ $st->tempat }}, {{ $st->tanggal_indo }}</div>
+            </div>
+            <div>
+                <div class="{{ $label }}">Penandatangan</div>
+                <div class="mt-1 font-medium">{{ $st->nama_penandatangan }}</div>
+                <div class="text-gray-500">{{ $st->jabatan_penandatangan }}</div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-5 gap-6">
+            <div class="lg:col-span-3 space-y-5 leading-relaxed text-gray-800">
+                <div>
+                    <div class="{{ $label }}">Menimbang</div>
+                    <p class="mt-1">{{ $st->menimbang ?: '-' }}</p>
                 </div>
-            @endif
-            @if (session('error'))
-                <div class="rounded-lg border text-sm p-3" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c;">
-                    {{ session('error') }}
+
+                <div>
+                    <div class="{{ $label }}">Dasar</div>
+                    <ol class="mt-1 list-decimal pl-5 space-y-1">@forelse ($st->dasar ?? [] as $d)
+                    <li>{{ $d }}</li>@empty<li class="list-none -ml-5">-</li>@endforelse
+                    </ol>
                 </div>
-            @endif
 
-            {{-- Aksi --}}
-            <div class="flex flex-wrap items-center gap-2">
-                @if ($st->status === 'terbit' && \Illuminate\Support\Facades\Route::has('surat-tugas.selesai'))
-                    <form method="POST" action="{{ route('surat-tugas.selesai', $st) }}">
-                        @csrf
-                        <button class="px-4 py-2 rounded-lg text-sm" style="background:#16a34a;color:#fff;">Tandai Selesai</button>
-                    </form>
-                @endif
+                <div>
+                    <div class="{{ $label }}">Kepada</div>
+                    <p class="mt-1">{{ $st->kepada }}</p>
+                </div>
 
-                <a href="{{ route('surat-tugas.index') }}"
-                    class="px-4 py-2 rounded-lg border bg-white text-sm sm:ml-auto">Kembali</a>
+                <div>
+                    <div class="{{ $label }}">Untuk</div>
+                    <ol class="mt-1 list-decimal pl-5 space-y-1">@foreach ($st->untuk ?? [] as $u)
+                    <li>{{ $u }}</li>@endforeach
+                    </ol>
+                </div>
             </div>
 
-            {{-- Detail --}}
-            <div class="bg-white rounded-xl shadow-sm border p-5 sm:p-6 space-y-6 text-sm">
-
-                <div class="grid md:grid-cols-3 gap-4 rounded-lg bg-gray-50 p-4">
-                    <div>
-                        <div class="{{ $label }}">Nomor</div>
-                        <div class="mt-1 font-medium break-all">{{ $st->nomor_tampil }}</div>
-                    </div>
-                    <div>
-                        <div class="{{ $label }}">Tempat, Tanggal</div>
-                        <div class="mt-1 font-medium">{{ $st->tempat }}, {{ $st->tanggal_indo }}</div>
-                    </div>
-                    <div>
-                        <div class="{{ $label }}">Penandatangan</div>
-                        <div class="mt-1 font-medium">{{ $st->nama_penandatangan }}</div>
-                        <div class="text-gray-500">{{ $st->jabatan_penandatangan }}</div>
-                    </div>
-                </div>
-
-                <div class="grid lg:grid-cols-5 gap-6">
-                    <div class="lg:col-span-3 space-y-5 leading-relaxed text-gray-800">
-                        <div>
-                            <div class="{{ $label }}">Menimbang</div>
-                            <p class="mt-1">{{ $st->menimbang ?: '-' }}</p>
-                        </div>
-
-                        <div>
-                            <div class="{{ $label }}">Dasar</div>
-                            <ol class="mt-1 list-decimal pl-5 space-y-1">@forelse ($st->dasar ?? [] as $d)
-                            <li>{{ $d }}</li>@empty<li class="list-none -ml-5">-</li>@endforelse
-                            </ol>
-                        </div>
-
-                        <div>
-                            <div class="{{ $label }}">Kepada</div>
-                            <p class="mt-1">{{ $st->kepada }}</p>
-                        </div>
-
-                        <div>
-                            <div class="{{ $label }}">Untuk</div>
-                            <ol class="mt-1 list-decimal pl-5 space-y-1">@foreach ($st->untuk ?? [] as $u)
-                            <li>{{ $u }}</li>@endforeach
-                            </ol>
-                        </div>
-                    </div>
-
-                    <div class="lg:col-span-2">
-                        <div class="{{ $label }} mb-2">Peserta ({{ $st->peserta->count() }})</div>
-                        <div class="overflow-x-auto rounded-lg border">
-                            <table class="min-w-full text-left">
-                                <thead class="bg-gray-50 text-xs text-gray-500">
-                                    <tr>
-                                        <th class="px-3 py-2 w-10 font-medium">No</th>
-                                        <th class="px-3 py-2 font-medium">Nama / NIP</th>
-                                        <th class="px-3 py-2 font-medium">Jabatan</th>
-                                        @if ($adaTanggal)<th class="px-3 py-2 font-medium">Tanggal Tugas</th>@endif
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y">
-                                    @foreach ($st->peserta as $i => $p)
-                                        <tr>
-                                            <td class="px-3 py-2 text-gray-500">{{ $i + 1 }}</td>
-                                            <td class="px-3 py-2">{{ $p->nama }}@if ($p->nip)
-                                            <div class="text-xs text-gray-500">NIP. {{ $p->nip }}</div>@endif
-                                                <div class="text-xs text-gray-400">{{ $p->jenis_label }}</div>
-                                            </td>
-                                            <td class="px-3 py-2">{{ $p->jabatan }}</td>
-                                            @if ($adaTanggal)
-                                                <td class="px-3 py-2 whitespace-nowrap">{{ $p->tanggal_tugas_indo ?? 'Sesuai rentang ST' }}</td>
-                                            @endif
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            <div class="lg:col-span-2">
+                <div class="{{ $label }} mb-2">Peserta ({{ $st->peserta->count() }})</div>
+                <div class="overflow-x-auto rounded-lg border">
+                    <table class="min-w-full text-left">
+                        <thead class="bg-gray-50 text-xs text-gray-500">
+                            <tr>
+                                <th class="px-3 py-2 w-10 font-medium">No</th>
+                                <th class="px-3 py-2 font-medium">Nama / NIP</th>
+                                <th class="px-3 py-2 font-medium">Jabatan</th>
+                                @if ($adaTanggal)
+                                <th class="px-3 py-2 font-medium">Tanggal Tugas</th>@endif
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            @foreach ($st->peserta as $i => $p)
+                                <tr>
+                                    <td class="px-3 py-2 text-gray-500">{{ $i + 1 }}</td>
+                                    <td class="px-3 py-2">{{ $p->nama }}@if ($p->nip)
+                                    <div class="text-xs text-gray-500">NIP. {{ $p->nip }}</div>@endif
+                                        <div class="text-xs text-gray-400">{{ $p->jenis_label }}</div>
+                                    </td>
+                                    <td class="px-3 py-2">{{ $p->jabatan }}</td>
+                                    @if ($adaTanggal)
+                                        <td class="px-3 py-2 whitespace-nowrap">
+                                            {{ $p->tanggal_tugas_indo ?? 'Sesuai rentang ST' }}</td>
+                                    @endif
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
+    </div>
+    </div>
     </div>
 </x-app-layout>

@@ -6,16 +6,6 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
 
-            {{-- Notifikasi --}}
-            @if (session('success'))
-                <div class="rounded-2xl border text-sm p-4" style="background:#f0fdf4;border-color:#bbf7d0;color:#15803d;">
-                    {{ session('success') }}</div>
-            @endif
-            @if (session('error'))
-                <div class="rounded-2xl border text-sm p-4" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c;">
-                    {{ session('error') }}</div>
-            @endif
-
             {{-- Header + kartu info + filter --}}
             <div class="bg-white rounded-2xl border shadow-sm p-5 sm:p-6 space-y-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
@@ -34,7 +24,8 @@
                         <div class="text-sm font-medium text-blue-700">Nomor ST berikutnya</div>
                         <div class="text-3xl font-semibold text-gray-900 mt-0.5 break-all">{{ $nomorBerikutnya }}</div>
                         <div class="text-sm text-gray-500 mt-1">Nomor final ditetapkan saat surat tugas disimpan. Tahun
-                            {{ $tahun }}.</div>
+                            {{ $tahun }}.
+                        </div>
                     </div>
                     <a href="{{ route('surat-tugas.create') }}"
                         class="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"

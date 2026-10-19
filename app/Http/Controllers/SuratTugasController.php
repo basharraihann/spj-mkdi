@@ -10,6 +10,7 @@ use App\Models\SuratTugasCounter;
 use App\Services\SuratTugasNumberService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +22,10 @@ class SuratTugasController extends Controller
     public function __construct(private SuratTugasNumberService $numbers)
     {
     }
+
+    /* =====================================================================
+     |  CRUD
+     * ===================================================================== */
 
     public function index(Request $request)
     {
@@ -59,16 +64,10 @@ class SuratTugasController extends Controller
             'untuk' => array_merge([''], config('surat_tugas.untuk_default')),
         ]);
 
-        return view('surat-tugas.create', [
-            'st' => $st,
-            'peserta' => [],
-            'pegawaiOptions' => $this->pegawaiOptions(),
-            'penandatanganOptions' => $this->penandatanganOptions(),
-            'kabKotaMap' => $this->kabKotaMap(),
-        ]);
+        return view('surat-tugas.create', $this->dataForm($st, []));
     }
 
-    public function store(SuratTugasRequest $request)
+    public function store(SuratTugasRequest $request): RedirectResponse
     {
         $st = DB::transaction(function () use ($request) {
             $st = SuratTugas::create($this->payload($request) + [
@@ -76,18 +75,18 @@ class SuratTugasController extends Controller
                 'created_by' => auth()->id(),
             ]);
             $this->syncPeserta($st, $request->validated('peserta'));
+
             return $st;
         });
 
         // nomor baru dikunci saat Simpan
         if ($request->boolean('minta_nomor')) {
-            $st = $this->numbers->ambilNomor($st->id, $st->tanggal->format('Y-m-d'), $st->kode_klasifikasi);
+            $st = $this->kunciNomor($st);
 
-            return redirect()->route('surat-tugas.show', $st)
-                ->with('success', 'ST disimpan dengan nomor ' . $st->nomor . '.');
+            return $this->keShow($st, 'ST disimpan dengan nomor ' . $st->nomor . '.');
         }
 
-        return redirect()->route('surat-tugas.show', $st)->with('success', 'Draf surat tugas dibuat.');
+        return $this->keShow($st, 'Draf surat tugas dibuat.');
     }
 
     public function show(SuratTugas $suratTugas)
@@ -98,28 +97,13 @@ class SuratTugasController extends Controller
     public function edit(SuratTugas $suratTugas)
     {
         if (!$suratTugas->isDraf()) {
-            return redirect()->route('surat-tugas.show', $suratTugas)
-                ->with('error', 'ST ini dikunci dan tidak bisa diedit.');
+            return $this->keShow($suratTugas, 'ST ini dikunci dan tidak bisa diedit.', 'error');
         }
 
-        return view('surat-tugas.edit', [
-            'st' => $suratTugas,
-            'peserta' => $suratTugas->peserta->map(fn($p) => [
-                'jenis' => $p->jenis ?: 'pns',
-                'pegawai_id' => $p->pegawai_id,
-                'nama' => $p->nama,
-                'nip' => $p->nip,
-                'jabatan' => $p->jabatan,
-                'tanggal_mulai' => optional($p->tanggal_mulai)->format('Y-m-d') ?? '',
-                'tanggal_selesai' => optional($p->tanggal_selesai)->format('Y-m-d') ?? '',
-            ])->values()->all(),
-            'pegawaiOptions' => $this->pegawaiOptions(),
-            'penandatanganOptions' => $this->penandatanganOptions(),
-            'kabKotaMap' => $this->kabKotaMap(),
-        ]);
+        return view('surat-tugas.edit', $this->dataForm($suratTugas, $this->pesertaUntukForm($suratTugas)));
     }
 
-    public function update(SuratTugasRequest $request, SuratTugas $suratTugas)
+    public function update(SuratTugasRequest $request, SuratTugas $suratTugas): RedirectResponse
     {
         if (!$suratTugas->isDraf()) {
             return back()->with('error', 'ST ini dikunci.');
@@ -138,21 +122,15 @@ class SuratTugasController extends Controller
         });
 
         if ($request->boolean('minta_nomor') && !$suratTugas->nomor_urut) {
-            $suratTugas->refresh();
-            $suratTugas = $this->numbers->ambilNomor(
-                $suratTugas->id,
-                $suratTugas->tanggal->format('Y-m-d'),
-                $suratTugas->kode_klasifikasi
-            );
+            $suratTugas = $this->kunciNomor($suratTugas->refresh());
 
-            return redirect()->route('surat-tugas.show', $suratTugas)
-                ->with('success', 'ST disimpan dengan nomor ' . $suratTugas->nomor . '.');
+            return $this->keShow($suratTugas, 'ST disimpan dengan nomor ' . $suratTugas->nomor . '.');
         }
 
-        return redirect()->route('surat-tugas.show', $suratTugas)->with('success', 'Surat tugas diperbarui.');
+        return $this->keShow($suratTugas, 'Surat tugas diperbarui.');
     }
 
-    public function destroy(SuratTugas $suratTugas)
+    public function destroy(SuratTugas $suratTugas): RedirectResponse
     {
         DB::transaction(function () use ($suratTugas) {
             $suratTugas->peserta()->delete();
@@ -161,6 +139,10 @@ class SuratTugasController extends Controller
 
         return redirect()->route('surat-tugas.index')->with('success', 'Surat tugas dihapus.');
     }
+
+    /* =====================================================================
+     |  Nomor
+     * ===================================================================== */
 
     /** Tombol "Ambil Nomor": hanya menampilkan nomor berikutnya, tidak menyimpan dan tidak mengubah counter. */
     public function nomorBerikutnya(Request $request)
@@ -178,7 +160,17 @@ class SuratTugasController extends Controller
         ]);
     }
 
-    public function setCounter(Request $request)
+    /** Tombol "Ambil Nomor Memo": pratinjau saja, tidak menyimpan. */
+    public function nomorMemoBerikutnya(Request $request)
+    {
+        $data = $request->validate(['tanggal' => ['required', 'date']]);
+
+        return response()->json([
+            'nomor' => $this->numbers->nomorMemoBerikutnya(Carbon::parse($data['tanggal'])->year),
+        ]);
+    }
+
+    public function setCounter(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'tahun' => ['required', 'integer', 'min:2020', 'max:2100'],
@@ -194,33 +186,34 @@ class SuratTugasController extends Controller
         return back()->with('success', 'Counter nomor diperbarui. Nomor berikutnya: ' . ($data['last_number'] + 1));
     }
 
+    /* =====================================================================
+     |  Data untuk form agenda & PDF
+     * ===================================================================== */
+
     /** Data ST untuk mengisi form agenda. Hanya ST yang sudah bernomor. */
     public function data(SuratTugas $suratTugas)
     {
         abort_unless($suratTugas->nomor, 404);
         $suratTugas->load('peserta');
 
-        $tgl = fn($v) => $v ? Carbon::parse($v)->format('Y-m-d') : null;
+        $denganPegawai = $suratTugas->peserta->whereNotNull('pegawai_id');
 
         return response()->json([
             'id' => $suratTugas->id,
             'nomor' => $suratTugas->nomor,
             'uraian_kegiatan' => $suratTugas->untuk[0] ?? '',
-            'tanggal_mulai' => $tgl($suratTugas->tanggal_mulai),
-            'tanggal_selesai' => $tgl($suratTugas->tanggal_selesai),
+            'tanggal_mulai' => $this->tgl($suratTugas->tanggal_mulai),
+            'tanggal_selesai' => $this->tgl($suratTugas->tanggal_selesai),
             'tujuan' => trim((string) $suratTugas->provinsi) ?: null,   // di agenda, "tujuan" = provinsi
             'kota_tujuan' => trim((string) $suratTugas->kota) ?: null,
-            'pegawai_ids' => $suratTugas->peserta->whereNotNull('pegawai_id')
-                ->pluck('pegawai_id')->map(fn($id) => (int) $id)->values(),
-            'peserta_manual' => $suratTugas->peserta->whereNull('pegawai_id')
-                ->pluck('nama')->values(),
+            'pegawai_ids' => $denganPegawai->pluck('pegawai_id')->map(fn($id) => (int) $id)->values(),
+            'peserta_manual' => $suratTugas->peserta->whereNull('pegawai_id')->pluck('nama')->values(),
             // tanggal tugas per orang (null = ikut rentang ST)
-            'peserta_tanggal' => $suratTugas->peserta->whereNotNull('pegawai_id')
-                ->map(fn($p) => [
-                    'pegawai_id' => (int) $p->pegawai_id,
-                    'tanggal_mulai' => $tgl($p->tanggal_mulai),
-                    'tanggal_selesai' => $tgl($p->tanggal_mulai ? ($p->tanggal_selesai ?? $p->tanggal_mulai) : null),
-                ])->values(),
+            'peserta_tanggal' => $denganPegawai->map(fn($p) => [
+                'pegawai_id' => (int) $p->pegawai_id,
+                'tanggal_mulai' => $this->tgl($p->tanggal_mulai),
+                'tanggal_selesai' => $this->tgl($p->tanggal_mulai ? ($p->tanggal_selesai ?? $p->tanggal_mulai) : null),
+            ])->values(),
         ]);
     }
 
@@ -235,7 +228,38 @@ class SuratTugasController extends Controller
             ->stream($nama);
     }
 
-    /* ---------------- helper ---------------- */
+    /* =====================================================================
+     |  Helper
+     * ===================================================================== */
+
+    /** Redirect ke halaman detail + notifikasi global (tipe: success | error | warning | info). */
+    private function keShow(SuratTugas $st, string $pesan, string $tipe = 'success'): RedirectResponse
+    {
+        return redirect()->route('surat-tugas.show', $st)->with($tipe, $pesan);
+    }
+
+    /** Ambil dan kunci nomor ST dari counter. */
+    private function kunciNomor(SuratTugas $st): SuratTugas
+    {
+        return $this->numbers->ambilNomor($st->id, $st->tanggal->format('Y-m-d'), $st->kode_klasifikasi);
+    }
+
+    private function tgl($value): ?string
+    {
+        return $value ? Carbon::parse($value)->format('Y-m-d') : null;
+    }
+
+    /** Data umum untuk view create & edit. */
+    private function dataForm(SuratTugas $st, array $peserta): array
+    {
+        return [
+            'st' => $st,
+            'peserta' => $peserta,
+            'pegawaiOptions' => $this->pegawaiOptions(),
+            'penandatanganOptions' => $this->penandatanganOptions(),
+            'kabKotaMap' => $this->kabKotaMap(),
+        ];
+    }
 
     private function payload(SuratTugasRequest $request, ?SuratTugas $existing = null): array
     {
@@ -251,7 +275,7 @@ class SuratTugasController extends Controller
                 ->values()->all()
         );
 
-        return [
+        $payload = [
             'tanggal' => $v['tanggal'],
             'tempat' => $v['tempat'],
             // kode dikunci setelah nomor diambil
@@ -269,6 +293,27 @@ class SuratTugasController extends Controller
             'nama_penandatangan' => $v['nama_penandatangan'],
             'nip_penandatangan' => $v['nip_penandatangan'] ?? null,
         ];
+
+        // nomor_memo hanya disentuh kalau sudah masuk aturan validasi (supaya tidak menimpa dengan null)
+        if (array_key_exists('nomor_memo', $v)) {
+            $payload['nomor_memo'] = $v['nomor_memo'] ?: null;
+        }
+
+        return $payload;
+    }
+
+    /** Peserta ST dalam bentuk array untuk form edit. */
+    private function pesertaUntukForm(SuratTugas $st): array
+    {
+        return $st->peserta->map(fn($p) => [
+            'jenis' => $p->jenis ?: 'pns',
+            'pegawai_id' => $p->pegawai_id,
+            'nama' => $p->nama,
+            'nip' => $p->nip,
+            'jabatan' => $p->jabatan,
+            'tanggal_mulai' => optional($p->tanggal_mulai)->format('Y-m-d') ?? '',
+            'tanggal_selesai' => optional($p->tanggal_selesai)->format('Y-m-d') ?? '',
+        ])->values()->all();
     }
 
     /** Simpan peserta: PNS dulu, lalu Non PNS (urutan input dipertahankan di tiap kelompok). */
@@ -276,15 +321,11 @@ class SuratTugasController extends Controller
     {
         $st->peserta()->delete();
 
-        $rows = [];
-        foreach (array_values($peserta ?? []) as $i => $p) {
-            $rows[] = ['i' => $i, 'p' => $p];
-        }
-        usort($rows, fn($a, $b) => [($a['p']['jenis'] ?? 'pns') === 'non_pns' ? 1 : 0, $a['i']]
-            <=> [($b['p']['jenis'] ?? 'pns') === 'non_pns' ? 1 : 0, $b['i']]);
+        [$pns, $nonPns] = collect($peserta ?? [])
+            ->values()
+            ->partition(fn($p) => ($p['jenis'] ?? 'pns') !== 'non_pns');
 
-        foreach ($rows as $n => $r) {
-            $p = $r['p'];
+        foreach ($pns->concat($nonPns)->values() as $n => $p) {
             $mulai = $p['tanggal_mulai'] ?? null;
 
             $st->peserta()->create([
