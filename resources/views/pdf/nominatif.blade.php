@@ -7,12 +7,14 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 8mm 8mm; /* Reduced top/bottom margin slightly */
+            margin: 8mm 8mm;
+            /* Reduced top/bottom margin slightly */
         }
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 10.5px; /* Slightly reduced font size */
+            font-size: 11px;
+            /* Naik dari 10.5px */
         }
 
         .kop {
@@ -22,13 +24,15 @@
 
         .kop h4 {
             margin: 0;
-            font-size: 11px;
+            font-size: 12px;
+            /* Naik dari 11px */
         }
 
         .rupiah {
             text-align: right;
             margin-bottom: 2px;
-            font-size: 10px;
+            font-size: 11px;
+            /* Naik dari 10px */
         }
 
         table {
@@ -46,10 +50,12 @@
         td,
         th {
             border: 1px solid #000;
-            padding: 2px 3px; /* Compact padding to fit all rows on page 1 */
+            padding: 2px 3px;
+            /* Compact padding to fit all rows on page 1 */
             text-align: center;
             vertical-align: middle;
-            font-size: 10px;
+            font-size: 11px;
+            /* Naik dari 10px */
             line-height: 1.25;
             word-wrap: normal;
             overflow-wrap: normal;
@@ -58,7 +64,8 @@
 
         th {
             background: #eee;
-            font-size: 10px;
+            font-size: 11px;
+            /* Naik dari 10px */
         }
 
         .text-left {
@@ -74,7 +81,8 @@
         }
 
         .row-data td {
-            height: auto; /* Height adapts automatically without forcing 56px */
+            height: auto;
+            /* Height adapts automatically without forcing 56px */
         }
 
         .ket-col {
@@ -95,7 +103,8 @@
 
         .ttd-wrap {
             width: 100%;
-            margin-top: 12px; /* Slightly reduced top margin */
+            margin-top: 12px;
+            /* Slightly reduced top margin */
             page-break-inside: avoid !important;
             break-inside: avoid !important;
         }
@@ -111,7 +120,8 @@
             text-align: left;
             vertical-align: top;
             padding: 0 10px;
-            font-size: 10px;
+            font-size: 11px;
+            /* Naik dari 10px */
             line-height: 1.3;
         }
 
@@ -129,7 +139,8 @@
         }
 
         .ttd-space {
-            height: 45px; /* Compact signature area so it easily fits on page 1 */
+            height: 45px;
+            /* Compact signature area so it easily fits on page 1 */
             display: block;
         }
     </style>
@@ -231,7 +242,8 @@
                 <th rowspan="2" style="width:3.5%">Lama</th>
                 <th rowspan="2" style="width:{{ $lebarTanggal }}%">Tanggal Perjalanan</th>
                 @if ($kolomAktif->isNotEmpty())
-                    <th colspan="{{ $kolomAktif->count() }}" @if ($jumlahKolomBiaya === 1) style="width:{{ $totalLebarKolomBiaya }}%" @endif>
+                    <th colspan="{{ $kolomAktif->count() }}" @if ($jumlahKolomBiaya === 1)
+                    style="width:{{ $totalLebarKolomBiaya }}%" @endif>
                         Rincian Biaya
                     </th>
                 @endif
