@@ -264,19 +264,83 @@
                             @endif
 
                             @if ($bolehIsiLaporan)
-                                {{-- Form isi laporan dengan 2 Dropzone (Notulensi 1 file & Materi tanpa batas) --}}
+                                {{-- Form isi laporan dengan 2 Dropzone (Notulensi 1 file & Materi banyak file).
+                                     File pilihan disimpan di Alpine lalu disinkronkan ke <input> lewat DataTransfer,
+                                     jadi: tiap file bisa dibatalkan (tombol X) dan memilih file lagi MENAMBAH, tidak mengganti. --}}
                                 <form method="POST" action="{{ route('surat-tugas.laporan.simpan', $st) }}"
                                     enctype="multipart/form-data" class="space-y-5 border-t border-slate-100 pt-4"
-                                    x-data="{ 
-                                        notulensiFile: '', 
+                                    x-data="{
+                                        notulensiFile: null,
                                         materiFiles: [],
-                                        handleMateri(e) {
-                                            this.materiFiles = Array.from(e.target.files);
+                                        err: '',
+
+                                        ukuran(b) {
+                                            return b >= 1048576
+                                                ? (b / 1048576).toFixed(1) + ' MB'
+                                                : Math.max(1, Math.round(b / 1024)) + ' KB';
+                                        },
+                                        ext(f) { return (f.name.split('.').pop() || '').toLowerCase(); },
+
+                                        syncNotulensi() {
+                                            const dt = new DataTransfer();
+                                            if (this.notulensiFile) dt.items.add(this.notulensiFile);
+                                            this.$refs.notulensi.files = dt.files;
+                                        },
+                                        syncMateri() {
+                                            const dt = new DataTransfer();
+                                            this.materiFiles.forEach(f => dt.items.add(f));
+                                            this.$refs.materi.files = dt.files;
+                                        },
+
+                                        pilihNotulensi(e) {
+                                            const f = e.target.files[0] || null;
+                                            this.err = '';
+                                            if (f && this.ext(f) !== 'pdf') {
+                                                this.err = 'Notulensi harus berformat PDF.';
+                                            } else if (f && f.size > 5 * 1048576) {
+                                                this.err = 'Ukuran notulensi maksimal 5 MB.';
+                                            } else if (f) {
+                                                this.notulensiFile = f;
+                                            }
+                                            this.syncNotulensi();
+                                        },
+                                        hapusNotulensi() {
+                                            this.notulensiFile = null;
+                                            this.err = '';
+                                            this.syncNotulensi();
+                                        },
+
+                                        tambahMateri(e) {
+                                            const salah = [];
+                                            Array.from(e.target.files).forEach(f => {
+                                                if (!['pdf', 'ppt', 'pptx'].includes(this.ext(f))) {
+                                                    salah.push(f.name + ' (format harus PDF, PPT, atau PPTX)');
+                                                } else if (f.size > 10 * 1048576) {
+                                                    salah.push(f.name + ' (lebih dari 10 MB)');
+                                                } else if (!this.materiFiles.some(x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified)) {
+                                                    this.materiFiles.push(f);
+                                                }
+                                            });
+                                            this.err = salah.length ? 'Tidak ditambahkan: ' + salah.join('; ') + '.' : '';
+                                            this.syncMateri();
+                                        },
+                                        hapusMateri(i) {
+                                            this.materiFiles.splice(i, 1);
+                                            this.err = '';
+                                            this.syncMateri();
+                                        },
+                                        kosongkanMateri() {
+                                            this.materiFiles = [];
+                                            this.err = '';
+                                            this.syncMateri();
                                         }
                                     }">
                                     @csrf
 
-                                    {{-- 1. Dropzone Notulensi (Hanya 1 File PDF) --}}
+                                    <p class="rounded-md px-3 py-2 text-xs text-red-700 border border-red-200 bg-red-50"
+                                        x-show="err" x-cloak x-text="err" role="alert"></p>
+
+                                    {{-- 1. Dropzone Notulensi (hanya 1 file PDF) --}}
                                     <div>
                                         <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
                                             Notulensi <span class="text-slate-400 font-normal">(1 file PDF, maks. 5 MB)</span> <span class="text-red-600">*</span>
@@ -284,8 +348,9 @@
 
                                         <div class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/20 p-6 text-center transition hover:border-blue-400 hover:bg-blue-50/40">
                                             <input id="notulensi" type="file" name="notulensi" accept="application/pdf,.pdf"
+                                                x-ref="notulensi"
                                                 class="absolute inset-0 z-50 h-full w-full cursor-pointer opacity-0"
-                                                x-on:change="notulensiFile = $event.target.files[0] ? $event.target.files[0].name : ''">
+                                                x-on:change="pilihNotulensi($event)">
 
                                             <div class="flex flex-col items-center justify-center space-y-2">
                                                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100/70 text-blue-600 transition-transform group-hover:scale-105">
@@ -296,22 +361,32 @@
                                                 <div class="text-xs text-slate-600">
                                                     <span class="font-semibold text-blue-600 hover:underline">Klik untuk memilih notulensi</span> atau tarik & lepas file ke sini
                                                 </div>
-                                                <p class="text-[11px] text-slate-400">Format PDF (Maksimal 1 File)</p>
+                                                <p class="text-[11px] text-slate-400">Format PDF (Maksimal 1 File). Memilih file baru akan mengganti file ini.</p>
                                             </div>
                                         </div>
 
-                                        {{-- Indikator nama file Notulensi terpilih --}}
+                                        {{-- File notulensi terpilih + tombol batal (X) --}}
                                         <template x-if="notulensiFile">
-                                            <div class="mt-2.5 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
-                                                <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span class="truncate">File terpilih: <strong x-text="notulensiFile"></strong></span>
+                                            <div class="mt-2.5 flex items-center justify-between gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
+                                                <div class="flex min-w-0 items-center gap-2">
+                                                    <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span class="truncate"><strong x-text="notulensiFile.name"></strong></span>
+                                                    <span class="shrink-0 font-normal text-slate-500" x-text="ukuran(notulensiFile.size)"></span>
+                                                </div>
+                                                <button type="button" @click="hapusNotulensi()" title="Batalkan file ini"
+                                                    aria-label="Batalkan file notulensi"
+                                                    style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;border-radius:9999px;background:#fee2e2;color:#dc2626;">
+                                                    <svg style="width:12px;height:12px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </template>
                                     </div>
 
-                                    {{-- 2. Dropzone Materi (Bisa Banyak File Tanpa Batasan) --}}
+                                    {{-- 2. Dropzone Materi (banyak file, bisa ditambah satu per satu) --}}
                                     <div>
                                         <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
                                             Materi <span class="text-slate-400 font-normal">(bisa upload banyak file; PDF, PPT, PPTX; maks. 10 MB per file)</span>
@@ -319,8 +394,9 @@
 
                                         <div class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/20 p-6 text-center transition hover:border-emerald-400 hover:bg-emerald-50/40">
                                             <input id="materi" type="file" name="materi[]" accept=".pdf,.ppt,.pptx" multiple
+                                                x-ref="materi"
                                                 class="absolute inset-0 z-50 h-full w-full cursor-pointer opacity-0"
-                                                x-on:change="handleMateri($event)">
+                                                x-on:change="tambahMateri($event)">
 
                                             <div class="flex flex-col items-center justify-center space-y-2">
                                                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100/70 text-emerald-600 transition-transform group-hover:scale-105">
@@ -331,19 +407,33 @@
                                                 <div class="text-xs text-slate-600">
                                                     <span class="font-semibold text-emerald-600 hover:underline">Klik untuk memilih materi</span> atau tarik & lepas file ke sini
                                                 </div>
-                                                <p class="text-[11px] text-slate-400">Dapat memilih banyak file sekaligus tanpa batasan jumlah</p>
+                                                <p class="text-[11px] text-slate-400">Klik lagi untuk menambah file; file yang sudah dipilih tidak diganti.</p>
                                             </div>
                                         </div>
 
-                                        {{-- Indikator list file Materi terpilih --}}
+                                        {{-- Daftar materi terpilih, tiap baris punya tombol batal (X) --}}
                                         <template x-if="materiFiles.length > 0">
                                             <div class="mt-2.5 space-y-1.5">
-                                                <template x-for="(f, i) in materiFiles" :key="i">
-                                                    <div class="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                                                        <svg class="h-4 w-4 shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                        </svg>
-                                                        <span class="truncate">Materi <span x-text="i+1"></span>: <strong x-text="f.name"></strong></span>
+                                                <div class="flex items-center justify-between text-xs text-slate-500">
+                                                    <span><strong x-text="materiFiles.length"></strong> file dipilih</span>
+                                                    <button type="button" @click="kosongkanMateri()" class="text-xs text-slate-500 hover:underline">Kosongkan semua</button>
+                                                </div>
+                                                <template x-for="(f, i) in materiFiles" :key="f.name + f.size + f.lastModified">
+                                                    <div class="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                                        <div class="flex min-w-0 items-center gap-2">
+                                                            <svg class="h-4 w-4 shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                            <span class="truncate">Materi <span x-text="i + 1"></span>: <strong x-text="f.name"></strong></span>
+                                                            <span class="shrink-0 font-normal text-slate-500" x-text="ukuran(f.size)"></span>
+                                                        </div>
+                                                        <button type="button" @click="hapusMateri(i)" title="Batalkan file ini"
+                                                            aria-label="Batalkan file materi"
+                                                            style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex-shrink:0;border-radius:9999px;background:#fee2e2;color:#dc2626;">
+                                                            <svg style="width:12px;height:12px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
                                                     </div>
                                                 </template>
                                             </div>
