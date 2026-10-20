@@ -264,26 +264,19 @@
                             @endif
 
                             @if ($bolehIsiLaporan)
-                                {{-- Form isi laporan dengan 2 Dropzone (Notulensi & Materi) --}}
+                                {{-- Form isi laporan dengan 2 Dropzone (Notulensi 1 file & Materi tanpa batas) --}}
                                 <form method="POST" action="{{ route('surat-tugas.laporan.simpan', $st) }}"
                                     enctype="multipart/form-data" class="space-y-5 border-t border-slate-100 pt-4"
                                     x-data="{ 
                                         notulensiFile: '', 
                                         materiFiles: [],
                                         handleMateri(e) {
-                                            const selected = Array.from(e.target.files);
-                                            if (selected.length > 5) {
-                                                alert('Maksimal hanya boleh memilih 5 file materi.');
-                                                e.target.value = '';
-                                                this.materiFiles = [];
-                                                return;
-                                            }
-                                            this.materiFiles = selected;
+                                            this.materiFiles = Array.from(e.target.files);
                                         }
                                     }">
                                     @csrf
 
-                                    {{-- 1. Dropzone Notulensi --}}
+                                    {{-- 1. Dropzone Notulensi (Hanya 1 File PDF) --}}
                                     <div>
                                         <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
                                             Notulensi <span class="text-slate-400 font-normal">(1 file PDF, maks. 5 MB)</span> <span class="text-red-600">*</span>
@@ -303,7 +296,7 @@
                                                 <div class="text-xs text-slate-600">
                                                     <span class="font-semibold text-blue-600 hover:underline">Klik untuk memilih notulensi</span> atau tarik & lepas file ke sini
                                                 </div>
-                                                <p class="text-[11px] text-slate-400">Format PDF</p>
+                                                <p class="text-[11px] text-slate-400">Format PDF (Maksimal 1 File)</p>
                                             </div>
                                         </div>
 
@@ -318,10 +311,10 @@
                                         </template>
                                     </div>
 
-                                    {{-- 2. Dropzone Materi --}}
+                                    {{-- 2. Dropzone Materi (Bisa Banyak File Tanpa Batasan) --}}
                                     <div>
                                         <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
-                                            Materi <span class="text-slate-400 font-normal">(boleh lebih dari 1 file; PDF, PPT, PPTX; maks. 5 file, 10 MB per file)</span>
+                                            Materi <span class="text-slate-400 font-normal">(bisa upload banyak file; PDF, PPT, PPTX; maks. 10 MB per file)</span>
                                         </label>
 
                                         <div class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/20 p-6 text-center transition hover:border-emerald-400 hover:bg-emerald-50/40">
@@ -338,7 +331,7 @@
                                                 <div class="text-xs text-slate-600">
                                                     <span class="font-semibold text-emerald-600 hover:underline">Klik untuk memilih materi</span> atau tarik & lepas file ke sini
                                                 </div>
-                                                <p class="text-[11px] text-slate-400">Bisa pilih beberapa file sekaligus, atau tambah satu per satu</p>
+                                                <p class="text-[11px] text-slate-400">Dapat memilih banyak file sekaligus tanpa batasan jumlah</p>
                                             </div>
                                         </div>
 
@@ -371,14 +364,24 @@
                                         </div>
                                     @endif
 
-                                    {{-- Tombol Aksi --}}
-                                    <div
-                                        class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-3 sm:flex-row sm:justify-end">
-                                        <button name="aksi" value="draf" class="{{ $btnOutline }}">Simpan
-                                            draf</button>
-                                        <button name="aksi" value="kirim" class="{{ $btnSuccess }}"
-                                            onclick="return confirm('Kirim laporan? Setelah dikirim laporan dikunci, tugas peserta lain ditutup, dan ST ditandai selesai.')">Kirim
-                                            laporan</button>
+                                    {{-- Tombol Aksi Modern (Biru) --}}
+                                    <div class="flex flex-col-reverse gap-2.5 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                                        <button name="aksi" value="draf"
+                                            class="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 text-xs font-semibold text-blue-600 shadow-sm transition hover:border-blue-300 hover:bg-blue-50/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95">
+                                            <svg class="h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                            </svg>
+                                            <span>Simpan draf</span>
+                                        </button>
+
+                                        <button name="aksi" value="kirim"
+                                            onclick="return confirm('Kirim laporan? Setelah dikirim laporan dikunci, tugas peserta lain ditutup, dan ST ditandai selesai.')"
+                                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-95">
+                                            <svg class="h-4 w-4 text-blue-100" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                            </svg>
+                                            <span>Kirim laporan</span>
+                                        </button>
                                     </div>
                                 </form>
                             @elseif ($laporan)
@@ -425,40 +428,47 @@
                                         @endif
                                     </div>
 
-                                    {{-- 2. Berkas Materi --}}
+                                    {{-- 2. Berkas Materi (Loop Per-Item File) --}}
                                     @if (filled($laporan->materi))
+                                        @php
+                                            $daftarMateri = array_map('trim', explode(',', $laporan->materi));
+                                        @endphp
                                         <div class="py-3">
-                                            <h4 class="font-medium text-slate-500 mb-1.5">Materi</h4>
-                                            <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
-                                                <div class="flex min-w-0 items-center gap-2.5">
-                                                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-                                                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                        </svg>
-                                                    </div>
-                                                    <span class="truncate text-xs font-semibold text-slate-800">{{ $laporan->materi }}</span>
-                                                </div>
+                                            <h4 class="font-medium text-slate-500 mb-2">Materi ({{ count($daftarMateri) }} file)</h4>
+                                            <div class="space-y-2">
+                                                @foreach ($daftarMateri as $fileMateri)
+                                                    @if (filled($fileMateri))
+                                                        <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
+                                                            <div class="flex min-w-0 items-center gap-2.5">
+                                                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                                                                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                    </svg>
+                                                                </div>
+                                                                <span class="truncate text-xs font-semibold text-slate-800">{{ $fileMateri }}</span>
+                                                            </div>
 
-                                                @if (\Illuminate\Support\Facades\Route::has('surat-tugas.laporan.materi'))
-                                                    <div class="flex shrink-0 items-center gap-1.5">
-                                                        <a href="{{ route('surat-tugas.laporan.materi', $st) }}" target="_blank"
-                                                            class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-emerald-50 transition">
-                                                            <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                            </svg>
-                                                            <span>Lihat</span>
-                                                        </a>
+                                                            <div class="flex shrink-0 items-center gap-1.5">
+                                                                <a href="{{ route('surat-tugas.laporan.materi', [$st, 'filename' => $fileMateri]) }}" target="_blank"
+                                                                    class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-emerald-50 transition">
+                                                                    <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                    <span>Lihat</span>
+                                                                </a>
 
-                                                        <a href="{{ route('surat-tugas.laporan.materi', $st) }}?download=1" download
-                                                            class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 transition">
-                                                            <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                            </svg>
-                                                            <span>Unduh</span>
-                                                        </a>
-                                                    </div>
-                                                @endif
+                                                                <a href="{{ route('surat-tugas.laporan.materi', [$st, 'filename' => $fileMateri]) }}?download=1" download
+                                                                    class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 transition">
+                                                                    <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                    </svg>
+                                                                    <span>Unduh</span>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                @endforeach
                                             </div>
                                         </div>
                                     @endif

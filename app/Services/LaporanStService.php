@@ -63,19 +63,26 @@ class LaporanStService
             ->exists();
     }
 
+    /**
+     * Simpan draf, atau kirim laporan.
+     *
+     * @param array $data
+     * @param UploadedFile[] $materiFiles
+     * @throws \DomainException
+     */
     public function simpan(
         SuratTugas $st,
         User $user,
         array $data,
         bool $kirim,
         ?UploadedFile $berkas = null,
-        ?UploadedFile $fileMateri = null
+        array $materiFiles = []
     ): LaporanSt {
         $pathBaru = null;
         $pathLama = null;
 
         try {
-            $laporan = DB::transaction(function () use ($st, $user, $data, $kirim, $berkas, $fileMateri, &$pathBaru, &$pathLama) {
+            $laporan = DB::transaction(function () use ($st, $user, $data, $kirim, $berkas, $materiFiles, &$pathBaru, &$pathLama) {
                 $st = SuratTugas::lockForUpdate()->findOrFail($st->id);
 
                 if ($st->status !== 'terbit') {
@@ -107,10 +114,18 @@ class LaporanStService
                     $atribut['file_laporan_nama'] = mb_substr($berkas->getClientOriginalName(), 0, 180);
                 }
 
-                // 2. Simpan Berkas Materi ke storage & catat nama filenya di kolom materi
-                if ($fileMateri) {
-                    $fileMateri->storeAs('laporan-st/' . $st->id . '/materi', $fileMateri->getClientOriginalName(), self::DISK);
-                    $atribut['materi'] = $fileMateri->getClientOriginalName();
+                // 2. Simpan Berkas Materi ke Folder Storage
+                if (!empty($materiFiles)) {
+                    $namaMateriList = [];
+                    foreach ($materiFiles as $f) {
+                        if ($f instanceof UploadedFile) {
+                            $f->storeAs('laporan-st/' . $st->id . '/materi', $f->getClientOriginalName(), self::DISK);
+                            $namaMateriList[] = $f->getClientOriginalName();
+                        }
+                    }
+                    if (!empty($namaMateriList)) {
+                        $atribut['materi'] = implode(', ', $namaMateriList);
+                    }
                 }
 
                 $laporan->forceFill($atribut)->save();

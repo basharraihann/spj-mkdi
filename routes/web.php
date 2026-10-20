@@ -145,8 +145,8 @@ Route::middleware('auth')->group(function () {
             // Buka berkas PDF Notulensi (disimpan privat; otorisasi di LaporanStService::bolehUnduh)
             Route::get('{suratTugas}/laporan/berkas', [LaporanStController::class, 'berkas'])->name('laporan.berkas');
 
-            // Buka berkas Materi (disimpan privat; otorisasi di LaporanStService::bolehUnduh)
-            Route::get('{suratTugas}/laporan/materi', [LaporanStController::class, 'berkasMateri'])->name('laporan.materi');
+            // Buka/Unduh berkas Materi berdasarkan nama file spesifik
+            Route::get('{suratTugas}/laporan/materi/{filename}', [LaporanStController::class, 'berkasMateri'])->name('laporan.materi');
 
             Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
             // Data ST untuk mengisi form agenda (JSON)

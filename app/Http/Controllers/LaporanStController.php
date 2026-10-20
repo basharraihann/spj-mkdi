@@ -25,7 +25,7 @@ class LaporanStController extends Controller
         // Validasi input file Notulensi & Materi
         $data = $request->validate([
             'notulensi' => [$kirim ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:5120'], // PDF, maks 5 MB
-            'materi'    => ['nullable'],
+            'materi'    => ['nullable', 'array'],
             'materi.*'  => ['file', 'mimes:pdf,ppt,pptx', 'max:10240'], // Maks 10 MB per file
         ], [
             'notulensi.required' => 'Berkas notulensi / laporan wajib diunggah sebelum dikirim.',
@@ -36,11 +36,11 @@ class LaporanStController extends Controller
             'materi.*.max'       => 'Ukuran masing-masing file materi maksimal 10 MB.',
         ]);
 
-        // Kumpulkan file materi jika diunggah
-        $materiFile = null;
+        // Kumpulkan semua file materi yang diunggah
+        $materiFiles = [];
         if ($request->hasFile('materi')) {
             $files = $request->file('materi');
-            $materiFile = is_array($files) ? ($files[0] ?? null) : $files;
+            $materiFiles = is_array($files) ? $files : [$files];
         }
 
         try {
@@ -50,7 +50,7 @@ class LaporanStController extends Controller
                 [], 
                 $kirim,
                 $request->file('notulensi'), // File utama Notulensi
-                $materiFile                 // File Materi
+                $materiFiles                 // Array File Materi
             );
         } catch (\DomainException $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -62,7 +62,7 @@ class LaporanStController extends Controller
         );
     }
 
-    /** Buka berkas PDF laporan (disimpan privat). */
+    /** Buka atau unduh berkas PDF Notulensi. */
     public function berkas(Request $request, SuratTugas $suratTugas)
     {
         abort_unless($this->laporan->bolehUnduh($suratTugas, $request->user()), 403);
@@ -72,29 +72,32 @@ class LaporanStController extends Controller
 
         abort_unless($path && Storage::disk(LaporanStService::DISK)->exists($path), 404);
 
+        $filename = $laporan->file_laporan_nama ?: 'notulensi.pdf';
+
+        if ($request->boolean('download')) {
+            return Storage::disk(LaporanStService::DISK)->download($path, $filename);
+        }
+
         return Storage::disk(LaporanStService::DISK)->response(
             $path,
-            $laporan->file_laporan_nama ?: 'laporan.pdf',
+            $filename,
             ['Content-Type' => 'application/pdf']
         );
     }
 
-    /** Buka berkas Materi (tanpa butuh migration baru). */
-    public function berkasMateri(Request $request, SuratTugas $suratTugas)
+    /** Buka atau unduh berkas Materi tertentu berdasarkan nama file. */
+    public function berkasMateri(Request $request, SuratTugas $suratTugas, string $filename)
     {
         abort_unless($this->laporan->bolehUnduh($suratTugas, $request->user()), 403);
 
-        // Cari file materi di folder storage st
-        $files = Storage::disk(LaporanStService::DISK)->files('laporan-st/' . $suratTugas->id . '/materi');
-        
-        abort_unless(!empty($files), 404);
+        $path = 'laporan-st/' . $suratTugas->id . '/materi/' . $filename;
 
-        $path = $files[0];
-        $filename = basename($path);
+        abort_unless(Storage::disk(LaporanStService::DISK)->exists($path), 404);
 
-        return Storage::disk(LaporanStService::DISK)->response(
-            $path,
-            $filename
-        );
+        if ($request->boolean('download')) {
+            return Storage::disk(LaporanStService::DISK)->download($path, $filename);
+        }
+
+        return Storage::disk(LaporanStService::DISK)->response($path, $filename);
     }
 }
