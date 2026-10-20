@@ -22,27 +22,28 @@ class LaporanStController extends Controller
 
         $kirim = $request->input('aksi') === 'kirim';
 
-        // Validasi unggah berkas PDF (Maksimal 2 file, masing-masing maks 5 MB)
+        // Validasi input file Notulensi & Materi
         $data = $request->validate([
-            'berkas'   => [$kirim ? 'required' : 'nullable', 'array', 'max:2'],
-            'berkas.*' => ['file', 'mimes:pdf', 'max:5120'], // Maks. 5 MB per file
+            'notulensi' => [$kirim ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:5120'], // PDF, maks 5 MB
+            'materi'    => ['nullable', 'array', 'max:5'],
+            'materi.*'  => ['file', 'mimes:pdf,ppt,pptx', 'max:10240'], // Maks 10 MB per file
         ], [
-            'berkas.required' => 'Berkas laporan wajib diunggah sebelum dikirim.',
-            'berkas.max'      => 'Maksimal file yang diunggah adalah 2 berkas.',
-            'berkas.*.mimes'  => 'Setiap berkas laporan harus berformat PDF.',
-            'berkas.*.max'    => 'Ukuran masing-masing berkas tidak boleh lebih dari 5 MB.',
+            'notulensi.required' => 'Berkas notulensi / laporan wajib diunggah sebelum dikirim.',
+            'notulensi.mimes'    => 'Berkas notulensi harus berformat PDF.',
+            'notulensi.max'      => 'Ukuran berkas notulensi maksimal 5 MB.',
+            'notulensi.uploaded' => 'Berkas gagal diunggah. Pastikan ukurannya tidak lebih dari 5 MB.',
+            'materi.max'         => 'Maksimal file materi yang diunggah adalah 5 file.',
+            'materi.*.mimes'     => 'Format file materi harus PDF, PPT, atau PPTX.',
+            'materi.*.max'       => 'Ukuran masing-masing file materi maksimal 10 MB.',
         ]);
-
-        // Mengambil file pertama jika ada (atau sesuaikan penanganan array file pada Service Anda)
-        $fileBerkas = $request->file('berkas') ? $request->file('berkas')[0] : null;
 
         try {
             $this->laporan->simpan(
                 $suratTugas,
                 $request->user(),
-                [], // Array data teks kosong karena notulensi & materi tidak lagi diinput lewat form
+                [], 
                 $kirim,
-                $fileBerkas
+                $request->file('notulensi') // Mengirim file notulensi ke service sebagai berkas laporan
             );
         } catch (\DomainException $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -54,7 +55,7 @@ class LaporanStController extends Controller
         );
     }
 
-    /** Buka berkas PDF laporan (disimpan privat, hanya lewat route ini). */
+    /** Buka berkas PDF laporan (disimpan privat). */
     public function berkas(Request $request, SuratTugas $suratTugas)
     {
         abort_unless($this->laporan->bolehUnduh($suratTugas, $request->user()), 403);
