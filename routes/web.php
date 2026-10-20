@@ -142,6 +142,9 @@ Route::middleware('auth')->group(function () {
             // Simpan draf / kirim laporan hasil ST (otorisasi di LaporanStService::bolehIsi)
             Route::post('{suratTugas}/laporan', [LaporanStController::class, 'simpan'])->name('laporan.simpan');
 
+            // Buka berkas PDF laporan (disimpan privat; otorisasi di LaporanStService::bolehUnduh)
+            Route::get('{suratTugas}/laporan/berkas', [LaporanStController::class, 'berkas'])->name('laporan.berkas');
+
             Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
             // Data ST untuk mengisi form agenda (JSON)
             Route::get('{suratTugas}/data', 'data')->name('data');

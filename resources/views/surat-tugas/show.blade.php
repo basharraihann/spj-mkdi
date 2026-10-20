@@ -214,16 +214,10 @@
                             'ditutup' => 'bg-slate-100 text-slate-500 ring-slate-200',
                         ];
 
-                        $barisTL = old('tindak_lanjut', $laporan
-                            ? $laporan->tindakLanjut->map(fn($t) => [
-                                'uraian' => $t->uraian,
-                                'pic' => $t->pic,
-                                'tenggat' => optional($t->tenggat)->format('Y-m-d'),
-                            ])->values()->all()
-                            : []);
-                        if (empty($barisTL)) {
-                            $barisTL = [['uraian' => '', 'pic' => '', 'tenggat' => '']];
-                        }
+                        // Berkas PDF laporan (disimpan privat, dibuka lewat route khusus)
+                        $adaBerkas = $laporan && filled($laporan->file_laporan_path);
+                        $bolehBukaBerkas = $adaBerkas
+                            && app(\App\Services\LaporanStService::class)->bolehUnduh($st, auth()->user());
                     @endphp
 
                     <section class="{{ $card }}">
@@ -270,50 +264,74 @@
                             @endif
 
                             @if ($bolehIsiLaporan)
-                                {{-- Form isi laporan (Alpine untuk baris tindak lanjut) --}}
+                                {{-- Form isi laporan dengan Dropzone Multi-Upload (Maks. 2 File) --}}
                                 <form method="POST" action="{{ route('surat-tugas.laporan.simpan', $st) }}"
-                                    class="space-y-4 border-t border-slate-100 pt-4"
-                                    x-data="{ rows: @js($barisTL) }">
+                                    enctype="multipart/form-data" class="space-y-4 border-t border-slate-100 pt-4"
+                                    x-data="{ 
+                                        files: [], 
+                                        handleFiles(event) {
+                                            const selected = Array.from(event.target.files);
+                                            if (selected.length > 2) {
+                                                alert('Maksimal hanya boleh mengunggah 2 file PDF.');
+                                                event.target.value = '';
+                                                this.files = [];
+                                                return;
+                                            }
+                                            this.files = selected;
+                                        }
+                                    }">
                                     @csrf
 
                                     <div>
-                                        <label for="notulensi" class="{{ $label }}">Notulensi / hasil rapat
-                                            <span class="text-red-600">*</span></label>
-                                        <textarea id="notulensi" name="notulensi" rows="6" class="{{ $input }} mt-1">{{ old('notulensi', $laporan?->notulensi) }}</textarea>
-                                    </div>
+                                        <label class="{{ $label }} mb-2 block font-medium text-slate-700">Upload laporan (Maks. 2 File PDF, total maks. 10 MB)</label>
 
-                                    <div>
-                                        <label for="keputusan" class="{{ $label }}">Keputusan</label>
-                                        <textarea id="keputusan" name="keputusan" rows="2" class="{{ $input }} mt-1">{{ old('keputusan', $laporan?->keputusan) }}</textarea>
-                                    </div>
+                                        {{-- Dropzone Cloud Upload --}}
+                                        <div class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/20 p-8 text-center transition hover:border-blue-400 hover:bg-blue-50/40">
+                                            <input id="berkas" type="file" name="berkas[]" accept="application/pdf,.pdf" multiple
+                                                class="absolute inset-0 z-50 h-full w-full cursor-pointer opacity-0"
+                                                x-on:change="handleFiles($event)">
 
-                                    <div>
-                                        <div class="{{ $label }} mb-1.5">Tindak lanjut</div>
-                                        <div class="space-y-1.5">
-                                            <template x-for="(row, i) in rows" :key="i">
-                                                <div class="grid items-center gap-1.5 md:grid-cols-12">
-                                                    <input type="text" x-model="row.uraian"
-                                                        :name="`tindak_lanjut[${i}][uraian]`"
-                                                        placeholder="Uraian tindak lanjut"
-                                                        class="{{ $input }} md:col-span-6">
-                                                    <input type="text" x-model="row.pic"
-                                                        :name="`tindak_lanjut[${i}][pic]`" placeholder="PIC"
-                                                        class="{{ $input }} md:col-span-3">
-                                                    <input type="date" x-model="row.tenggat"
-                                                        :name="`tindak_lanjut[${i}][tenggat]`"
-                                                        class="{{ $input }} md:col-span-2">
-                                                    <div class="md:col-span-1 md:text-right">
-                                                        <button type="button" @click="rows.splice(i, 1)"
-                                                            x-show="rows.length > 1" title="Hapus baris"
-                                                            class="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50">Hapus</button>
-                                                    </div>
+                                            <div class="flex flex-col items-center justify-center space-y-3">
+                                                {{-- Ikon Cloud Upload Sesuai Desain Gambar --}}
+                                                <div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100/70 text-blue-600 transition-transform group-hover:scale-105">
+                                                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                    </svg>
                                                 </div>
-                                            </template>
+                                                <div class="text-sm text-slate-600">
+                                                    <span class="font-semibold text-blue-600 hover:underline">Klik untuk memilih berkas</span> atau tarik & lepas file ke sini
+                                                </div>
+                                                <p class="text-xs text-slate-400">Format PDF (Maksimal 2 file, @ 5MB)</p>
+                                            </div>
                                         </div>
-                                        <button type="button"
-                                            @click="rows.push({ uraian: '', pic: '', tenggat: '' })"
-                                            class="mt-1.5 text-[13px] font-medium text-blue-700 hover:underline focus:outline-none focus-visible:underline">+
-                                            Tambah tindak lanjut</button>
+
+                                        {{-- Indikator Nama File yang Dipilih --}}
+                                        <template x-if="files.length > 0">
+                                            <div class="mt-3 space-y-1.5">
+                                                <template x-for="(f, i) in files" :key="i">
+                                                    <div class="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
+                                                        <svg class="h-4 w-4 shrink-0 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                        <span class="truncate">File <span x-text="i+1"></span>: <strong x-text="f.name"></strong></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        {{-- Info File Terunggah Sebelumnya --}}
+                                        @if ($adaBerkas)
+                                            <div class="mt-2.5 flex items-center gap-2 rounded-lg bg-slate-100/80 px-3 py-2 text-xs text-slate-600">
+                                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                </svg>
+                                                <span>Berkas saat ini:</span>
+                                                <a href="{{ route('surat-tugas.laporan.berkas', $st) }}" target="_blank"
+                                                    class="font-semibold text-blue-600 hover:underline">
+                                                    {{ $laporan->file_laporan_nama ?: 'laporan.pdf' }}
+                                                </a>
+                                            </div>
+                                        @endif
                                     </div>
 
                                     <div
@@ -329,32 +347,56 @@
                                 {{-- Hanya lihat --}}
                                 <div
                                     class="divide-y divide-slate-100 border-t border-slate-100 leading-6 text-slate-700">
+                                    @if (filled($laporan->notulensi))
+                                        <div class="py-3">
+                                            <h4 class="font-medium text-slate-500">Notulensi / hasil rapat</h4>
+                                            <p class="mt-0.5 whitespace-pre-line">{{ $laporan->notulensi }}</p>
+                                        </div>
+                                    @endif
+                                    @if (filled($laporan->materi))
+                                        <div class="py-3">
+                                            <h4 class="font-medium text-slate-500">Materi</h4>
+                                            <p class="mt-0.5 whitespace-pre-line">{{ $laporan->materi }}</p>
+                                        </div>
+                                    @endif
                                     <div class="py-3">
-                                        <h4 class="font-medium text-slate-500">Notulensi / hasil rapat</h4>
-                                        <p class="mt-0.5 whitespace-pre-line">{{ $laporan->notulensi ?: '-' }}</p>
+                                        <h4 class="font-medium text-slate-500">Berkas laporan (PDF)</h4>
+                                        @if ($bolehBukaBerkas)
+                                            <a href="{{ route('surat-tugas.laporan.berkas', $st) }}" target="_blank"
+                                                class="mt-0.5 inline-block font-medium text-blue-700 hover:underline">{{ $laporan->file_laporan_nama ?: 'laporan.pdf' }}</a>
+                                        @elseif ($adaBerkas)
+                                            <p class="mt-0.5 text-slate-500">{{ $laporan->file_laporan_nama ?: 'laporan.pdf' }}
+                                                <span class="text-xs">(hanya dapat dibuka oleh admin, pembuat ST, dan
+                                                    peserta yang ditugasi)</span>
+                                            </p>
+                                        @else
+                                            <p class="mt-0.5 text-slate-500">-</p>
+                                        @endif
                                     </div>
-                                    <div class="py-3">
-                                        <h4 class="font-medium text-slate-500">Keputusan</h4>
-                                        <p class="mt-0.5 whitespace-pre-line">{{ $laporan->keputusan ?: '-' }}</p>
-                                    </div>
-                                    <div class="py-3">
-                                        <h4 class="mb-1 font-medium text-slate-500">Tindak lanjut</h4>
-                                        @forelse ($laporan->tindakLanjut as $t)
-                                            <div class="flex gap-2.5 border-b border-slate-100 py-1.5 last:border-0">
-                                                <span
-                                                    class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">{{ $loop->iteration }}</span>
-                                                <div class="min-w-0">
-                                                    <div>{{ $t->uraian }}</div>
-                                                    <div class="text-xs text-slate-500">
-                                                        PIC: {{ $t->pic ?: '-' }} · Tenggat:
-                                                        {{ $t->tenggat ? $t->tenggat->locale('id')->translatedFormat('j F Y') : '-' }}
+                                    @if (filled($laporan->keputusan))
+                                        <div class="py-3">
+                                            <h4 class="font-medium text-slate-500">Keputusan</h4>
+                                            <p class="mt-0.5 whitespace-pre-line">{{ $laporan->keputusan }}</p>
+                                        </div>
+                                    @endif
+                                    @if ($laporan->tindakLanjut->isNotEmpty())
+                                        <div class="py-3">
+                                            <h4 class="mb-1 font-medium text-slate-500">Tindak lanjut</h4>
+                                            @foreach ($laporan->tindakLanjut as $t)
+                                                <div class="flex gap-2.5 border-b border-slate-100 py-1.5 last:border-0">
+                                                    <span
+                                                        class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">{{ $loop->iteration }}</span>
+                                                    <div class="min-w-0">
+                                                        <div>{{ $t->uraian }}</div>
+                                                        <div class="text-xs text-slate-500">
+                                                            PIC: {{ $t->pic ?: '-' }} · Tenggat:
+                                                            {{ $t->tenggat ? $t->tenggat->locale('id')->translatedFormat('j F Y') : '-' }}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        @empty
-                                            <p class="text-slate-500">-</p>
-                                        @endforelse
-                                    </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                     @if ($laporan->isDikirim())
                                         <div class="pt-3">
                                             <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Dikirim
