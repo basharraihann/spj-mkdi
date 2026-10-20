@@ -22,23 +22,27 @@ class LaporanStController extends Controller
 
         $kirim = $request->input('aksi') === 'kirim';
 
-        // Form hanya menerima upload berkas PDF.
+        // Validasi unggah berkas PDF (Maksimal 2 file, masing-masing maks 5 MB)
         $data = $request->validate([
-            'berkas' => [$kirim ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:10240'], // PDF, maks. 10 MB (disesuaikan dengan tampilan UI)
+            'berkas'   => [$kirim ? 'required' : 'nullable', 'array', 'max:2'],
+            'berkas.*' => ['file', 'mimes:pdf', 'max:5120'], // Maks. 5 MB per file
         ], [
             'berkas.required' => 'Berkas laporan wajib diunggah sebelum dikirim.',
-            'berkas.mimes'    => 'Berkas laporan harus berformat PDF.',
-            'berkas.max'      => 'Ukuran berkas laporan maksimal 10 MB.',
-            'berkas.uploaded' => 'Berkas gagal diunggah. Pastikan ukurannya tidak lebih dari 10 MB.',
+            'berkas.max'      => 'Maksimal file yang diunggah adalah 2 berkas.',
+            'berkas.*.mimes'  => 'Setiap berkas laporan harus berformat PDF.',
+            'berkas.*.max'    => 'Ukuran masing-masing berkas tidak boleh lebih dari 5 MB.',
         ]);
+
+        // Mengambil file pertama jika ada (atau sesuaikan penanganan array file pada Service Anda)
+        $fileBerkas = $request->file('berkas') ? $request->file('berkas')[0] : null;
 
         try {
             $this->laporan->simpan(
                 $suratTugas,
                 $request->user(),
-                [], // Tidak ada input teks (notulensi/materi) yang dikirim
+                [], // Array data teks kosong karena notulensi & materi tidak lagi diinput lewat form
                 $kirim,
-                $request->file('berkas')
+                $fileBerkas
             );
         } catch (\DomainException $e) {
             return back()->withInput()->with('error', $e->getMessage());
