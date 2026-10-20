@@ -1,5 +1,4 @@
 @php
-    // Badge status ST (kelas Tailwind literal supaya ikut ter-build)
     $badge = [
         'draf' => ['pill' => 'bg-slate-100 text-slate-700 ring-slate-200', 'dot' => 'bg-slate-400'],
         'terbit' => ['pill' => 'bg-blue-50 text-blue-700 ring-blue-200', 'dot' => 'bg-blue-500'],
@@ -11,14 +10,11 @@
     $jmlPns = $st->peserta->where('jenis', 'pns')->count();
     $jmlNonPns = $st->peserta->where('jenis', '!=', 'pns')->count();
 
-    // Pengelompokan (tusi) — variabel dikirim dari SuratTugasController@show
     $tusiOptions = $tusiOptions ?? collect();
     $bolehUbahTusi = $bolehUbahTusi ?? false;
     $bolehKelola = $bolehKelola ?? false;
-    // tusi yang sedang dipakai tapi sudah dinonaktifkan tetap ditampilkan di dropdown
     $tusiNonaktifDipakai = $st->tusi && !$tusiOptions->contains('id', $st->tusi_id);
 
-    // Kelas yang dipakai berulang (versi compact)
     $card = 'overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm';
     $cardHead = 'flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5';
     $cardTitle = 'text-sm font-semibold text-slate-900';
@@ -29,7 +25,6 @@
     $btnSuccess = $btnBase . ' bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-600';
     $btnOutline = $btnBase . ' border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400';
 
-    // Warna jenis peserta (PNS biru, Non PNS amber)
     $jenisWarna = [
         'pns' => ['pill' => 'border-blue-200 bg-blue-50 text-blue-700', 'avatar' => 'bg-blue-100 text-blue-700'],
         'non_pns' => ['pill' => 'border-amber-200 bg-amber-50 text-amber-700', 'avatar' => 'bg-amber-100 text-amber-700'],
@@ -38,7 +33,6 @@
 <x-app-layout>
     <div class="max-w-7xl mx-auto space-y-4 px-4 py-4 sm:px-6 lg:px-8">
 
-        {{-- Header + ringkasan --}}
         <div class="{{ $card }} px-4 py-3">
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                 <div class="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -104,10 +98,8 @@
 
         <div class="grid items-start gap-4 lg:grid-cols-3">
 
-            {{-- ===== Kolom utama ===== --}}
             <div class="space-y-4 lg:col-span-2">
 
-                {{-- Isi surat --}}
                 <section class="{{ $card }}">
                     <div class="{{ $cardHead }}">
                         <h3 class="{{ $cardTitle }}">Isi surat</h3>
@@ -145,7 +137,6 @@
                     </div>
                 </section>
 
-                {{-- Pengelompokan (Tusi) --}}
                 <section class="{{ $card }}">
                     <div class="{{ $cardHead }}">
                         <h3 class="{{ $cardTitle }}">Pengelompokan (Tusi)</h3>
@@ -195,7 +186,6 @@
                     </div>
                 </section>
 
-                {{-- Laporan hasil ST --}}
                 @if (in_array($st->status, ['terbit', 'selesai']))
                     @php
                         $laporan = $laporan ?? null;
@@ -214,7 +204,6 @@
                             'ditutup' => 'bg-slate-100 text-slate-500 ring-slate-200',
                         ];
 
-                        // Berkas PDF laporan (disimpan privat, dibuka lewat route khusus)
                         $adaBerkas = $laporan && filled($laporan->file_laporan_path);
                         $bolehBukaBerkas = $adaBerkas
                             && app(\App\Services\LaporanStService::class)->bolehUnduh($st, auth()->user());
@@ -231,7 +220,6 @@
 
                         <div class="space-y-4 px-4 py-4 text-[13px]">
 
-                            {{-- Penugasan --}}
                             <div>
                                 <div class="{{ $label }} mb-1">Penugasan laporan</div>
                                 @forelse ($tugasLapor as $tg)
@@ -264,9 +252,6 @@
                             @endif
 
                             @if ($bolehIsiLaporan)
-                                {{-- Form isi laporan dengan 2 Dropzone (Notulensi 1 file & Materi banyak file).
-                                     File pilihan disimpan di Alpine lalu disinkronkan ke <input> lewat DataTransfer,
-                                     jadi: tiap file bisa dibatalkan (tombol X) dan memilih file lagi MENAMBAH, tidak mengganti. --}}
                                 <form method="POST" action="{{ route('surat-tugas.laporan.simpan', $st) }}"
                                     enctype="multipart/form-data" class="space-y-5 border-t border-slate-100 pt-4"
                                     x-data="{
@@ -340,7 +325,6 @@
                                     <p class="rounded-md px-3 py-2 text-xs text-red-700 border border-red-200 bg-red-50"
                                         x-show="err" x-cloak x-text="err" role="alert"></p>
 
-                                    {{-- 1. Dropzone Notulensi (hanya 1 file PDF) --}}
                                     <div>
                                         <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
                                             Notulensi <span class="text-slate-400 font-normal">(1 file PDF, maks. 5 MB)</span> <span class="text-red-600">*</span>
@@ -365,7 +349,6 @@
                                             </div>
                                         </div>
 
-                                        {{-- File notulensi terpilih + tombol batal (X) --}}
                                         <template x-if="notulensiFile">
                                             <div class="mt-2.5 flex items-center justify-between gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
                                                 <div class="flex min-w-0 items-center gap-2">
@@ -386,7 +369,6 @@
                                         </template>
                                     </div>
 
-                                    {{-- 2. Dropzone Materi (banyak file, bisa ditambah satu per satu) --}}
                                     <div>
                                         <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
                                             Materi <span class="text-slate-400 font-normal">(bisa upload banyak file; PDF, PPT, PPTX; maks. 10 MB per file)</span>
@@ -411,7 +393,6 @@
                                             </div>
                                         </div>
 
-                                        {{-- Daftar materi terpilih, tiap baris punya tombol batal (X) --}}
                                         <template x-if="materiFiles.length > 0">
                                             <div class="mt-2.5 space-y-1.5">
                                                 <div class="flex items-center justify-between text-xs text-slate-500">
@@ -440,7 +421,6 @@
                                         </template>
                                     </div>
 
-                                    {{-- Info File Terunggah Sebelumnya --}}
                                     @if ($adaBerkas)
                                         <div class="flex items-center gap-2 rounded-lg bg-slate-100/80 px-3 py-2 text-xs text-slate-600">
                                             <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -454,7 +434,6 @@
                                         </div>
                                     @endif
 
-                                    {{-- Tombol Aksi Modern (Biru) --}}
                                     <div class="flex flex-col-reverse gap-2.5 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
                                         <button name="aksi" value="draf"
                                             class="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 text-xs font-semibold text-blue-600 shadow-sm transition hover:border-blue-300 hover:bg-blue-50/60 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-95">
@@ -475,10 +454,8 @@
                                     </div>
                                 </form>
                             @elseif ($laporan)
-                                {{-- Read-Only Laporan Hasil (Setelah Dikirim) --}}
                                 <div class="divide-y divide-slate-100 border-t border-slate-100 leading-6 text-slate-700">
                                     
-                                    {{-- 1. Berkas Notulensi / Laporan Hasil (PDF) --}}
                                     <div class="py-3">
                                         <h4 class="font-medium text-slate-500 mb-1.5">Notulensi / Berkas Laporan Hasil (PDF)</h4>
                                         @if ($bolehBukaBerkas)
@@ -518,7 +495,6 @@
                                         @endif
                                     </div>
 
-                                    {{-- 2. Berkas Materi (Loop Per-Item File) --}}
                                     @if (filled($laporan->materi))
                                         @php
                                             $daftarMateri = array_map('trim', explode(',', $laporan->materi));
@@ -596,7 +572,6 @@
                                         </div>
                                     @endif
 
-                                    {{-- Info Pengirim & Waktu Kirim --}}
                                     @if ($laporan->isDikirim())
                                         <div class="pt-3">
                                             <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
@@ -613,7 +588,6 @@
                 @endif
             </div>
 
-            {{-- ===== Sidebar: Peserta ===== --}}
             <aside class="lg:sticky lg:top-4">
                 <section class="{{ $card }}">
                     <div class="{{ $cardHead }}">

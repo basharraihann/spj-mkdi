@@ -6,7 +6,6 @@
     </x-slot>
 
     @php
-        // Kolom daftar (dipakai header & baris supaya selalu sejajar)
         $cols = 'lg:grid-cols-[6.5rem_minmax(0,1fr)_5.5rem_7.5rem_5.5rem_10.5rem]';
 
         $totalTusi = $items->count();
@@ -14,7 +13,6 @@
         $totalNonaktif = $totalTusi - $totalAktif;
         $totalSt = $items->sum('surat_tugas_count');
 
-        // Penanda form mana yang barusan dikirim, supaya old() tidak tertukar antara form tambah dan form baris
         $tambah = old('_from') === 'tambah';
 
         $inputClass =
@@ -29,7 +27,6 @@
 
         <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-5">
 
-            {{-- Judul + jumlah --}}
             <div class="flex items-start justify-between gap-4 flex-wrap">
                 <div class="min-w-0">
                     <h3 class="text-lg font-bold text-gray-800">Master Tusi</h3>
@@ -43,7 +40,6 @@
                 </span>
             </div>
 
-            {{-- Notifikasi dari controller (success / error) --}}
             @if (session('success'))
                 <div role="status"
                     class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
@@ -66,7 +62,6 @@
                 </div>
             @endif
 
-            {{-- Ringkasan --}}
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="rounded-xl bg-gray-50 border border-gray-100 px-3 sm:px-4 py-3">
                     <p class="text-xs font-medium text-gray-600">Total tusi</p>
@@ -86,7 +81,6 @@
                 </div>
             </div>
 
-            {{-- Tambah tusi --}}
             <form method="POST" action="{{ route('tusi.store') }}"
                 class="rounded-xl border border-blue-100 bg-blue-50/40 p-4 space-y-3">
                 @csrf
@@ -152,7 +146,6 @@
                 @endif
             </form>
 
-            {{-- Filter instan, tanpa reload --}}
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex flex-col gap-1 w-full sm:w-auto">
                     <label for="tusi-filter-q" class="{{ $labelClass }}">Cari</label>
@@ -176,10 +169,8 @@
                 </button>
             </div>
 
-            {{-- Daftar: seperti tabel di layar lebar, bertumpuk di HP & tablet --}}
             <div class="border border-gray-100 rounded-xl overflow-hidden">
 
-                {{-- Judul kolom (hanya layar lebar) --}}
                 <div
                     class="hidden lg:grid {{ $cols }} gap-4 bg-gray-50 px-4 py-3 text-xs font-semibold text-gray-500">
                     <div>Kode</div>
@@ -201,7 +192,6 @@
                             data-search="{{ mb_strtolower($t->kode . ' ' . $t->nama) }}"
                             data-status="{{ $t->aktif ? 'aktif' : 'nonaktif' }}">
 
-                            {{-- Form update (kosong; field di bawah terhubung lewat atribut form=) --}}
                             <form id="{{ $fid }}" method="POST" action="{{ route('tusi.update', $t) }}"
                                 class="hidden">
                                 @csrf
@@ -209,14 +199,12 @@
                                 <input type="hidden" name="_from" value="{{ $fid }}">
                             </form>
 
-                            {{-- Kode --}}
                             <div class="col-span-1 min-w-0">
                                 <label for="kode-{{ $t->id }}" class="{{ $mobileLabelClass }}">Kode</label>
                                 <input id="kode-{{ $t->id }}" form="{{ $fid }}" name="kode"
                                     value="{{ $edit ? old('kode') : $t->kode }}" data-field data-original="{{ $t->kode }}" class="{{ $inputClass }} font-semibold">
                             </div>
 
-                            {{-- Urutan --}}
                             <div class="col-span-1 min-w-0 lg:order-3">
                                 <label for="urutan-{{ $t->id }}"
                                     class="{{ $mobileLabelClass }}">Urutan</label>
@@ -225,7 +213,6 @@
                                     class="{{ $inputClass }} tabular-nums">
                             </div>
 
-                            {{-- Nama --}}
                             <div class="col-span-2 lg:col-span-1 min-w-0 lg:order-2">
                                 <label for="nama-{{ $t->id }}" class="{{ $mobileLabelClass }}">Nama
                                     tusi</label>
@@ -233,7 +220,6 @@
                                     value="{{ $edit ? old('nama') : $t->nama }}" data-field data-original="{{ $t->nama }}" class="{{ $inputClass }}">
                             </div>
 
-                            {{-- Status --}}
                             <div class="col-span-1 min-w-0 lg:order-4">
                                 <p class="{{ $mobileLabelClass }}">Status</p>
                                 <label class="inline-flex items-center gap-2 cursor-pointer select-none">
@@ -245,7 +231,6 @@
                                 </label>
                             </div>
 
-                            {{-- Jumlah surat tugas --}}
                             <div class="col-span-1 min-w-0 lg:order-5">
                                 <p class="{{ $mobileLabelClass }}">Surat tugas</p>
                                 <span
@@ -254,7 +239,6 @@
                                 </span>
                             </div>
 
-                            {{-- Aksi --}}
                             <div class="col-span-2 lg:col-span-1 flex items-center gap-2 lg:justify-end lg:order-6">
                                 <button type="submit" form="{{ $fid }}" disabled
                                     title="Simpan perubahan {{ $t->nama }}"
@@ -284,7 +268,6 @@
                                 @endif
                             </div>
 
-                            {{-- Error validasi untuk baris ini --}}
                             @if ($edit && $errors->any())
                                 <div role="alert"
                                     class="col-span-2 lg:col-span-6 lg:order-7 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -316,7 +299,6 @@
 
     <script>
         (function () {
-            // Konfirmasi hapus (nama diambil dari data-name, aman untuk tanda kutip)
             document.querySelectorAll('.js-delete-tusi').forEach(function (form) {
                 form.addEventListener('submit', function (e) {
                     const st = parseInt(form.dataset.st || '0', 10);
@@ -333,7 +315,6 @@
             const rows = Array.from(document.querySelectorAll('.js-tusi-row'));
             if (rows.length === 0) return;
 
-            // Tombol Simpan aktif hanya jika ada perubahan pada baris
             rows.forEach(function (row) {
                 const btn = row.querySelector('.js-save');
                 const fields = Array.from(row.querySelectorAll('[data-field]'));
@@ -355,7 +336,6 @@
                 check();
             });
 
-            // Search & filter instan
             const qInput = document.getElementById('tusi-filter-q');
             const statusSelect = document.getElementById('tusi-filter-status');
             const resetBtn = document.getElementById('tusi-filter-reset');

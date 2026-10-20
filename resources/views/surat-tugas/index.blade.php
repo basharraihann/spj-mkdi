@@ -1,9 +1,6 @@
 @php
-    // Tombol kecil yang dipakai berulang di tiap baris
     $btn = 'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1';
     $lbl = 'block text-sm font-medium text-slate-600 mb-1';
-
-    // Warna garis di sisi kiri baris, mengikuti status ST
     $rail = [
         'draf' => 'border-l-slate-300',
         'terbit' => 'border-l-blue-600',
@@ -14,8 +11,6 @@
 <x-app-layout>
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
-
-            {{-- Kepala halaman: sama dengan halaman Memorandum (judul, pil jumlah, banner nomor, pencarian) --}}
             <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -63,8 +58,6 @@
                     @endif
                 </form>
             </div>
-
-            {{-- Daftar surat tugas --}}
             <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
                 <div
@@ -77,14 +70,11 @@
                 <div class="divide-y divide-slate-100">
                     @forelse ($items as $it)
                         @php
-                            // Edit dan hapus hanya untuk draf, dan hanya admin atau pembuat ST
                             $bolehKelola = $it->isDraf() && ($isAdmin || (int) $it->created_by === (int) auth()->id());
                         @endphp
 
                         <div
                             class="grid gap-4 border-l-4 px-6 py-4 transition hover:bg-slate-50/70 md:grid-cols-12 md:items-center {{ $rail[$it->status] ?? 'border-l-slate-300' }}">
-
-                            {{-- Nomor, tanggal, status --}}
                             <div class="min-w-0 md:col-span-3">
                                 <a href="{{ route('surat-tugas.show', $it) }}"
                                     class="break-all text-sm font-semibold tabular-nums text-slate-900 hover:text-blue-700 focus:outline-none focus-visible:underline">
@@ -99,7 +89,6 @@
                                     <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {{ $it->status_badge }}">
                                         {{ $it->status_label }}
                                     </span>
-                                    {{-- Tusi tampil kalau controller memuat relasinya (with('tusi')) --}}
                                     @if ($it->relationLoaded('tusi') && $it->tusi)
                                         <span
                                             class="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs text-slate-600">
@@ -109,7 +98,6 @@
                                 </div>
                             </div>
 
-                            {{-- Kegiatan --}}
                             <div class="min-w-0 md:col-span-6">
                                 <p class="line-clamp-2 text-sm font-medium leading-snug text-slate-900">
                                     {{ \Illuminate\Support\Str::limit($it->untuk[0] ?? '-', 200) }}
@@ -126,7 +114,6 @@
                                 </div>
                             </div>
 
-                            {{-- Aksi --}}
                             <div class="flex flex-wrap items-center gap-2 md:col-span-3 md:justify-end">
                                 <a href="{{ route('surat-tugas.show', $it) }}"
                                     class="{{ $btn }} border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
@@ -184,7 +171,6 @@
 
             <div>{{ $items->links() }}</div>
 
-            {{-- Atur counter nomor (admin), dilipat supaya tidak mengganggu --}}
             @if ($isAdmin)
                 <details class="rounded-xl border border-slate-200 bg-white shadow-sm">
                     <summary

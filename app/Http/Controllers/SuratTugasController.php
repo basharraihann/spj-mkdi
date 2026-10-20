@@ -19,16 +19,11 @@ use Illuminate\Validation\Rule;
 
 class SuratTugasController extends Controller
 {
-    /** Dasar nomor 1: tetap, tidak bisa diubah dari form. */
     private const DASAR_TETAP = 'Daftar Isian Pelaksanaan Anggaran (DIPA) Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2025 Nomor: SP DIPA-131.01-0/2026 tanggal 1 Desember 2025';
 
     public function __construct(private SuratTugasNumberService $numbers)
     {
     }
-
-    /* =====================================================================
-     |  CRUD
-     * ===================================================================== */
 
     public function index(Request $request)
     {
@@ -42,7 +37,6 @@ class SuratTugasController extends Controller
             });
         }
 
-        // filter tusi: ?tusi=none -> belum dikelompokkan, ?tusi={id} -> tusi tertentu
         if ($filter = $request->query('tusi')) {
             $filter === 'none'
                 ? $q->whereNull('tusi_id')
@@ -91,7 +85,6 @@ class SuratTugasController extends Controller
             return $st;
         });
 
-        // nomor baru dikunci saat Simpan
         if ($request->boolean('minta_nomor')) {
             $st = $this->kunciNomor($st);
 
@@ -160,20 +153,11 @@ class SuratTugasController extends Controller
         return redirect()->route('surat-tugas.index')->with('success', 'Surat tugas dihapus.');
     }
 
-    /* =====================================================================
-     |  Pengelompokan (tusi)
-     * ===================================================================== */
-
-    /**
-     * Ubah tusi ST. Terpisah dari update() karena tusi hanya metadata:
-     * ST yang sudah bernomor (dikunci) tetap bisa diklasifikasi.
-     */
     public function updateTusi(Request $request, SuratTugas $suratTugas): RedirectResponse
     {
         abort_unless($this->bolehUbahTusi($suratTugas), 403);
 
         $data = $request->validate([
-            // hanya tusi aktif, atau tusi yang memang sedang dipakai ST ini
             'tusi_id' => [
                 'nullable',
                 Rule::exists('tusi', 'id')->where(
@@ -188,10 +172,6 @@ class SuratTugasController extends Controller
         return $this->keShow($suratTugas, 'Pengelompokan ST diperbarui.');
     }
 
-    /**
-     * Terbitkan ST: nomor dikunci (kalau belum), status jadi terbit, ST tidak bisa diedit lagi,
-     * dan setiap peserta yang punya akun mendapat tugas "Isi Laporan".
-     */
     public function terbitkan(SuratTugas $suratTugas, LaporanStService $laporan): RedirectResponse
     {
         abort_unless($this->bolehKelola($suratTugas), 403);
@@ -214,7 +194,6 @@ class SuratTugasController extends Controller
         return $this->keShow($st, $pesan, $jumlahAkun > 0 ? 'success' : 'warning');
     }
 
-    /** Admin atau pembuat ST. Dipakai untuk menerbitkan ST dan mengubah tusi. */
     private function bolehKelola(SuratTugas $st): bool
     {
         return $this->isAdmin() || (int) $st->created_by === (int) auth()->id();
@@ -225,11 +204,6 @@ class SuratTugasController extends Controller
         return $this->bolehKelola($st);
     }
 
-    /* =====================================================================
-     |  Nomor
-     * ===================================================================== */
-
-    /** Tombol "Ambil Nomor": hanya menampilkan nomor berikutnya, tidak menyimpan dan tidak mengubah counter. */
     public function nomorBerikutnya(Request $request)
     {
         $data = $request->validate([
@@ -245,7 +219,6 @@ class SuratTugasController extends Controller
         ]);
     }
 
-    /** Tombol "Ambil Nomor Memo": pratinjau saja, tidak menyimpan. */
     public function nomorMemoBerikutnya(Request $request)
     {
         $data = $request->validate(['tanggal' => ['required', 'date']]);
@@ -271,11 +244,6 @@ class SuratTugasController extends Controller
         return back()->with('success', 'Counter nomor diperbarui. Nomor berikutnya: ' . ($data['last_number'] + 1));
     }
 
-    /* =====================================================================
-     |  Data untuk form agenda & PDF
-     * ===================================================================== */
-
-    /** Data ST untuk mengisi form agenda. Hanya ST yang sudah bernomor. */
     public function data(SuratTugas $suratTugas)
     {
         abort_unless($suratTugas->nomor, 404);
@@ -289,11 +257,10 @@ class SuratTugasController extends Controller
             'uraian_kegiatan' => $suratTugas->untuk[0] ?? '',
             'tanggal_mulai' => $this->tgl($suratTugas->tanggal_mulai),
             'tanggal_selesai' => $this->tgl($suratTugas->tanggal_selesai),
-            'tujuan' => trim((string) $suratTugas->provinsi) ?: null,   // di agenda, "tujuan" = provinsi
+            'tujuan' => trim((string) $suratTugas->provinsi) ?: null,
             'kota_tujuan' => trim((string) $suratTugas->kota) ?: null,
             'pegawai_ids' => $denganPegawai->pluck('pegawai_id')->map(fn($id) => (int) $id)->values(),
             'peserta_manual' => $suratTugas->peserta->whereNull('pegawai_id')->pluck('nama')->values(),
-            // tanggal tugas per orang (null = ikut rentang ST)
             'peserta_tanggal' => $denganPegawai->map(fn($p) => [
                 'pegawai_id' => (int) $p->pegawai_id,
                 'tanggal_mulai' => $this->tgl($p->tanggal_mulai),
@@ -313,17 +280,11 @@ class SuratTugasController extends Controller
             ->stream($nama);
     }
 
-    /* =====================================================================
-     |  Helper
-     * ===================================================================== */
-
-    /** Redirect ke halaman detail + notifikasi global (tipe: success | error | warning | info). */
     private function keShow(SuratTugas $st, string $pesan, string $tipe = 'success'): RedirectResponse
     {
         return redirect()->route('surat-tugas.show', $st)->with($tipe, $pesan);
     }
 
-    /** Ambil dan kunci nomor ST dari counter. */
     private function kunciNomor(SuratTugas $st): SuratTugas
     {
         return $this->numbers->ambilNomor($st->id, $st->tanggal->format('Y-m-d'), $st->kode_klasifikasi);
@@ -334,7 +295,6 @@ class SuratTugasController extends Controller
         return $value ? Carbon::parse($value)->format('Y-m-d') : null;
     }
 
-    /** Data umum untuk view create & edit. */
     private function dataForm(SuratTugas $st, array $peserta): array
     {
         return [
@@ -350,7 +310,6 @@ class SuratTugasController extends Controller
     {
         $v = $request->validated();
 
-        // dasar 1 dipaksa dari server; baris kosong dan duplikat dasar tetap dibuang
         $dasar = array_merge(
             [self::DASAR_TETAP],
             collect($v['dasar'] ?? [])
@@ -363,7 +322,6 @@ class SuratTugasController extends Controller
         $payload = [
             'tanggal' => $v['tanggal'],
             'tempat' => $v['tempat'],
-            // kode dikunci setelah nomor diambil
             'kode_klasifikasi' => $existing?->nomor_urut ? $existing->kode_klasifikasi : $v['kode_klasifikasi'],
             'tanggal_mulai' => $v['tanggal_mulai'],
             'tanggal_selesai' => $v['tanggal_selesai'],
@@ -379,7 +337,6 @@ class SuratTugasController extends Controller
             'nip_penandatangan' => $v['nip_penandatangan'] ?? null,
         ];
 
-        // nomor_memo hanya disentuh kalau sudah masuk aturan validasi (supaya tidak menimpa dengan null)
         if (array_key_exists('nomor_memo', $v)) {
             $payload['nomor_memo'] = $v['nomor_memo'] ?: null;
         }
@@ -387,7 +344,6 @@ class SuratTugasController extends Controller
         return $payload;
     }
 
-    /** Peserta ST dalam bentuk array untuk form edit. */
     private function pesertaUntukForm(SuratTugas $st): array
     {
         return $st->peserta->map(fn($p) => [
@@ -401,7 +357,6 @@ class SuratTugasController extends Controller
         ])->values()->all();
     }
 
-    /** Simpan peserta: PNS dulu, lalu Non PNS (urutan input dipertahankan di tiap kelompok). */
     private function syncPeserta(SuratTugas $st, ?array $peserta): void
     {
         $st->peserta()->delete();
@@ -414,18 +369,14 @@ class SuratTugasController extends Controller
             $mulai = $p['tanggal_mulai'] ?? null;
             $nama = trim((string) ($p['nama'] ?? ''));
 
-            // Ambil pegawai_id jika sudah ada
             $pegawaiId = ($p['pegawai_id'] ?? null) ?: null;
 
-            // Jika pegawai_id kosong tetapi nama terisi, buat/hubungkan otomatis ke Master Pegawai
             if (!$pegawaiId && $nama !== '') {
                 $jenisStatus = ($p['jenis'] ?? 'pns') === 'non_pns' ? 'Non PNS' : 'PNS';
                 
-                // Cek apakah pegawai dengan nama ini sudah ada di database
                 $pegawai = Pegawai::where('nama', $nama)->first();
 
                 if (!$pegawai) {
-                    // Jika belum ada, otomatis buatkan record baru di Master Pegawai
                     $pegawai = Pegawai::create([
                         'nama' => $nama,
                         'nip' => $p['nip'] ?? null,
@@ -450,7 +401,6 @@ class SuratTugasController extends Controller
         }
     }
 
-    /** ['Bali' => ['Kota Denpasar', ...], ...] untuk dropdown provinsi -> kab/kota. */
     private function kabKotaMap(): array
     {
         return KabupatenKota::orderBy('nama')->get()
@@ -460,7 +410,6 @@ class SuratTugasController extends Controller
             ->all();
     }
 
-    /** Pegawai untuk dropdown peserta, dipisah PNS / Non PNS dari status_kepegawaian. */
     private function pegawaiOptions(): array
     {
         return Pegawai::query()
@@ -475,7 +424,6 @@ class SuratTugasController extends Controller
             ])->values()->all();
     }
 
-    /** Hanya pegawai yang role_penandatangan-nya terisi. */
     private function penandatanganOptions(): array
     {
         return Pegawai::query()
@@ -492,7 +440,6 @@ class SuratTugasController extends Controller
             ])->values()->all();
     }
 
-    /** 'PNS' / 'CPNS' -> pns. Selain itu (Non PNS, PPPK, kosong) -> non_pns. */
     private function jenisPegawai(?string $status): string
     {
         $s = strtolower(preg_replace('/[\s_\-]+/', '', (string) $status));

@@ -3,7 +3,6 @@
 
     $kabKotaMap = $kabKotaMap ?? [];
 
-    // dasar tambahan saja (dasar tetap dibuang supaya tidak dobel saat edit / validasi gagal)
     $dasarLain = collect(old('dasar', $st->dasar ?: []))
         ->reject(fn($d) => str_starts_with(trim((string) $d), 'Daftar Isian Pelaksanaan Anggaran'))
         ->values()->all();
@@ -19,8 +18,6 @@
 
     $provinsiTerpilih = old('provinsi', $st->provinsi ?? '');
     $kotaTerpilih = old('kota', $st->kota ?? '');
-
-    // Kelas yang dipakai berulang supaya tampilan seragam di seluruh form
     $fLabel = 'block text-xs font-medium text-slate-600';
     $fInput = 'mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-600 focus:ring-blue-600';
     $fReadonly = 'mt-1 w-full rounded-lg border-slate-300 bg-slate-50 text-sm';
@@ -133,7 +130,6 @@
         </div>
     @endif
 
-    {{-- Informasi surat & pelaksanaan --}}
     <section class="{{ $fCard }}">
         <div class="{{ $fHead }}">
             <h3 class="text-sm font-semibold text-slate-900">Informasi surat dan pelaksanaan</h3>
@@ -152,12 +148,8 @@
                 </div>
                 <div class="sm:col-span-2">
                     <label class="{{ $fLabel }}">Nomor ST</label>
-
-                    {{-- kode klasifikasi tetap dikirim, tapi tidak diedit dari form --}}
                     <input type="hidden" name="kode_klasifikasi" :value="kode">
-                    {{-- ST baru / draf tanpa nomor: nomor diambil otomatis saat Simpan --}}
                     <input type="hidden" name="minta_nomor" :value="nomorUrut ? 0 : 1">
-
                     <input type="text" readonly :value="nomor || (loadingNomor ? 'Memuat nomor…' : '—')"
                         class="{{ $fReadonly }} font-semibold tabular-nums text-gray-900">
                     <p class="mt-1 text-xs text-slate-500"
@@ -199,7 +191,6 @@
         </div>
     </section>
 
-    {{-- Menimbang & dasar --}}
     <section class="{{ $fCard }}">
         <div class="{{ $fHead }}">
             <h3 class="text-sm font-semibold text-slate-900">Menimbang dan dasar</h3>
@@ -214,7 +205,6 @@
             <div>
                 <label class="{{ $fLabel }} mb-1">Dasar</label>
 
-                {{-- Dasar 1: tetap --}}
                 <div class="mb-2 flex gap-2">
                     <span class="w-5 pt-2 text-sm text-slate-500">1.</span>
                     <input type="hidden" name="dasar[]" value="{{ $dasarTetap }}">
@@ -239,7 +229,6 @@
         </div>
     </section>
 
-    {{-- Kepada & untuk --}}
     <section class="{{ $fCard }}">
         <div class="{{ $fHead }}">
             <h3 class="text-sm font-semibold text-slate-900">Memberi tugas</h3>
@@ -267,7 +256,6 @@
         </div>
     </section>
 
-    {{-- Peserta: PNS & Non PNS tampil bersamaan, dibedakan warna --}}
     <section class="{{ $fCard }}">
         <div class="{{ $fHead }}">
             <h3 class="text-sm font-semibold text-slate-900">Daftar peserta (lampiran)</h3>
@@ -317,7 +305,6 @@
                             Isi manual</button>
                     </div>
 
-                    {{-- ceklis pegawai: klik untuk menambah / mencabut --}}
                     <div
                         class="max-h-44 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
                         <template x-for="p in daftar('{{ $jenis }}')" :key="p.id">
@@ -335,7 +322,6 @@
                     </div>
 
                     <div class="space-y-2">
-                        {{-- tiap peserta hanya dirender SEKALI (di kelompok jenisnya), index tetap utuh --}}
                         <template x-for="i in idx('{{ $jenis }}')" :key="'{{ $jenis }}-' + i">
                             <div x-data="{ open: !!(peserta[i].tanggal_mulai || peserta[i].tanggal_selesai) }"
                                 class="rounded-lg border p-2 {{ $cfg['row'] }}">
@@ -370,7 +356,6 @@
                                         class="min-w-0 rounded-lg border-slate-300 text-sm {{ $cfg['focus'] }}">
                                 </div>
 
-                                {{-- tetap di DOM (x-show) supaya nilai tanggal ikut terkirim --}}
                                 <div x-show="open" x-cloak class="mt-2 grid gap-2 sm:grid-cols-2">
                                     <div>
                                         <label class="mb-1 block text-xs text-slate-500">Tanggal tugas (mulai)</label>
@@ -397,7 +382,6 @@
         </div>
     </section>
 
-    {{-- Penandatangan --}}
     <section class="{{ $fCard }}">
         <div class="{{ $fHead }}">
             <h3 class="text-sm font-semibold text-slate-900">Penandatangan</h3>
@@ -433,7 +417,6 @@
         </div>
     </section>
 
-    {{-- Aksi --}}
     <div
         class="sticky bottom-0 z-10 -mx-4 flex justify-end gap-2 border-t border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border sm:shadow-sm">
         <a href="{{ route('surat-tugas.index') }}"

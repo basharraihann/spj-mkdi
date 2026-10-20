@@ -9,7 +9,6 @@ class SuratTugasPegawai extends Model
 {
     protected $table = 'surat_tugas_pegawai';
 
-    // 'jenis' sebelumnya belum ada di $fillable, jadi PNS / Non PNS tidak pernah tersimpan.
     protected $fillable = [
         'surat_tugas_id', 'pegawai_id', 'urutan', 'jenis',
         'nama', 'nip', 'jabatan', 'tanggal_mulai', 'tanggal_selesai',
@@ -30,7 +29,6 @@ class SuratTugasPegawai extends Model
         return $this->jenis === 'non_pns' ? 'Non PNS' : 'PNS';
     }
 
-    /** "14 Oktober 2026", "14 s.d. 15 Oktober 2026", atau null bila tidak diisi (ikut rentang ST). */
     public function getTanggalTugasIndoAttribute(): ?string
     {
         if (! $this->tanggal_mulai) {

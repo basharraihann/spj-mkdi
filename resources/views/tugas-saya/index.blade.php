@@ -11,7 +11,6 @@
     <div class="py-6 sm:py-8 bg-slate-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-            {{-- Kepala Halaman --}}
             <div class="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div class="min-w-0 space-y-1">
                     <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Tugas Saya</h2>
@@ -38,7 +37,6 @@
                 </div>
             </div>
 
-            {{-- Navigation Tab Filter --}}
             <nav class="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" aria-label="Filter status tugas">
                 <div class="flex w-max gap-2 rounded-xl bg-slate-200/70 p-1 sm:w-auto sm:flex-wrap">
                     @foreach ($tabs as $key => $tabLabel)
@@ -56,14 +54,12 @@
                 </div>
             </nav>
 
-            {{-- Daftar Tugas --}}
             <div class="space-y-3.5">
                 @forelse ($tugas as $t)
                     @php
                         $st = $t->suratTugas;
                         $laporan = $st->laporan;
 
-                        // Status yang ditampilkan ke pengguna
                         if ($t->status === \App\Models\LaporanStTugas::STATUS_SELESAI) {
                             $statusLabel = 'Sudah dikirim';
                             $badge = 'border-emerald-200 bg-emerald-50 text-emerald-700';
@@ -82,7 +78,6 @@
                             $aksen = 'border-l-rose-500';
                         }
 
-                        // Judul singkat: tujuan, kalau kosong ambil dari "untuk"
                         $judul = $st->tujuan;
                         if (!$judul && is_array($st->untuk) && isset($st->untuk[0]) && is_string($st->untuk[0])) {
                             $judul = $st->untuk[0];
@@ -187,7 +182,6 @@
                 @endforelse
             </div>
 
-            {{-- Pagination --}}
             <div class="pt-2">
                 {{ $tugas->links() }}
             </div>

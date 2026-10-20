@@ -30,7 +30,6 @@ Route::middleware(['auth', 'verified'])
 
 Route::middleware('auth')->group(function () {
 
-    // Profile
     Route::controller(ProfileController::class)
         ->prefix('profile')
         ->name('profile.')
@@ -40,7 +39,6 @@ Route::middleware('auth')->group(function () {
             Route::delete('/', 'destroy')->name('destroy');
         });
 
-    // Agenda: peserta & dokumen
     Route::prefix('agendas/{agenda}')
         ->name('agendas.')
         ->group(function () {
@@ -55,7 +53,6 @@ Route::middleware('auth')->group(function () {
                 Route::delete('dokumen/{dokumen}', 'dokumenDestroy')->name('dokumen.destroy');
             });
 
-            // Generate PDF (semua lewat AgendaPdfController)
             Route::controller(AgendaPdfController::class)->group(function () {
                 Route::get('spd/{pegawai}', 'generateSpd')->name('spd');
                 Route::get('nominatif/{status}', 'generateNominatif')->name('nominatif');
@@ -68,11 +65,9 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('agendas', AgendaController::class);
 
-    // Pegawai
     Route::post('pegawais/reorder', [PegawaiController::class, 'reorder'])->name('pegawais.reorder');
     Route::resource('pegawais', PegawaiController::class);
 
-    // Rekap nomor memo (PNS & Non PNS, dari seluruh agenda)
     Route::controller(MemoController::class)
         ->prefix('nomor-memo')
         ->name('memo.')
@@ -87,12 +82,10 @@ Route::middleware('auth')->group(function () {
             Route::get('{memo}/pdf', 'pdf')->name('pdf');
         });
 
-    // Rekap nominatif (dari agenda + nominatif mandiri tanpa agenda)
     Route::prefix('nominatif')
         ->name('nominatif.')
         ->group(function () {
 
-            // Nominatif custom (harus di atas route {nominatif})
             Route::controller(NominatifCustomController::class)->group(function () {
                 Route::get('custom/create', 'create')->name('custom.create');
                 Route::post('custom', 'store')->name('custom.store');
@@ -101,7 +94,6 @@ Route::middleware('auth')->group(function () {
                 Route::get('{nominatif}/custom/pdf', 'pdf')->name('custom.pdf');
             });
 
-            // Nominatif honorarium
             Route::controller(NominatifController::class)->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('create', 'create')->name('create');
@@ -113,7 +105,6 @@ Route::middleware('auth')->group(function () {
             });
         });
 
-    // Surat Tugas perdin (draf -> nomor dikunci saat Simpan)
     Route::prefix('surat-tugas')
         ->name('surat-tugas.')
         ->controller(SuratTugasController::class)
@@ -122,10 +113,8 @@ Route::middleware('auth')->group(function () {
             Route::get('create', 'create')->name('create');
             Route::post('/', 'store')->name('store');
 
-            // Atur counter nomor (khusus admin) - harus di atas route {suratTugas}
             Route::post('counter', 'setCounter')->middleware('admin')->name('counter');
 
-            // Tombol Ambil Nomor (hanya melihat nomor berikutnya) - harus di atas route {suratTugas}
             Route::post('nomor-berikutnya', 'nomorBerikutnya')->name('nomor-berikutnya');
 
             Route::get('{suratTugas}', 'show')->name('show');
@@ -133,30 +122,22 @@ Route::middleware('auth')->group(function () {
             Route::put('{suratTugas}', 'update')->name('update');
             Route::delete('{suratTugas}', 'destroy')->name('destroy');
 
-            // Pengelompokan (tusi): terpisah dari update() supaya ST yang sudah dikunci tetap bisa diklasifikasi
             Route::patch('{suratTugas}/tusi', 'updateTusi')->name('tusi');
 
-            // Terbitkan ST: kunci isi, buat tugas "Isi Laporan" untuk peserta yang punya akun
             Route::post('{suratTugas}/terbitkan', 'terbitkan')->name('terbitkan');
 
-            // Simpan draf / kirim laporan hasil ST (otorisasi di LaporanStService::bolehIsi)
             Route::post('{suratTugas}/laporan', [LaporanStController::class, 'simpan'])->name('laporan.simpan');
 
-            // Buka berkas PDF Notulensi (disimpan privat; otorisasi di LaporanStService::bolehUnduh)
             Route::get('{suratTugas}/laporan/berkas', [LaporanStController::class, 'berkas'])->name('laporan.berkas');
 
-            // Buka/Unduh berkas Materi berdasarkan nama file spesifik
             Route::get('{suratTugas}/laporan/materi/{filename}', [LaporanStController::class, 'berkasMateri'])->name('laporan.materi');
 
             Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
-            // Data ST untuk mengisi form agenda (JSON)
             Route::get('{suratTugas}/data', 'data')->name('data');
         });
 
-    // Tugas Saya: daftar tugas "Isi Laporan" milik akun yang login (semua user login)
     Route::get('tugas-saya', [TugasSayaController::class, 'index'])->name('tugas-saya.index');
 
-    // Master tusi (khusus admin: middleware 'admin' + dicek lagi di TusiController)
     Route::middleware('admin')
         ->resource('tusi', TusiController::class)
         ->except(['show', 'create', 'edit'])
@@ -167,7 +148,6 @@ Route::middleware('auth')->group(function () {
             ->except(['show', 'create', 'edit']);
     });
 
-    // Monitor anggaran (lihat: semua user login; upload & pemetaan unit: khusus admin)
     Route::controller(AnggaranController::class)
         ->prefix('anggaran')
         ->name('anggaran.')
@@ -180,7 +160,6 @@ Route::middleware('auth')->group(function () {
                 Route::get('upload', 'uploadForm')->name('upload');
                 Route::post('upload', 'uploadStore')->name('upload.store');
 
-                // Pemetaan RO -> Unit (Deputi/Biro -> Asdep)
                 Route::get('pemetaan', [AnggaranPemetaanController::class, 'index'])->name('pemetaan');
                 Route::post('pemetaan', [AnggaranPemetaanController::class, 'store'])->name('pemetaan.store');
                 Route::put('pemetaan/{pemetaan}', [AnggaranPemetaanController::class, 'update'])->name('pemetaan.update');
@@ -188,7 +167,6 @@ Route::middleware('auth')->group(function () {
             });
         });
 
-    // Pemetaan akun -> pegawai (khusus admin). Menentukan siapa yang mendapat tugas "Isi Laporan".
     Route::middleware('admin')
         ->prefix('pemetaan-akun')
         ->name('pemetaan-akun.')
@@ -198,7 +176,6 @@ Route::middleware('auth')->group(function () {
             Route::put('{user}', 'update')->name('update');
         });
 
-    // User Manajemen (Khusus Admin)
     Route::middleware('admin')->resource('users', UserController::class);
 });
 
