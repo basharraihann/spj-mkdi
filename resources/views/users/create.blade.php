@@ -93,35 +93,46 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Hak Akses / Role <span class="text-rose-500">*</span>
                     </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <label
-                            class="relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition focus:outline-none has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30 border-gray-200 hover:border-gray-300">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-2">
-                                    <input type="radio" name="role" value="user" {{ old('role', 'user') == 'user' ? 'checked' : '' }}
-                                        class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                                    <span class="font-semibold text-gray-900 text-sm">Staf / User</span>
-                                </div>
-                                <span
-                                    class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Staf</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Dapat mengelola Agenda, Pegawai, dan Nomor Memo. Tidak
-                                dapat mengelola user.</p>
-                        </label>
+                    @php
+                        $roleInfo = [
+                            'user' => [
+                                'badge' => 'Staf',
+                                'badgeClass' => 'bg-emerald-100 text-emerald-700',
+                                'desc' => 'Dapat mengelola Agenda, Pegawai, dan Nomor Memo. Tidak dapat mengelola user.',
+                            ],
+                            'pimpinan' => [
+                                'badge' => 'Pimpinan',
+                                'badgeClass' => 'bg-amber-100 text-amber-700',
+                                'desc' => 'Hanya melihat: memantau kegiatan Surat Tugas, notulensi, dan materi di halaman Monitoring. Tidak dapat mengubah data.',
+                            ],
+                            'admin' => [
+                                'badge' => 'Admin',
+                                'badgeClass' => 'bg-purple-100 text-purple-700',
+                                'desc' => 'Akses penuh ke seluruh sistem, termasuk kelola User Manajemen.',
+                            ],
+                        ];
+                        $selectedRole = old('role', \App\Models\User::ROLE_USER);
+                        $isSelf = false;
+                    @endphp
 
-                        <label
-                            class="relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition focus:outline-none has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30 border-gray-200 hover:border-gray-300">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-2">
-                                    <input type="radio" name="role" value="admin" {{ old('role') == 'admin' ? 'checked' : '' }} class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                                    <span class="font-semibold text-gray-900 text-sm">Administrator</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        @foreach (\App\Models\User::ROLE_LABEL as $value => $label)
+                            @php $info = $roleInfo[$value] ?? ['badge' => $label, 'badgeClass' => 'bg-gray-100 text-gray-700', 'desc' => '']; @endphp
+                            <label
+                                class="relative flex flex-col p-4 rounded-xl border-2 transition focus:outline-none has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30 border-gray-200 {{ $isSelf ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-gray-300' }}">
+                                <div class="flex items-center justify-between mb-1 gap-2">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <input type="radio" name="role" value="{{ $value }}"
+                                            @checked($selectedRole === $value) @disabled($isSelf)
+                                            class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                        <span class="font-semibold text-gray-900 text-sm">{{ $label }}</span>
+                                    </div>
+                                    <span
+                                        class="text-xs font-semibold px-2 py-0.5 rounded shrink-0 {{ $info['badgeClass'] }}">{{ $info['badge'] }}</span>
                                 </div>
-                                <span
-                                    class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">Admin</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">Akses penuh ke seluruh sistem, termasuk kelola User
-                                Manajemen.</p>
-                        </label>
+                                <p class="text-xs text-gray-500 mt-1">{{ $info['desc'] }}</p>
+                            </label>
+                        @endforeach
                     </div>
                     @error('role')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>

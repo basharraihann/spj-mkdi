@@ -17,7 +17,7 @@ use App\Http\Controllers\SuratTugasController;
 use App\Http\Controllers\LaporanStController;
 use App\Http\Controllers\TugasSayaController;
 use App\Http\Controllers\UserPegawaiController;
-// use App\Http\Controllers\TusiController; // aktifkan kalau pakai halaman master tusi
+use App\Http\Controllers\TusiController;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -150,10 +150,11 @@ Route::middleware('auth')->group(function () {
     // Tugas Saya: daftar tugas "Isi Laporan" milik akun yang login (semua user login)
     Route::get('tugas-saya', [TugasSayaController::class, 'index'])->name('tugas-saya.index');
 
-    // Master tusi (khusus admin, dicek di TusiController). Opsional: aktifkan bersama import di atas.
-    // Route::resource('tusi', TusiController::class)
-    //     ->except(['show', 'create', 'edit'])
-    //     ->parameters(['tusi' => 'tusi']);
+    // Master tusi (khusus admin: middleware 'admin' + dicek lagi di TusiController)
+    Route::middleware('admin')
+        ->resource('tusi', TusiController::class)
+        ->except(['show', 'create', 'edit'])
+        ->parameters(['tusi' => 'tusi']);
 
     Route::middleware(['auth'])->group(function () {
         Route::resource('mak-options', MakOptionController::class)

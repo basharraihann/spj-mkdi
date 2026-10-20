@@ -29,7 +29,7 @@
             </div>
 
             {{-- Ringkasan --}}
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="rounded-xl bg-gray-50 border border-gray-100 px-3 sm:px-4 py-3">
                     <p class="text-xs font-medium text-gray-600">Total user</p>
                     <p class="text-xl font-bold text-gray-900 mt-0.5 tabular-nums">{{ $totalUsers }}</p>
@@ -37,6 +37,10 @@
                 <div class="rounded-xl bg-purple-50/60 border border-purple-100 px-3 sm:px-4 py-3">
                     <p class="text-xs font-medium text-gray-600">Administrator</p>
                     <p class="text-xl font-bold text-purple-700 mt-0.5 tabular-nums">{{ $totalAdmin }}</p>
+                </div>
+                <div class="rounded-xl bg-amber-50/60 border border-amber-100 px-3 sm:px-4 py-3">
+                    <p class="text-xs font-medium text-gray-600">Pimpinan</p>
+                    <p class="text-xl font-bold text-amber-700 mt-0.5 tabular-nums">{{ $totalPimpinan ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl bg-emerald-50/60 border border-emerald-100 px-3 sm:px-4 py-3">
                     <p class="text-xs font-medium text-gray-600">Staf / Operator</p>
@@ -57,8 +61,9 @@
                     <select id="user-filter-role"
                         class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                         <option value="">Semua Role</option>
-                        <option value="admin">Administrator</option>
-                        <option value="user">Staf / User</option>
+                        @foreach (\App\Models\User::ROLE_LABEL as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -147,6 +152,18 @@
                                                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                         </svg>
                                         Administrator
+                                    </span>
+                                @elseif ($u->isPimpinan())
+                                    <span
+                                        class="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                            aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Pimpinan
                                     </span>
                                 @else
                                     <span

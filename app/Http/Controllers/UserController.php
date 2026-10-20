@@ -47,9 +47,17 @@ class UserController extends Controller
 
         $totalUsers = User::count();
         $totalAdmin = User::where('role', User::ROLE_ADMIN)->count();
+        $totalPimpinan = User::where('role', User::ROLE_PIMPINAN)->count();
         $totalStaf = User::where('role', User::ROLE_USER)->count();
 
-        return view('users.index', compact('users', 'units', 'totalUsers', 'totalAdmin', 'totalStaf'));
+        return view('users.index', compact(
+            'users',
+            'units',
+            'totalUsers',
+            'totalAdmin',
+            'totalPimpinan',
+            'totalStaf'
+        ));
     }
 
     /**
@@ -72,7 +80,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:50', 'unique:' . User::class, 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'unit_id' => ['nullable', 'exists:units,id'],
-            'role' => ['required', 'string', Rule::in([User::ROLE_ADMIN, User::ROLE_USER])],
+            'role' => ['required', 'string', Rule::in(array_keys(User::ROLE_LABEL))],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -108,9 +116,15 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id), 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'unit_id' => ['nullable', 'exists:units,id'],
-            'role' => ['required', 'string', Rule::in([User::ROLE_ADMIN, User::ROLE_USER])],
+            'role' => ['required', 'string', Rule::in(array_keys(User::ROLE_LABEL))],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ]);
+
+        // Cegah admin menurunkan role akunnya sendiri (bisa kehilangan akses manajemen user).
+        if ($user->id === auth()->id() && $validated['role'] !== $user->role) {
+            return back()->withInput()
+                ->with('error', 'Anda tidak dapat mengubah role akun Anda sendiri.');
+        }
 
         $user->name = $validated['name'];
         $user->username = $validated['username'];

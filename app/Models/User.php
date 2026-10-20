@@ -26,7 +26,18 @@ class User extends Authenticatable
      * Role Constants
      */
     public const ROLE_ADMIN = 'admin';
+    public const ROLE_PIMPINAN = 'pimpinan';
     public const ROLE_USER = 'user';
+
+    /**
+     * Daftar role untuk dropdown form user dan aturan validasi.
+     * Satu sumber: tambah role baru cukup di sini.
+     */
+    public const ROLE_LABEL = [
+        self::ROLE_ADMIN => 'Administrator',
+        self::ROLE_PIMPINAN => 'Pimpinan',
+        self::ROLE_USER => 'Staf / User',
+    ];
 
     /**
      * Unit tempat user bertugas
@@ -53,6 +64,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is Pimpinan
+     */
+    public function isPimpinan(): bool
+    {
+        return $this->role === self::ROLE_PIMPINAN;
+    }
+
+    /**
      * Check if user is Regular User / Staf
      */
     public function isUser(): bool
@@ -61,15 +80,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Boleh membuka halaman monitoring (pimpinan, atau admin).
+     */
+    public function bolehMonitoring(): bool
+    {
+        return $this->isAdmin() || $this->isPimpinan();
+    }
+
+    /**
      * Label role
      */
     public function getRoleLabelAttribute(): string
     {
-        return match ($this->role) {
-            self::ROLE_ADMIN => 'Administrator',
-            self::ROLE_USER => 'Staf / User',
-            default => ucfirst($this->role ?? 'User'),
-        };
+        return self::ROLE_LABEL[$this->role] ?? ucfirst($this->role ?? 'User');
     }
 
     /**
