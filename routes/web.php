@@ -5,19 +5,19 @@ use App\Http\Controllers\AgendaPdfController;
 use App\Http\Controllers\AnggaranController;
 use App\Http\Controllers\AnggaranPemetaanController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LaporanStController;
+use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\NominatifController;
+use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\UserController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\MakOptionController;
-use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\SuratTugasController;
-use App\Http\Controllers\LaporanStController;
 use App\Http\Controllers\TugasSayaController;
-use App\Http\Controllers\UserPegawaiController;
 use App\Http\Controllers\TusiController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserPegawaiController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -142,8 +142,11 @@ Route::middleware('auth')->group(function () {
             // Simpan draf / kirim laporan hasil ST (otorisasi di LaporanStService::bolehIsi)
             Route::post('{suratTugas}/laporan', [LaporanStController::class, 'simpan'])->name('laporan.simpan');
 
-            // Buka berkas PDF laporan (disimpan privat; otorisasi di LaporanStService::bolehUnduh)
+            // Buka berkas PDF Notulensi (disimpan privat; otorisasi di LaporanStService::bolehUnduh)
             Route::get('{suratTugas}/laporan/berkas', [LaporanStController::class, 'berkas'])->name('laporan.berkas');
+
+            // Buka berkas Materi (disimpan privat; otorisasi di LaporanStService::bolehUnduh)
+            Route::get('{suratTugas}/laporan/materi', [LaporanStController::class, 'berkasMateri'])->name('laporan.materi');
 
             Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
             // Data ST untuk mengisi form agenda (JSON)

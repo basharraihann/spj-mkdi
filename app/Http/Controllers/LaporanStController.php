@@ -25,17 +25,23 @@ class LaporanStController extends Controller
         // Validasi input file Notulensi & Materi
         $data = $request->validate([
             'notulensi' => [$kirim ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:5120'], // PDF, maks 5 MB
-            'materi'    => ['nullable', 'array', 'max:5'],
+            'materi'    => ['nullable'],
             'materi.*'  => ['file', 'mimes:pdf,ppt,pptx', 'max:10240'], // Maks 10 MB per file
         ], [
             'notulensi.required' => 'Berkas notulensi / laporan wajib diunggah sebelum dikirim.',
             'notulensi.mimes'    => 'Berkas notulensi harus berformat PDF.',
             'notulensi.max'      => 'Ukuran berkas notulensi maksimal 5 MB.',
             'notulensi.uploaded' => 'Berkas gagal diunggah. Pastikan ukurannya tidak lebih dari 5 MB.',
-            'materi.max'         => 'Maksimal file materi yang diunggah adalah 5 file.',
             'materi.*.mimes'     => 'Format file materi harus PDF, PPT, atau PPTX.',
             'materi.*.max'       => 'Ukuran masing-masing file materi maksimal 10 MB.',
         ]);
+
+        // Kumpulkan file materi jika diunggah
+        $materiFile = null;
+        if ($request->hasFile('materi')) {
+            $files = $request->file('materi');
+            $materiFile = is_array($files) ? ($files[0] ?? null) : $files;
+        }
 
         try {
             $this->laporan->simpan(
@@ -43,7 +49,8 @@ class LaporanStController extends Controller
                 $request->user(),
                 [], 
                 $kirim,
-                $request->file('notulensi') // Mengirim file notulensi ke service sebagai berkas laporan
+                $request->file('notulensi'), // File utama Notulensi
+                $materiFile                 // File Materi
             );
         } catch (\DomainException $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -69,6 +76,25 @@ class LaporanStController extends Controller
             $path,
             $laporan->file_laporan_nama ?: 'laporan.pdf',
             ['Content-Type' => 'application/pdf']
+        );
+    }
+
+    /** Buka berkas Materi (tanpa butuh migration baru). */
+    public function berkasMateri(Request $request, SuratTugas $suratTugas)
+    {
+        abort_unless($this->laporan->bolehUnduh($suratTugas, $request->user()), 403);
+
+        // Cari file materi di folder storage st
+        $files = Storage::disk(LaporanStService::DISK)->files('laporan-st/' . $suratTugas->id . '/materi');
+        
+        abort_unless(!empty($files), 404);
+
+        $path = $files[0];
+        $filename = basename($path);
+
+        return Storage::disk(LaporanStService::DISK)->response(
+            $path,
+            $filename
         );
     }
 }

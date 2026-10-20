@@ -382,41 +382,101 @@
                                     </div>
                                 </form>
                             @elseif ($laporan)
-                                {{-- Hanya lihat --}}
-                                <div
-                                    class="divide-y divide-slate-100 border-t border-slate-100 leading-6 text-slate-700">
-                                    @if (filled($laporan->notulensi))
+                                {{-- Read-Only Laporan Hasil (Setelah Dikirim) --}}
+                                <div class="divide-y divide-slate-100 border-t border-slate-100 leading-6 text-slate-700">
+                                    
+                                    {{-- 1. Berkas Notulensi / Laporan Hasil (PDF) --}}
+                                    <div class="py-3">
+                                        <h4 class="font-medium text-slate-500 mb-1.5">Notulensi / Berkas Laporan Hasil (PDF)</h4>
+                                        @if ($bolehBukaBerkas)
+                                            <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
+                                                <div class="flex min-w-0 items-center gap-2.5">
+                                                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                                                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V7l-5-5H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                    <span class="truncate text-xs font-semibold text-slate-800">{{ $laporan->file_laporan_nama ?: 'Notulensi.pdf' }}</span>
+                                                </div>
+
+                                                <div class="flex shrink-0 items-center gap-1.5">
+                                                    <a href="{{ route('surat-tugas.laporan.berkas', $st) }}" target="_blank"
+                                                        class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-blue-50 transition">
+                                                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                        <span>Lihat</span>
+                                                    </a>
+
+                                                    <a href="{{ route('surat-tugas.laporan.berkas', $st) }}?download=1" download
+                                                        class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 transition">
+                                                        <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                        </svg>
+                                                        <span>Unduh</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @elseif ($adaBerkas)
+                                            <p class="mt-1 text-xs text-slate-500">{{ $laporan->file_laporan_nama ?: 'Notulensi.pdf' }} (Hanya dapat dibuka oleh peserta yang ditugaskan / admin)</p>
+                                        @else
+                                            <p class="mt-1 text-xs text-slate-400">-</p>
+                                        @endif
+                                    </div>
+
+                                    {{-- 2. Berkas Materi --}}
+                                    @if (filled($laporan->materi))
                                         <div class="py-3">
-                                            <h4 class="font-medium text-slate-500">Notulensi / hasil rapat</h4>
+                                            <h4 class="font-medium text-slate-500 mb-1.5">Materi</h4>
+                                            <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
+                                                <div class="flex min-w-0 items-center gap-2.5">
+                                                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                                                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                    </div>
+                                                    <span class="truncate text-xs font-semibold text-slate-800">{{ $laporan->materi }}</span>
+                                                </div>
+
+                                                @if (\Illuminate\Support\Facades\Route::has('surat-tugas.laporan.materi'))
+                                                    <div class="flex shrink-0 items-center gap-1.5">
+                                                        <a href="{{ route('surat-tugas.laporan.materi', $st) }}" target="_blank"
+                                                            class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-emerald-600 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-emerald-50 transition">
+                                                            <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                            <span>Lihat</span>
+                                                        </a>
+
+                                                        <a href="{{ route('surat-tugas.laporan.materi', $st) }}?download=1" download
+                                                            class="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 transition">
+                                                            <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                            </svg>
+                                                            <span>Unduh</span>
+                                                        </a>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    @if (filled($laporan->notulensi) && !str_starts_with($laporan->notulensi, 'Berkas Notulensi:'))
+                                        <div class="py-3">
+                                            <h4 class="font-medium text-slate-500">Hasil Rapat / Ringkasan</h4>
                                             <p class="mt-0.5 whitespace-pre-line">{{ $laporan->notulensi }}</p>
                                         </div>
                                     @endif
-                                    @if (filled($laporan->materi))
-                                        <div class="py-3">
-                                            <h4 class="font-medium text-slate-500">Materi</h4>
-                                            <p class="mt-0.5 whitespace-pre-line">{{ $laporan->materi }}</p>
-                                        </div>
-                                    @endif
-                                    <div class="py-3">
-                                        <h4 class="font-medium text-slate-500">Berkas laporan (PDF)</h4>
-                                        @if ($bolehBukaBerkas)
-                                            <a href="{{ route('surat-tugas.laporan.berkas', $st) }}" target="_blank"
-                                                class="mt-0.5 inline-block font-medium text-blue-700 hover:underline">{{ $laporan->file_laporan_nama ?: 'laporan.pdf' }}</a>
-                                        @elseif ($adaBerkas)
-                                            <p class="mt-0.5 text-slate-500">{{ $laporan->file_laporan_nama ?: 'laporan.pdf' }}
-                                                <span class="text-xs">(hanya dapat dibuka oleh admin, pembuat ST, dan
-                                                    peserta yang ditugasi)</span>
-                                            </p>
-                                        @else
-                                            <p class="mt-0.5 text-slate-500">-</p>
-                                        @endif
-                                    </div>
+
                                     @if (filled($laporan->keputusan))
                                         <div class="py-3">
                                             <h4 class="font-medium text-slate-500">Keputusan</h4>
                                             <p class="mt-0.5 whitespace-pre-line">{{ $laporan->keputusan }}</p>
                                         </div>
                                     @endif
+
                                     @if ($laporan->tindakLanjut->isNotEmpty())
                                         <div class="py-3">
                                             <h4 class="mb-1 font-medium text-slate-500">Tindak lanjut</h4>
@@ -435,17 +495,18 @@
                                             @endforeach
                                         </div>
                                     @endif
+
+                                    {{-- Info Pengirim & Waktu Kirim --}}
                                     @if ($laporan->isDikirim())
                                         <div class="pt-3">
-                                            <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Dikirim
-                                                oleh {{ $laporan->dikirimOleh->name ?? '-' }}
-                                                pada {{ optional($laporan->dikirim_at)->format('d/m/Y H:i') }}.</p>
+                                            <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                                                Dikirim oleh <strong>{{ $laporan->dikirimOleh->name ?? '-' }}</strong> pada {{ optional($laporan->dikirim_at)->format('d/m/Y H:i') }}.
+                                            </p>
                                         </div>
                                     @endif
                                 </div>
                             @else
-                                <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Laporan belum
-                                    diisi.</p>
+                                <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Laporan belum diisi.</p>
                             @endif
                         </div>
                     </section>

@@ -16,14 +16,9 @@ class LaporanStService
     /** Disk privat untuk berkas laporan (tidak bisa diakses lewat URL langsung). */
     public const DISK = 'local';
 
-    /**
-     * Buat tugas "Isi Laporan" untuk setiap peserta ST yang punya akun.
-     * Aman dipanggil ulang (tidak membuat duplikat). Mengembalikan jumlah akun yang ditugasi.
-     */
     public function buatTugas(SuratTugas $st): int
     {
         $pegawaiIds = $st->peserta()->whereNotNull('pegawai_id')->pluck('pegawai_id');
-
         $userIds = User::whereIn('pegawai_id', $pegawaiIds)->pluck('id');
 
         foreach ($userIds as $userId) {
@@ -36,7 +31,6 @@ class LaporanStService
         return $userIds->count();
     }
 
-    /** Admin, atau akun yang masih punya tugas lapor berstatus menunggu untuk ST ini. */
     public function bolehIsi(SuratTugas $st, ?User $user): bool
     {
         if (!$user || $st->status !== 'terbit') {
@@ -54,7 +48,6 @@ class LaporanStService
                 ->exists();
     }
 
-    /** Boleh membuka/mengunduh berkas laporan: admin, pembuat ST, atau peserta yang ditugasi lapor. */
     public function bolehUnduh(SuratTugas $st, ?User $user): bool
     {
         if (!$user) {
@@ -70,24 +63,19 @@ class LaporanStService
             ->exists();
     }
 
-    /**
-     * Simpan draf, atau kirim. Saat kirim: laporan dikunci, tugas pengirim selesai,
-     * tugas peserta lain ditutup, dan ST otomatis berstatus selesai.
-     *
-     * Hanya kolom yang ADA di $data yang diubah. Jadi form yang tidak lagi mengirim
-     * notulensi / materi / keputusan / tindak_lanjut tidak akan menghapus isi laporan yang sudah tersimpan.
-     *
-     * @param  array{notulensi?:?string, materi?:?string, keputusan?:?string, tindak_lanjut?:?array}  $data
-     * @throws \DomainException
-     */
-    public function simpan(SuratTugas $st, User $user, array $data, bool $kirim, ?UploadedFile $berkas = null): LaporanSt
-    {
+    public function simpan(
+        SuratTugas $st,
+        User $user,
+        array $data,
+        bool $kirim,
+        ?UploadedFile $berkas = null,
+        ?UploadedFile $fileMateri = null
+    ): LaporanSt {
         $pathBaru = null;
         $pathLama = null;
 
         try {
-            $laporan = DB::transaction(function () use ($st, $user, $data, $kirim, $berkas, &$pathBaru, &$pathLama) {
-                // kunci baris ST supaya dua peserta yang mengirim bersamaan tidak saling menimpa
+            $laporan = DB::transaction(function () use ($st, $user, $data, $kirim, $berkas, $fileMateri, &$pathBaru, &$pathLama) {
                 $st = SuratTugas::lockForUpdate()->findOrFail($st->id);
 
                 if ($st->status !== 'terbit') {
@@ -111,11 +99,18 @@ class LaporanStService
                     }
                 }
 
+                // 1. Simpan Berkas Notulensi Utama
                 if ($berkas) {
                     $pathLama = $laporan->file_laporan_path;
                     $pathBaru = $berkas->store('laporan-st/' . $st->id, self::DISK);
                     $atribut['file_laporan_path'] = $pathBaru;
                     $atribut['file_laporan_nama'] = mb_substr($berkas->getClientOriginalName(), 0, 180);
+                }
+
+                // 2. Simpan Berkas Materi ke storage & catat nama filenya di kolom materi
+                if ($fileMateri) {
+                    $fileMateri->storeAs('laporan-st/' . $st->id . '/materi', $fileMateri->getClientOriginalName(), self::DISK);
+                    $atribut['materi'] = $fileMateri->getClientOriginalName();
                 }
 
                 $laporan->forceFill($atribut)->save();
@@ -145,14 +140,12 @@ class LaporanStService
                 return $laporan;
             });
         } catch (\Throwable $e) {
-            // transaksi gagal: buang berkas yang sempat tersimpan supaya tidak jadi sampah
             if ($pathBaru) {
                 Storage::disk(self::DISK)->delete($pathBaru);
             }
             throw $e;
         }
 
-        // sukses: berkas lama yang digantikan boleh dihapus
         if ($pathBaru && $pathLama && $pathLama !== $pathBaru) {
             Storage::disk(self::DISK)->delete($pathLama);
         }
@@ -160,7 +153,6 @@ class LaporanStService
         return $laporan;
     }
 
-    /** Ganti seluruh tindak lanjut dengan isian terbaru; baris tanpa uraian dibuang. */
     private function syncTindakLanjut(LaporanSt $laporan, array $rows): void
     {
         $laporan->tindakLanjut()->delete();
