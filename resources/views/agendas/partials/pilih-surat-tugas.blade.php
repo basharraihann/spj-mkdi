@@ -1,13 +1,3 @@
-{{--
-Dropdown "Pilih Surat Tugas" untuk form agenda (create & edit).
-Variabel:
-$suratTugasList : [['id' => 1, 'label' => '208/KA.00.04/2026 — ...'], ...]
-$agenda : model Agenda (edit) atau null (create)
-$isiPeserta : true (create) = centang peserta sesuai ST; false (edit) = peserta tidak disentuh,
-karena rincian biaya peserta di agenda yang sudah jalan tidak boleh ke-reset.
-
-Data disalin ke form saat dipilih (snapshot). Semua field tetap bisa diedit manual.
---}}
 @php
     $suratTugasList = $suratTugasList ?? [];
     $selectedSt = old('surat_tugas_id', $agenda->surat_tugas_id ?? '');

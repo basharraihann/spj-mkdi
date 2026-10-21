@@ -3,13 +3,13 @@
 
     $kabKotaMap = $kabKotaMap ?? [];
 
-    $dasarLain = collect(old('dasar', $st->dasar ?: []))
+    $dasarLain = collect(old('dasar', $st->dasar ?? []))
         ->reject(fn($d) => str_starts_with(trim((string) $d), 'Daftar Isian Pelaksanaan Anggaran'))
         ->values()->all();
 
-    $untuk = old('untuk', $st->untuk ?: ['']);
+    $untuk = old('untuk', $st->untuk ?? ['']);
 
-    $pesertaInit = collect(old('peserta', $peserta))
+    $pesertaInit = collect(old('peserta', $peserta ?? []))
         ->map(fn($p) => array_merge(
             ['jenis' => 'pns', 'pegawai_id' => null, 'nama' => '', 'nip' => '', 'jabatan' => '', 'tanggal_mulai' => '', 'tanggal_selesai' => ''],
             array_filter((array) $p, fn($v) => $v !== null)
@@ -18,6 +18,7 @@
 
     $provinsiTerpilih = old('provinsi', $st->provinsi ?? '');
     $kotaTerpilih = old('kota', $st->kota ?? '');
+
     $fLabel = 'block text-xs font-medium text-slate-600';
     $fInput = 'mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-blue-600 focus:ring-blue-600';
     $fReadonly = 'mt-1 w-full rounded-lg border-slate-300 bg-slate-50 text-sm';
@@ -39,32 +40,31 @@
         dasar: @js($dasarLain),
         untuk: @js(array_values($untuk)),
         peserta: @js($pesertaInit),
-        pegawai: @js($pegawaiOptions),
-        penandatangan: @js($penandatanganOptions),
+        pegawai: @js($pegawaiOptions ?? []),
+        penandatangan: @js($penandatanganOptions ?? []),
         cari: { pns: '', non_pns: '' },
         provinsi: @js($provinsiTerpilih),
         kota: @js($kotaTerpilih),
         kabKotaMap: @js($kabKotaMap),
-        kode: @js(old('kode_klasifikasi', $st->kode_klasifikasi)),
-        tanggal: @js(old('tanggal', optional($st->tanggal)->format('Y-m-d'))),
-        mulai: @js(old('tanggal_mulai', optional($st->tanggal_mulai)->format('Y-m-d'))),
-        selesai: @js(old('tanggal_selesai', optional($st->tanggal_selesai)->format('Y-m-d'))),
-        nomorUrut: @js($st->nomor_urut),
-        nomor: @js($st->nomor),
-        tahunNomor: @js($st->tahun),
+        kode: @js(old('kode_klasifikasi', $st->kode_klasifikasi ?? '')),
+        tanggal: @js(old('tanggal', optional($st->tanggal ?? null)->format('Y-m-d'))),
+        mulai: @js(old('tanggal_mulai', optional($st->tanggal_mulai ?? null)->format('Y-m-d'))),
+        selesai: @js(old('tanggal_selesai', optional($st->tanggal_selesai ?? null)->format('Y-m-d'))),
+        nomorUrut: @js($st->nomor_urut ?? null),
+        nomor: @js($st->nomor ?? ''),
+        tahunNomor: @js($st->tahun ?? date('Y')),
         ambilUrl: @js(route('surat-tugas.nomor-berikutnya')),
         loadingNomor: false,
         errNomor: '',
         ttd: @js([
-            'nama' => old('nama_penandatangan', $st->nama_penandatangan),
-            'nip' => old('nip_penandatangan', $st->nip_penandatangan),
-            'jabatan' => old('jabatan_penandatangan', $st->jabatan_penandatangan),
+            'nama' => old('nama_penandatangan', $st->nama_penandatangan ?? ''),
+            'nip' => old('nip_penandatangan', $st->nip_penandatangan ?? ''),
+            'jabatan' => old('jabatan_penandatangan', $st->jabatan_penandatangan ?? ''),
         ]),
         pickTtd: '',
 
         get daftarKota() { return this.kabKotaMap[this.provinsi] ?? []; },
 
-        // Nomor terisi otomatis (pratinjau, belum mengubah counter). Dikunci saat Simpan.
         async ambilNomor() {
             if (this.nomorUrut || !this.tanggal || !this.kode) return;
             this.loadingNomor = true; this.errNomor = '';
@@ -130,6 +130,9 @@
         </div>
     @endif
 
+    {{-- Kolom "tujuan" tidak lagi punya input, tapi nilai lama tetap dikirim supaya tidak terhapus saat ST diedit --}}
+    <input type="hidden" name="tujuan" value="{{ old('tujuan', $st->tujuan ?? '') }}">
+
     <section class="{{ $fCard }}">
         <div class="{{ $fHead }}">
             <h3 class="text-sm font-semibold text-slate-900">Informasi surat dan pelaksanaan</h3>
@@ -139,7 +142,7 @@
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label class="{{ $fLabel }}">Tempat</label>
-                    <input type="text" name="tempat" value="{{ old('tempat', $st->tempat) }}" class="{{ $fInput }}">
+                    <input type="text" name="tempat" value="{{ old('tempat', $st->tempat ?? '') }}" class="{{ $fInput }}">
                 </div>
                 <div>
                     <label class="{{ $fLabel }}">Tanggal surat</label>
@@ -200,7 +203,7 @@
             <div>
                 <label class="{{ $fLabel }}">Menimbang</label>
                 <textarea name="menimbang" rows="3" class="{{ $fInput }}"
-                    placeholder="Bahwa dalam rangka melaksanakan ... dianggap perlu dibuatkan surat tugas ...">{{ old('menimbang', $st->menimbang) }}</textarea>
+                    placeholder="Bahwa dalam rangka melaksanakan ... dianggap perlu dibuatkan surat tugas ...">{{ old('menimbang', $st->menimbang ?? '') }}</textarea>
             </div>
             <div>
                 <label class="{{ $fLabel }} mb-1">Dasar</label>
@@ -237,7 +240,7 @@
         <div class="{{ $fBody }}">
             <div>
                 <label class="{{ $fLabel }}">Kepada</label>
-                <input type="text" name="kepada" value="{{ old('kepada', $st->kepada) }}" class="{{ $fInput }}">
+                <input type="text" name="kepada" value="{{ old('kepada', $st->kepada ?? '') }}" class="{{ $fInput }}">
             </div>
             <div>
                 <label class="{{ $fLabel }} mb-1">Untuk</label>
@@ -297,7 +300,8 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <input type="search" x-model="cari.{{ $jenis }}"
+                        {{-- Enter di kotak cari tidak boleh mengirim form (bisa menyimpan ST dan mengambil nomor) --}}
+                        <input type="search" x-model="cari.{{ $jenis }}" @keydown.enter.prevent
                             placeholder="Cari pegawai {{ $cfg['label'] }} (nama / NIP / jabatan)…"
                             class="min-w-[12rem] flex-1 rounded-lg border-slate-300 bg-white text-sm {{ $cfg['focus'] }}">
                         <button type="button" @click="addManual('{{ $jenis }}')"

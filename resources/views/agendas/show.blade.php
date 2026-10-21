@@ -1,59 +1,7 @@
 <x-app-layout title="Detail Agenda">
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot> <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight break-words">{{ $agenda->uraian_kegiatan }}</h2>
     </x-slot>
-
-    {{-- Responsif: di bawah 1024px tabel peserta berubah jadi kartu per pegawai.
-    Di desktop (>=1024px) tampilan tabel tetap seperti semula. --}}
-    <style>
-        @media (max-width: 1023px) {
-
-            .peserta-table,
-            .peserta-table tbody {
-                display: block;
-                width: 100%;
-            }
-
-            .peserta-table thead {
-                display: none;
-            }
-
-            .peserta-table tbody>tr {
-                display: block;
-                padding: .875rem 1rem;
-            }
-
-            .peserta-table tbody>tr>td {
-                display: block;
-                padding: .25rem 0;
-                white-space: normal;
-            }
-
-            /* Nominatif & Memorandum (rowspan) dipindah ke header grup di HP */
-            .peserta-table td.cell-group {
-                display: none;
-            }
-
-            .peserta-table td[data-label]::before {
-                content: attr(data-label);
-                display: block;
-                font-size: 10px;
-                font-weight: 600;
-                letter-spacing: .05em;
-                text-transform: uppercase;
-                color: #9ca3af;
-                margin-bottom: .375rem;
-            }
-
-            .peserta-table td.cell-empty {
-                padding: 1.5rem 0;
-            }
-        }
-    </style>
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
@@ -94,7 +42,7 @@
                 </div>
             </div>
 
-            {{-- Kartu Dokumen Pendukung (langsung di sini, gak perlu ke halaman terpisah) --}}
+            {{-- Kartu Dokumen Pendukung --}}
             <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-5"
                 x-data="{ openDokumen: {{ session('success') && str_contains(session('success'), 'okumen') ? 'true' : 'false' }} }">
                 @php
@@ -129,114 +77,103 @@
                 </div>
 
                 <div x-show="openDokumen" x-cloak x-transition.duration.200ms class="pt-1">
+                    @foreach ($kategoriList as $key => $label)
+                        @php $existing = $agenda->dokumen($key); @endphp
+                        @if ($existing)
+                            <form id="hapus-dok-{{ $key }}"
+                                action="{{ route('agendas.dokumen.destroy', [$agenda, $existing]) }}" method="POST"
+                                class="hidden">
+                                @csrf @method('DELETE')
+                            </form>
+                        @endif
+                    @endforeach
 
-                    {{-- Form hapus dipisah per kategori (pakai atribut form="" biar gak nested <form> di dalam form
-                        upload). Konfirmasi hapusnya dipicu dari tombol di bawah lewat confirmDelete() (SweetAlert2),
-                        BUKAN pakai onsubmit/confirm() bawaan browser lagi. --}}
-                        @foreach ($kategoriList as $key => $label)
-                            @php $existing = $agenda->dokumen($key); @endphp
-                            @if ($existing)
-                                <form id="hapus-dok-{{ $key }}"
-                                    action="{{ route('agendas.dokumen.destroy', [$agenda, $existing]) }}" method="POST"
-                                    class="hidden">
-                                    @csrf @method('DELETE')
-                                </form>
-                            @endif
-                        @endforeach
+                    {{-- Form upload dokumen --}}
+                    <form action="{{ route('agendas.dokumen.store-all', $agenda) }}" method="POST"
+                        enctype="multipart/form-data" class="space-y-4">
+                        @csrf
 
-                        {{-- Satu form untuk upload semua kategori sekaligus --}}
-                        <form action="{{ route('agendas.dokumen.store-all', $agenda) }}" method="POST"
-                            enctype="multipart/form-data" class="space-y-4">
-                            @csrf
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            @foreach ($kategoriList as $key => $label)
+                                @php $existing = $agenda->dokumen($key); @endphp
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                @foreach ($kategoriList as $key => $label)
-                                    @php $existing = $agenda->dokumen($key); @endphp
-
-                                    <div
-                                        class="min-w-0 border border-gray-100 rounded-xl p-4 sm:p-5 {{ $existing ? 'bg-white' : 'bg-gray-50/60' }} transition">
-                                        <div class="flex items-start sm:items-center justify-between gap-3 mb-3">
-                                            <div class="flex items-center gap-3 min-w-0">
-                                                <span
-                                                    class="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 {{ $existing ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400' }}">
-                                                    @if ($existing)
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    @else
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                        </svg>
-                                                    @endif
-                                                </span>
-                                                <span
-                                                    class="font-semibold text-gray-800 text-sm break-words">{{ $label }}</span>
-                                            </div>
+                                <div
+                                    class="min-w-0 border border-gray-100 rounded-xl p-4 sm:p-5 {{ $existing ? 'bg-white' : 'bg-gray-50/60' }} transition">
+                                    <div class="flex items-start sm:items-center justify-between gap-3 mb-3">
+                                        <div class="flex items-center gap-3 min-w-0">
                                             <span
-                                                class="flex-shrink-0 text-xs font-semibold whitespace-nowrap {{ $existing ? 'text-green-600' : 'text-gray-400' }}">
-                                                {{ $existing ? 'Sudah diupload' : 'Belum diupload' }}
-                                            </span>
-                                        </div>
-
-                                        @if ($existing)
-                                            <div
-                                                class="flex items-center justify-between gap-3 text-sm bg-gray-50 border border-gray-100 rounded-lg px-3.5 py-2.5 mb-3">
-                                                <a href="{{ asset('storage/' . $existing->file_path) }}" target="_blank"
-                                                    class="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition min-w-0">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0"
-                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                                                    </svg>
-                                                    <span class="truncate font-medium">{{ $existing->nama_file }}</span>
-                                                </a>
-                                                <button type="button"
-                                                    onclick="confirmDelete('hapus-dok-{{ $key }}', 'file {{ $label }}')"
-                                                    class="flex-shrink-0 inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold transition py-1">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                                class="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 {{ $existing ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400' }}">
+                                                @if ($existing)
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none"
                                                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M6 18L18 6M6 6l12 12" />
+                                                            d="M5 13l4 4L19 7" />
                                                     </svg>
-                                                    Hapus
-                                                </button>
-                                            </div>
-                                        @endif
-
-                                        <input type="file" name="files[{{ $key }}]"
-                                            class="w-full text-sm text-gray-500 border border-gray-200 rounded-lg
-                                                                                                                                       file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
-                                                                                                                                       file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
-                                                                                                                                       hover:file:bg-gray-200 file:transition cursor-pointer
-                                                                                                                                       focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                                        <p class="text-xs text-gray-400 mt-1.5">
-                                            {{ $existing ? 'Pilih file baru untuk mengganti.' : 'PDF, JPG, atau PNG.' }}
-                                        </p>
+                                                @else
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                @endif
+                                            </span>
+                                            <span
+                                                class="font-semibold text-gray-800 text-sm break-words">{{ $label }}</span>
+                                        </div>
+                                        <span
+                                            class="flex-shrink-0 text-xs font-semibold whitespace-nowrap {{ $existing ? 'text-green-600' : 'text-gray-400' }}">
+                                            {{ $existing ? 'Sudah diupload' : 'Belum diupload' }}
+                                        </span>
                                     </div>
-                                @endforeach
-                            </div>
 
-                            <button type="submit"
-                                class="w-full inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                                </svg>
-                                Simpan Semua Dokumen
-                            </button>
-                        </form>
+                                    @if ($existing)
+                                        <div
+                                            class="flex items-center justify-between gap-3 text-sm bg-gray-50 border border-gray-100 rounded-lg px-3.5 py-2.5 mb-3">
+                                            <a href="{{ asset('storage/' . $existing->file_path) }}" target="_blank"
+                                                class="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition min-w-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                                                </svg>
+                                                <span class="truncate font-medium">{{ $existing->nama_file }}</span>
+                                            </a>
+                                            <button type="button"
+                                                onclick="confirmDelete('hapus-dok-{{ $key }}', 'file {{ $label }}')"
+                                                class="flex-shrink-0 inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold transition py-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    @endif
+
+                                    <input type="file" name="files[{{ $key }}]"
+                                        class="w-full text-sm text-gray-500 border border-gray-200 rounded-lg file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200 file:transition cursor-pointer focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                    <p class="text-xs text-gray-400 mt-1.5">
+                                        {{ $existing ? 'Pilih file baru untuk mengganti.' : 'PDF, JPG, atau PNG.' }}
+                                    </p>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <button type="submit"
+                            class="w-full inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Simpan Semua Dokumen
+                        </button>
+                    </form>
                 </div>
             </div>
 
             @php
-                // Urutan sama kayak halaman Pegawai: prioritas urutan manual (drag & drop),
-                // yang belum pernah diurutkan jatuh ke default (golongan tertinggi dulu, lalu nama).
-                // Di-sort dulu sebelum di-filter per status, biar urutannya kebawa & konsisten.
                 $pegawaiUrut = $agenda->pegawai->sort(function ($a, $b) {
                     $urutanA = $a->urutan ?? PHP_INT_MAX;
                     $urutanB = $b->urutan ?? PHP_INT_MAX;
@@ -272,8 +209,6 @@
                     ],
                 ];
 
-                // Style pill dokumen: dua varian per status (belum terisi = outline, sudah terisi = solid tipis + centang)
-                // py-2 di HP (lebih mudah disentuh), py-1.5 di desktop (sama seperti semula)
                 $pillBtn = 'inline-flex items-center px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition';
                 $pillBtnDone = 'inline-flex items-center gap-1 px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100 transition';
                 $pillBtnSolid = 'inline-flex items-center px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-emerald-500 text-emerald-600 bg-white hover:bg-emerald-50 transition';
@@ -283,7 +218,7 @@
             @foreach ($groups as $group)
                 <div class="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
 
-                    {{-- Header grup: hanya tampil di HP/tablet (di desktop tombolnya ada di kolom tabel) --}}
+                    {{-- Header grup di HP --}}
                     <div class="lg:hidden px-4 py-3 bg-gray-50 border-b border-gray-100 space-y-3">
                         <div class="flex items-center gap-2">
                             <span class="h-2 w-2 rounded-full {{ $group['dot'] }}"></span>
@@ -304,9 +239,9 @@
                         @endif
                     </div>
 
-                    {{-- Tabel peserta --}}
-                    <table class="peserta-table w-full text-sm">
-                        <thead>
+                    {{-- Tabel peserta (Pure Tailwind) --}}
+                    <table class="w-full text-sm max-lg:block max-lg:w-full">
+                        <thead class="max-lg:hidden">
                             <tr class="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-400">
                                 <th class="text-left px-6 py-3.5 font-semibold">Nama Pegawai</th>
                                 <th class="text-left px-6 py-3.5 font-semibold">Dokumen</th>
@@ -315,23 +250,24 @@
                                 <th class="text-center px-4 py-3.5 font-semibold w-28">Memorandum</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-gray-100 max-lg:block max-lg:w-full">
                             @forelse ($group['list'] as $p)
                                 @php
                                     $pivot = $p->pivot;
-                                    // Rincian Biaya dianggap terisi kalau salah satu komponen biayanya sudah ada nilainya
                                     $rincianBiayaTerisi = ($pivot->tiket ?? 0) > 0
                                         || ($pivot->lumpsum ?? 0) > 0
                                         || ($pivot->representatif ?? 0) > 0
                                         || ($pivot->hotel ?? 0) > 0;
-                                    $pengRiilTerisi = ($pivot->peng_riil ?? 0) > 0 || !empty($pivot->peng_riil_detail);                                    // SPD butuh nomor surat tugas dari agenda
+                                    $pengRiilTerisi = ($pivot->peng_riil ?? 0) > 0 || !empty($pivot->peng_riil_detail);
                                     $spdTerisi = !empty($agenda->nomor_st);
                                 @endphp
-                                <tr class="hover:bg-gray-50/60 transition">
-                                    <td class="px-6 py-4 font-semibold text-gray-800 align-middle whitespace-nowrap">
+                                <tr class="hover:bg-gray-50/60 transition max-lg:block max-lg:p-3.5">
+                                    <td class="px-6 py-4 font-semibold text-gray-800 align-middle whitespace-nowrap max-lg:block max-lg:py-1 max-lg:px-0 max-lg:whitespace-normal">
                                         {{ $p->nama_gelar ?? $p->nama }}
                                     </td>
-                                    <td data-label="Dokumen" class="px-6 py-4 align-middle">
+                                    
+                                    <td data-label="Dokumen" 
+                                        class="px-6 py-4 align-middle max-lg:block max-lg:py-1 max-lg:px-0 max-lg:before:content-[attr(data-label)] max-lg:before:block max-lg:before:text-[10px] max-lg:before:font-semibold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-gray-400 max-lg:before:mb-1.5">
                                         <div class="flex flex-wrap gap-2">
                                             <a href="{{ route('agendas.spd', [$agenda, $p]) }}" target="_blank"
                                                 class="{{ $spdTerisi ? $pillBtnDone : $pillBtn }}">
@@ -365,7 +301,9 @@
                                             </a>
                                         </div>
                                     </td>
-                                    <td data-label="Merge Dokumen" class="px-6 py-4 align-middle">
+
+                                    <td data-label="Merge Dokumen" 
+                                        class="px-6 py-4 align-middle max-lg:block max-lg:py-1 max-lg:px-0 max-lg:before:content-[attr(data-label)] max-lg:before:block max-lg:before:text-[10px] max-lg:before:font-semibold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-gray-400 max-lg:before:mb-1.5">
                                         <a href="{{ route('agendas.merge-pdf', [$agenda, $p]) }}" target="_blank"
                                             class="{{ $pillBtnSolid }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none"
@@ -376,15 +314,16 @@
                                             Merge Dokumen
                                         </a>
                                     </td>
+
                                     @if ($loop->first)
-                                        <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
+                                        <td class="px-4 py-4 align-middle text-center border-l border-gray-100 w-28 max-lg:hidden"
                                             rowspan="{{ $group['list']->count() }}">
                                             <a href="{{ route('agendas.nominatif', [$agenda, $group['nominatif_route']]) }}"
                                                 target="_blank" class="{{ $pillBtnPurple }} w-full justify-center">
                                                 {{ $group['nominatif_label'] }}
                                             </a>
                                         </td>
-                                        <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
+                                        <td class="px-4 py-4 align-middle text-center border-l border-gray-100 w-28 max-lg:hidden"
                                             rowspan="{{ $group['list']->count() }}">
                                             <a href="{{ route('agendas.memorandum.pdf', [$agenda, $group['memorandum_route']]) }}"
                                                 target="_blank" class="{{ $pillBtn }} w-full justify-center">
@@ -395,9 +334,9 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="cell-empty px-6 py-8 text-center text-gray-400">Belum ada peserta di
-                                        kategori
-                                        ini.</td>
+                                    <td colspan="5" class="px-6 py-8 text-center text-gray-400 max-lg:block max-lg:py-6">
+                                        Belum ada peserta di kategori ini.
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -29,9 +29,6 @@ class PegawaiSeeder extends Seeder
         ];
 
         foreach ($data as $row) {
-            // updateOrCreate biar seeder ini aman dijalanin ulang: kalau pegawai dengan
-            // nama yang sama sudah ada (mis. dari seed sebelumnya yang belum punya
-            // unit_kerja), datanya di-update, bukan bikin baris baru.
             Pegawai::updateOrCreate(
                 ['nama' => $row['nama']],
                 array_merge($row, ['unit_kerja' => $unitKerja])
