@@ -5,13 +5,16 @@ use App\Http\Controllers\AgendaPdfController;
 use App\Http\Controllers\AnggaranController;
 use App\Http\Controllers\AnggaranPemetaanController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisposisiController;
 use App\Http\Controllers\LaporanStController;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\NominatifController;
 use App\Http\Controllers\NominatifCustomController;
+use App\Http\Controllers\NotaDinasController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SuratMasukController;
 use App\Http\Controllers\SuratTugasController;
 use App\Http\Controllers\TugasSayaController;
 use App\Http\Controllers\TusiController;
@@ -39,6 +42,32 @@ Route::middleware('auth')->group(function () {
             Route::delete('/', 'destroy')->name('destroy');
         });
 
+    // ==========================================
+    // MODUL PERSURATAN & DISPOSISI BERJENJANG
+    // ==========================================
+    Route::resource('surat-masuk', SuratMasukController::class);
+
+    Route::prefix('disposisi')
+        ->name('disposisi.')
+        ->controller(DisposisiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('{disposisi}', 'show')->name('show');
+            Route::post('{disposisi}', 'store')->name('store');
+        });
+
+    Route::prefix('nota-dinas')
+        ->name('nota-dinas.')
+        ->controller(NotaDinasController::class)
+        ->group(function () {
+            Route::get('create/{disposisi}', 'create')->name('create');
+            Route::post('{disposisi}', 'store')->name('store');
+            Route::get('{notaDinas}', 'show')->name('show');
+        });
+
+    // ==========================================
+    // MODUL SPJ & AGENDA EXISTING
+    // ==========================================
     Route::prefix('agendas/{agenda}')
         ->name('agendas.')
         ->group(function () {

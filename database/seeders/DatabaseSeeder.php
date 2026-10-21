@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Administrator',
                 'username' => 'admin',
                 'password' => Hash::make('password'),
-                'role' => User::ROLE_ADMIN,
+                'role' => User::ROLE_ADMIN ?? 'admin',
             ]
         );
 
@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             SbmRateSeeder::class,
             SbmFlatRateSeeder::class,
             PengRiilRateSeeder::class,
+            PersuratanDummySeeder::class, // <-- Tambahkan seeder persuratan & disposisi di sini
         ]);
     }
 }

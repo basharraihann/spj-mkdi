@@ -18,38 +18,21 @@
     }
 
     @media (max-height: 820px) {
-        .sb-nav {
-            padding-top: .5rem !important;
-        }
-
-        .sb-group {
-            padding-top: .25rem !important;
-        }
-
-        .sb-head {
-            padding-top: .125rem !important;
-            padding-bottom: .125rem !important;
-            margin-bottom: 0 !important;
-        }
-
-        .sb-link {
-            padding-top: .375rem !important;
-            padding-bottom: .375rem !important;
-        }
-
-        .sb-foot {
-            padding-top: .5rem !important;
-            padding-bottom: .5rem !important;
-        }
+        .sb-nav { padding-top: .5rem !important; }
+        .sb-group { padding-top: .25rem !important; }
+        .sb-head { padding-top: .125rem !important; padding-bottom: .125rem !important; margin-bottom: 0 !important; }
+        .sb-link { padding-top: .375rem !important; padding-bottom: .375rem !important; }
+        .sb-foot { padding-top: .5rem !important; padding-bottom: .5rem !important; }
     }
 </style>
+
 <aside x-cloak :class="[
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         sidebarCollapsed ? 'lg:w-20' : 'lg:w-72'
     ]"
     class="sb-aside fixed inset-y-0 left-0 z-40 w-72 border-r flex flex-col transition-all duration-200 ease-in-out">
 
-    <!-- Desktop collapse toggle: sibling langsung dari aside, tidak kena overflow-hidden -->
+    <!-- Desktop collapse toggle -->
     <button @click="sidebarCollapsed = !sidebarCollapsed"
         class="hidden lg:flex absolute -right-2.5 top-1/2 -translate-y-1/2 z-50 h-16 w-5 items-center justify-center rounded-full bg-white border border-slate-200 shadow-sm text-slate-400 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-300 transition-all duration-150 group">
         <svg class="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110"
@@ -58,7 +41,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
     </button>
-    <!-- Wrapper isi sidebar: overflow-hidden dipindah ke sini biar tombol toggle di atas tidak ikut kepotong -->
+
     <div class="flex flex-col h-full overflow-hidden">
 
         <!-- Mobile close -->
@@ -74,17 +57,36 @@
         <nav class="sb-nav flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-4 pb-2">
 
             @php
-                // Jumlah tugas "Isi Laporan" yang belum diisi milik akun ini (ST batal tidak dihitung)
-                $tugasMenunggu = Auth::check()
+                $tugasMenunggu = (Auth::check() && class_exists(\App\Models\LaporanStTugas::class))
                     ? \App\Models\LaporanStTugas::where('user_id', Auth::id())
                         ->where('status', \App\Models\LaporanStTugas::STATUS_MENUNGGU)
                         ->whereHas('suratTugas', fn($q) => $q->where('status', '!=', 'batal'))
                         ->count()
                     : 0;
 
-                // Menu dikelompokkan. 'label' => null berarti item tanpa judul kelompok.
-                // 'badge' (opsional) = angka kecil di sebelah menu.
+                $disposisiBaru = (Auth::check() && class_exists(\App\Models\Disposisi::class))
+                    ? \App\Models\Disposisi::where('penerima_id', Auth::id())->where('status', 'baru')->count()
+                    : 0;
+
                 $groups = [
+                    [
+                        'label' => 'Tata Kelola & Persuratan',
+                        'items' => [
+                            [
+                                'route' => 'surat-masuk.index',
+                                'active' => request()->routeIs('surat-masuk.*'),
+                                'label' => __('Surat Masuk'),
+                                'icon' => 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+                            ],
+                            [
+                                'route' => 'disposisi.index',
+                                'active' => request()->routeIs('disposisi.*'),
+                                'label' => __('Disposisi Digital'),
+                                'badge' => $disposisiBaru,
+                                'icon' => 'M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8'
+                            ],
+                        ],
+                    ],
                     [
                         'label' => 'SPJ',
                         'items' => [
@@ -100,7 +102,6 @@
                                 'label' => __('Surat Tugas'),
                                 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'
                             ],
-                            // ===== BARU: Tugas Saya (laporan hasil ST yang harus saya isi) =====
                             [
                                 'route' => 'tugas-saya.index',
                                 'active' => request()->routeIs('tugas-saya.*'),
@@ -136,7 +137,7 @@
                                 'route' => 'mak-options.index',
                                 'active' => request()->routeIs('mak-options.*'),
                                 'label' => __('Nomor MAK'),
-                                'icon' => 'M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z'
+                                'icon' => 'M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 01-2-2z'
                             ],
                         ],
                     ],
@@ -145,7 +146,6 @@
                         'items' => [
                             [
                                 'route' => 'anggaran.index',
-                                // Jangan ikut menyala di halaman Pemetaan Unit
                                 'active' => request()->routeIs('anggaran.*') && !request()->routeIs('anggaran.pemetaan*'),
                                 'label' => __('Realisasi Anggaran'),
                                 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'
@@ -155,8 +155,7 @@
                 ];
 
                 if (Auth::user()?->isAdmin()) {
-                    // Pemetaan Unit: masuk ke kelompok "Anggaran" (indeks 1), hanya terlihat oleh admin
-                    $groups[1]['items'][] = [
+                    $groups[2]['items'][] = [
                         'route' => 'anggaran.pemetaan',
                         'active' => request()->routeIs('anggaran.pemetaan*'),
                         'label' => __('Pemetaan Unit'),
@@ -166,14 +165,12 @@
                     $groups[] = [
                         'label' => null,
                         'items' => [
-                            // ===== BARU: Master Tusi (pengelompokan ST), hanya admin =====
                             [
                                 'route' => 'tusi.index',
                                 'active' => request()->routeIs('tusi.*'),
                                 'label' => __('Master Tusi'),
                                 'icon' => 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
                             ],
-                            // Pemetaan Akun (akun user ke pegawai), hanya admin
                             [
                                 'route' => 'pemetaan-akun.index',
                                 'active' => request()->routeIs('pemetaan-akun.*'),
@@ -190,7 +187,6 @@
                     ];
                 }
 
-                // Menu bawah: Profile + Log out
                 $footer = [
                     [
                         'route' => 'profile.edit',
@@ -209,12 +205,9 @@
             @endphp
 
             @foreach ($groups as $group)
-                {{-- open: kelompok terlipat/terbuka. Saat sidebar mode ikon (collapsed), semua item
-                tetap tampil supaya masih bisa diklik. --}}
                 <div x-data="{ open: true }" class="sb-group {{ $loop->first ? '' : 'pt-3' }}">
 
                     @if ($group['label'])
-                        {{-- Sidebar melebar: judul kelompok + panah lipat --}}
                         <button type="button" @click="open = !open" x-show="sidebarOpen || !sidebarCollapsed" x-cloak
                             class="sb-head w-full flex items-center justify-between px-4 py-1.5 mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-700 transition">
                             <span>{{ $group['label'] }}</span>
@@ -223,7 +216,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        {{-- Sidebar mode ikon: garis pemisah antar kelompok --}}
                         @unless ($loop->first)
                             <div x-show="!(sidebarOpen || !sidebarCollapsed)" x-cloak class="mb-2 border-t border-slate-200"></div>
                         @endunless
@@ -233,7 +225,7 @@
 
                     <div x-show="open || !(sidebarOpen || !sidebarCollapsed)" class="space-y-1">
                         @foreach ($group['items'] as $item)
-                            <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
+                            <a href="{{ Route::has($item['route']) ? route($item['route']) : '#' }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                                 class="sb-link relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
                                                                                     {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
                                 :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
@@ -243,7 +235,6 @@
                                 </svg>
                                 <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
 
-                                {{-- Badge angka (sidebar melebar) dan titik merah (mode ikon) --}}
                                 @if (!empty($item['badge']))
                                     <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak
                                         class="ml-auto inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-semibold leading-5 text-white">
