@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -23,20 +22,23 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
-     * Role Constants
+     * Role Constants (Sesuai 5 Role Baku Sistem Disposisi)
      */
-    public const ROLE_ADMIN = 'admin';
-    public const ROLE_PIMPINAN = 'pimpinan';
+    public const ROLE_TU = 'tu';
+    public const ROLE_ESELON1 = 'eselon1';
+    public const ROLE_ESELON2 = 'eselon2';
     public const ROLE_USER = 'user';
+    public const ROLE_ADMIN = 'admin';
 
     /**
      * Daftar role untuk dropdown form user dan aturan validasi.
-     * Satu sumber: tambah role baru cukup di sini.
      */
     public const ROLE_LABEL = [
-        self::ROLE_ADMIN => 'Administrator',
-        self::ROLE_PIMPINAN => 'Pimpinan',
-        self::ROLE_USER => 'Staf / User',
+        self::ROLE_TU => 'Staf Persuratan / TU',
+        self::ROLE_ESELON1 => 'Eselon I (Deputi)',
+        self::ROLE_ESELON2 => 'Eselon II (Asdep / Sesdep / Kabiro)',
+        self::ROLE_USER => 'Pegawai Pelaksana / Staf',
+        self::ROLE_ADMIN => 'Administrator Sistem',
     ];
 
     /**
@@ -55,36 +57,47 @@ class User extends Authenticatable
         return $this->belongsTo(Pegawai::class);
     }
 
-    /**
-     * Check if user is Admin
-     */
+    /** Check if user is Admin */
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
     }
 
-    /**
-     * Check if user is Pimpinan
-     */
-    public function isPimpinan(): bool
+    /** Check if user is Staf Persuratan / TU */
+    public function isTu(): bool
     {
-        return $this->role === self::ROLE_PIMPINAN;
+        return $this->role === self::ROLE_TU;
     }
 
-    /**
-     * Check if user is Regular User / Staf
-     */
+    /** Check if user is Eselon I (Deputi) */
+    public function isEselon1(): bool
+    {
+        return $this->role === self::ROLE_ESELON1;
+    }
+
+    /** Check if user is Eselon II (Asdep / Sesdep / Kabiro) */
+    public function isEselon2(): bool
+    {
+        return $this->role === self::ROLE_ESELON2;
+    }
+
+    /** Check if user is Regular User / Staf Pelaksana */
     public function isUser(): bool
     {
         return $this->role === self::ROLE_USER;
     }
 
     /**
-     * Boleh membuka halaman monitoring (pimpinan, atau admin).
+     * Boleh membuka halaman monitoring (Eselon 1, Eselon 2, TU, atau Admin).
      */
     public function bolehMonitoring(): bool
     {
-        return $this->isAdmin() || $this->isPimpinan();
+        return in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_TU,
+            self::ROLE_ESELON1,
+            self::ROLE_ESELON2,
+        ], true);
     }
 
     /**

@@ -4,66 +4,181 @@ namespace App\Http\Controllers;
 
 use App\Models\Disposisi;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class DisposisiController extends Controller
 {
-    public function index()
+    private const TAB = ['semua', 'baru', 'dibaca', 'diproses'];
+
+    public function index(Request $request)
     {
         $userId = Auth::id();
+        $tab = in_array($request->query('tab'), self::TAB, true) ? $request->query('tab') : 'semua';
+        $q = trim((string) $request->query('q', ''));
 
-        // Ambil disposisi tempat user login sebagai penerima
-        $disposisi = Disposisi::with(['suratMasuk', 'pengirim'])
-            ->where('penerima_id', $userId)
+        $dasar = Disposisi::where('penerima_id', $userId);
+
+        $perStatus = (clone $dasar)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+        $jumlah = [
+            'semua' => (int) $perStatus->sum(),
+            'baru' => (int) ($perStatus['baru'] ?? 0),
+            'dibaca' => (int) ($perStatus['dibaca'] ?? 0),
+            'diproses' => (int) ($perStatus['diproses'] ?? 0),
+        ];
+
+        $disposisi = (clone $dasar)
+            ->with(['suratMasuk', 'pengirim'])
+            ->when($tab !== 'semua', fn($query) => $query->where('status', $tab))
+            ->when($q !== '', function ($query) use ($q) {
+                $query->whereHas('suratMasuk', function ($s) use ($q) {
+                    $s->where('perihal', 'like', "%{$q}%")
+                        ->orWhere('nomor_agenda', 'like', "%{$q}%")
+                        ->orWhere('asal_surat', 'like', "%{$q}%");
+                });
+            })
             ->latest()
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('disposisi.index', compact('disposisi'));
+        return view('disposisi.index', compact('disposisi', 'jumlah', 'tab', 'q'));
     }
 
     public function show($id)
     {
-        $disposisi = Disposisi::with(['suratMasuk', 'pengirim', 'penerima', 'children.penerima'])->findOrFail($id);
+        $disposisi = Disposisi::with(['suratMasuk', 'pengirim', 'penerima'])->findOrFail($id);
 
-        // Tandai sudah dibaca jika penerima membuka detail
-        if ($disposisi->penerima_id === Auth::id() && $disposisi->status === 'baru') {
+        abort_unless($this->bolehMelihat($disposisi), 403);
+
+        if ((int) $disposisi->penerima_id === (int) Auth::id() && $disposisi->status === 'baru') {
             $disposisi->update([
-                'status'    => 'dibaca',
+                'status' => 'dibaca',
                 'dibaca_at' => now(),
             ]);
         }
 
-        // Ambil daftar pegawai / bawahan untuk form disposisi selanjutnya
-        $users = User::where('id', '!=', Auth::id())->get();
+        // Seluruh rantai disposisi surat ini, dikelompokkan per induk (0 = disposisi awal)
+        $byParent = Disposisi::where('surat_masuk_id', $disposisi->surat_masuk_id)
+            ->with(['pengirim', 'penerima'])
+            ->orderBy('id')
+            ->get()
+            ->groupBy(fn($d) => $d->parent_dispo_id ?? 0);
 
-        return view('disposisi.show', compact('disposisi', 'users'));
+        $bolehDisposisi = $this->bolehMeneruskan($disposisi);
+
+        // Filter penerima disposisi berdasarkan unit kerja & 5 role baku
+        $currentUser = Auth::user();
+
+        $users = $bolehDisposisi
+            ? User::with('pegawai:id,jabatan,unit_kerja')
+                ->where('id', '!=', Auth::id())
+                ->when(in_array($currentUser->role, ['eselon1', 'deputi'], true), function ($q) use ($currentUser) {
+                    // Ambil unit kerja dari akun Deputi yang login (Default: Deputi 2)
+                    $unitUser = $currentUser->pegawai?->unit_kerja ?? 'Deputi 2';
+
+                    // Hanya tampilkan Asdep (eselon2) dan Pegawai (user) di unit Deputi tersebut
+                    $q->whereIn('role', ['eselon2', 'user', 'asdep', 'pegawai'])
+                      ->whereHas('pegawai', function ($p) use ($unitUser) {
+                          $p->where('unit_kerja', 'like', "%{$unitUser}%");
+                      });
+                })
+                ->when(in_array($currentUser->role, ['eselon2', 'asdep'], true), function ($q) use ($currentUser) {
+                    // Eselon 2 hanya mendisposisikan ke pegawai di unit kerjanya
+                    $unitUser = $currentUser->pegawai?->unit_kerja;
+                    $q->whereIn('role', ['user', 'pegawai'])
+                      ->when($unitUser, function ($query) use ($unitUser) {
+                          $query->whereHas('pegawai', function ($p) use ($unitUser) {
+                              $p->where('unit_kerja', 'like', "%{$unitUser}%");
+                          });
+                      });
+                })
+                ->when($currentUser->role === 'tu', function ($q) {
+                    // TU mendisposisikan awal ke Deputi/Eselon 1
+                    $q->whereIn('role', ['eselon1', 'deputi']);
+                })
+                ->orderBy('name')
+                ->get(['id', 'name', 'role', 'pegawai_id'])
+            : collect();
+
+        return view('disposisi.show', compact('disposisi', 'users', 'byParent', 'bolehDisposisi'));
     }
 
-    public function store(Request $request, $id)
+    public function store(Request $request, $id): RedirectResponse
     {
         $parentDispo = Disposisi::findOrFail($id);
 
+        // Proteksi: Jika disposisi ini sudah pernah diteruskan/diproses, cegah pengiriman ganda
+        if ($parentDispo->status === 'diproses') {
+            return redirect()->route('disposisi.show', $id)
+                ->with('error', 'Disposisi ini sudah pernah Anda kirimkan.');
+        }
+
+        abort_unless($this->bolehMeneruskan($parentDispo), 403);
+
         $validated = $request->validate([
-            'penerima_id'   => 'required|exists:users,id',
-            'instruksi'     => 'required|string',
-            'tenggat_waktu' => 'nullable|date',
-            'sifat'         => 'required|in:biasa,segera,rahasia',
+            'penerima_ids' => ['required', 'array', 'min:1'],
+            'penerima_ids.*' => ['integer', 'distinct', 'exists:users,id', Rule::notIn([Auth::id()])],
+            'instruksi' => ['required', 'string'],
+            'tenggat_waktu' => ['nullable', 'date'],
+            'sifat' => ['required', 'in:biasa,segera,rahasia'],
+            'perlu_st' => ['nullable', 'boolean'],
+        ], [
+            'penerima_ids.required' => 'Pilih minimal satu penerima disposisi.',
+            'penerima_ids.min' => 'Pilih minimal satu penerima disposisi.',
+            'penerima_ids.*.not_in' => 'Anda tidak bisa mendisposisikan ke diri sendiri.',
+            'instruksi.required' => 'Instruksi / Catatan Tugas wajib diisi.',
         ]);
 
-        Disposisi::create([
-            'surat_masuk_id'  => $parentDispo->surat_masuk_id,
-            'parent_dispo_id' => $parentDispo->id,
-            'pengirim_id'     => Auth::id(),
-            'penerima_id'     => $validated['penerima_id'],
-            'instruksi'       => $validated['instruksi'],
-            'tenggat_waktu'   => $validated['tenggat_waktu'],
-            'sifat'           => $validated['sifat'],
-            'status'          => 'baru',
-        ]);
+        DB::transaction(function () use ($validated, $parentDispo, $request) {
+            foreach ($validated['penerima_ids'] as $penerimaId) {
+                Disposisi::create([
+                    'surat_masuk_id' => $parentDispo->surat_masuk_id,
+                    'parent_dispo_id' => $parentDispo->id,
+                    'pengirim_id' => Auth::id(),
+                    'penerima_id' => $penerimaId,
+                    'instruksi' => $validated['instruksi'],
+                    'tenggat_waktu' => $validated['tenggat_waktu'] ?? null,
+                    'sifat' => $validated['sifat'],
+                    'perlu_st' => $request->boolean('perlu_st'),
+                    'status' => 'baru',
+                ]);
+            }
 
-        $parentDispo->update(['status' => 'diproses']);
+            // Tandai disposisi asal sebagai diproses
+            $parentDispo->update(['status' => 'diproses']);
+        });
 
-        return redirect()->route('disposisi.show', $id)->with('success', 'Disposisi berhasil diteruskan.');
+        return redirect()->route('disposisi.show', $id)->with(
+            'success',
+            'Disposisi diteruskan ke ' . count($validated['penerima_ids']) . ' penerima.'
+        );
+    }
+
+    /** Admin, pembuat surat, atau siapa pun yang terlibat di rantai disposisi surat ini. */
+    private function bolehMelihat(Disposisi $disposisi): bool
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return false;
+        }
+        if ($user->isAdmin() || (int) optional($disposisi->suratMasuk)->created_by_id === (int) $user->id) {
+            return true;
+        }
+
+        return Disposisi::where('surat_masuk_id', $disposisi->surat_masuk_id)
+            ->where(fn($q) => $q->where('pengirim_id', $user->id)->orWhere('penerima_id', $user->id))
+            ->exists();
+    }
+
+    /** Hanya penerima disposisi ini (atau admin) yang boleh meneruskan. */
+    private function bolehMeneruskan(Disposisi $disposisi): bool
+    {
+        $user = Auth::user();
+
+        return $user && ((int) $disposisi->penerima_id === (int) $user->id || $user->isAdmin());
     }
 }

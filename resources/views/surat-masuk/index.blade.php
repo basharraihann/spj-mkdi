@@ -13,6 +13,14 @@
     </x-slot>
 
     <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {{-- Flash Success Message --}}
+        @if (session('success'))
+            <div class="mb-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+                {{ session('success') }}
+            </div>
+        @endif
+
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="p-4 border-b border-slate-100 bg-slate-50/50">
                 <form method="GET" action="{{ route('surat-masuk.index') }}" class="flex gap-3">
@@ -46,7 +54,22 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-4 text-right">
-                                <a href="{{ route('surat-masuk.show', $surat->id) }}" class="text-xs font-medium text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition">Detail</a>
+                                <div class="inline-flex items-center gap-1.5">
+                                    {{-- Tombol Detail --}}
+                                    <a href="{{ route('surat-masuk.show', $surat->id) }}" class="text-xs font-medium text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition">Detail</a>
+
+                                    {{-- Tombol Hapus (Khusus Admin / TU) --}}
+                                    @if(in_array(auth()->user()->role ?? '', ['admin', 'tu']))
+                                        <form action="{{ route('surat-masuk.destroy', $surat->id) }}" method="POST"
+                                            onsubmit="return confirm('Yakin ingin menghapus Surat Masuk ini? Seluruh rantai disposisi terkait juga akan terhapus.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition">
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
