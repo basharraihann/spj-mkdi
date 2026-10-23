@@ -66,33 +66,23 @@ class DisposisiController extends Controller
             ->get()
             ->groupBy(fn($d) => $d->parent_dispo_id ?? 0);
 
-        // Staf / Pegawai Pelaksana (role user/pegawai) TIDAK BOLEH mendisposisikan lanjutan
+        // Staf / Pegawai Pelaksana (role user/pegawai/pegawai-d2) TIDAK BOLEH mendisposisikan lanjutan
         $currentUser = Auth::user();
-        $isStaff = in_array($currentUser->role, ['user', 'pegawai'], true);
-        
+        $isStaff = in_array($currentUser->role, ['user', 'pegawai', 'pegawai-d2'], true);
+
         $bolehDisposisi = $this->bolehMeneruskan($disposisi) && !$isStaff;
 
         $users = $bolehDisposisi
             ? User::with('pegawai:id,jabatan,unit_kerja')
                 ->where('id', '!=', Auth::id())
-                ->when(in_array($currentUser->role, ['eselon1', 'deputi'], true), function ($q) use ($currentUser) {
-                    $unitUser = $currentUser->pegawai?->unit_kerja ?? 'Deputi 2';
-                    $q->whereIn('role', ['eselon2', 'user', 'asdep', 'pegawai'])
-                      ->whereHas('pegawai', function ($p) use ($unitUser) {
-                          $p->where('unit_kerja', 'like', "%{$unitUser}%");
-                      });
+                ->when(in_array($currentUser->role, ['eselon1', 'deputi', 'deputi-d2'], true), function ($q) {
+                    $q->whereIn('role', ['eselon2', 'user', 'asdep', 'pegawai', 'asdep-d2', 'pegawai-d2']);
                 })
-                ->when(in_array($currentUser->role, ['eselon2', 'asdep'], true), function ($q) use ($currentUser) {
-                    $unitUser = $currentUser->pegawai?->unit_kerja;
-                    $q->whereIn('role', ['user', 'pegawai'])
-                      ->when($unitUser, function ($query) use ($unitUser) {
-                          $query->whereHas('pegawai', function ($p) use ($unitUser) {
-                              $p->where('unit_kerja', 'like', "%{$unitUser}%");
-                          });
-                      });
+                ->when(in_array($currentUser->role, ['eselon2', 'asdep', 'asdep-d2'], true), function ($q) {
+                    $q->whereIn('role', ['user', 'pegawai', 'pegawai-d2']);
                 })
-                ->when($currentUser->role === 'tu', function ($q) {
-                    $q->whereIn('role', ['eselon1', 'deputi']);
+                ->when(in_array($currentUser->role, ['tu', 'tu-d2'], true), function ($q) {
+                    $q->whereIn('role', ['eselon1', 'deputi', 'deputi-d2']);
                 })
                 ->orderBy('name')
                 ->get(['id', 'name', 'role', 'pegawai_id'])
@@ -127,8 +117,11 @@ class DisposisiController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $parentDispo, $request) {
+            $currentUser = Auth::user();
+
             foreach ($validated['penerima_ids'] as $penerimaId) {
-                Disposisi::create([
+                // Buat disposisi utama
+                $dispo = Disposisi::create([
                     'surat_masuk_id' => $parentDispo->surat_masuk_id,
                     'parent_dispo_id' => $parentDispo->id,
                     'pengirim_id' => Auth::id(),
@@ -139,6 +132,30 @@ class DisposisiController extends Controller
                     'perlu_st' => $request->boolean('perlu_st'),
                     'status' => 'baru',
                 ]);
+
+                // JALUR B FLOWCHART: Jika Deputi langsung mendisposisikan ke Pegawai (tanpa lewat Asdep)
+                // Sistem otomatis mengirimkan tembusan disposisi ke Asdep terkait
+                $targetUser = User::find($penerimaId);
+                $isDeputi = in_array($currentUser->role, ['eselon1', 'deputi', 'deputi-d2'], true);
+                $isPegawaiTarget = in_array($targetUser?->role, ['user', 'pegawai', 'pegawai-d2'], true);
+
+                if ($isDeputi && $isPegawaiTarget) {
+                    $asdepUser = User::whereIn('role', ['eselon2', 'asdep', 'asdep-d2'])->first();
+
+                    if ($asdepUser && $asdepUser->id !== $penerimaId) {
+                        Disposisi::create([
+                            'surat_masuk_id' => $parentDispo->surat_masuk_id,
+                            'parent_dispo_id' => $parentDispo->id,
+                            'pengirim_id' => Auth::id(),
+                            'penerima_id' => $asdepUser->id,
+                            'instruksi' => '[TEMBUSAN JALUR B] ' . $validated['instruksi'],
+                            'tenggat_waktu' => $validated['tenggat_waktu'] ?? null,
+                            'sifat' => $validated['sifat'],
+                            'perlu_st' => false, // Jalur B tanpa ST
+                            'status' => 'baru',
+                        ]);
+                    }
+                }
             }
 
             $parentDispo->update(['status' => 'diproses']);
@@ -157,7 +174,9 @@ class DisposisiController extends Controller
         if (!$user) {
             return false;
         }
-        if ($user->isAdmin() || (int) optional($disposisi->suratMasuk)->created_by_id === (int) $user->id) {
+
+        // Semua user yang terautentikasi dan memiliki role valid diizinkan melihat lembar disposisi
+        if ($user->isAdmin() || $user->isTu() || in_array($user->role, ['deputi-d2', 'asdep-d2', 'pegawai-d2', 'admin-d2', 'eselon1', 'eselon2', 'user', 'pegawai'], true)) {
             return true;
         }
 
@@ -170,6 +189,13 @@ class DisposisiController extends Controller
     {
         $user = Auth::user();
 
-        return $user && ((int) $disposisi->penerima_id === (int) $user->id || $user->isAdmin());
+        if (!$user) {
+            return false;
+        }
+
+        // Boleh meneruskan jika penerima disposisi adalah user tersebut, atau bertindak sebagai admin/pejabat yang berhak
+        return (int) $disposisi->penerima_id === (int) $user->id 
+            || $user->isAdmin() 
+            || in_array($user->role, ['deputi-d2', 'asdep-d2', 'tu-d2'], true);
     }
 }

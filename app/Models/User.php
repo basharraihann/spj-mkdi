@@ -22,13 +22,21 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
-     * Role Constants (Sesuai 5 Role Baku Sistem Disposisi)
+     * Role Constants (Sesuai Role Standar & Role Khusus Deputi 2)
      */
     public const ROLE_TU = 'tu';
     public const ROLE_ESELON1 = 'eselon1';
     public const ROLE_ESELON2 = 'eselon2';
     public const ROLE_USER = 'user';
     public const ROLE_ADMIN = 'admin';
+    public const ROLE_PIMPINAN = 'pimpinan';
+
+    // Role Khusus Deputi 2
+    public const ROLE_TU_D2 = 'tu-d2';
+    public const ROLE_DEPUTI_D2 = 'deputi-d2';
+    public const ROLE_ASDEP_D2 = 'asdep-d2';
+    public const ROLE_PEGAWAI_D2 = 'pegawai-d2';
+    public const ROLE_ADMIN_D2 = 'admin-d2';
 
     /**
      * Daftar role untuk dropdown form user dan aturan validasi.
@@ -39,6 +47,13 @@ class User extends Authenticatable
         self::ROLE_ESELON2 => 'Eselon II (Asdep / Sesdep / Kabiro)',
         self::ROLE_USER => 'Pegawai Pelaksana / Staf',
         self::ROLE_ADMIN => 'Administrator Sistem',
+        self::ROLE_PIMPINAN => 'Pimpinan',
+
+        self::ROLE_TU_D2 => 'TU Deputi 2',
+        self::ROLE_DEPUTI_D2 => 'Ibu Deputi 2 (Eselon I)',
+        self::ROLE_ASDEP_D2 => 'Bapak Asdep Deputi 2 (Eselon II)',
+        self::ROLE_PEGAWAI_D2 => 'Pegawai Pelaksana / Staf D2',
+        self::ROLE_ADMIN_D2 => 'Administrator Deputi 2',
     ];
 
     /**
@@ -60,31 +75,45 @@ class User extends Authenticatable
     /** Check if user is Admin */
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_ADMIN_D2], true);
     }
 
     /** Check if user is Staf Persuratan / TU */
     public function isTu(): bool
     {
-        return $this->role === self::ROLE_TU;
+        return in_array($this->role, [self::ROLE_TU, self::ROLE_TU_D2], true);
     }
 
     /** Check if user is Eselon I (Deputi) */
     public function isEselon1(): bool
     {
-        return $this->role === self::ROLE_ESELON1;
+        return in_array($this->role, [self::ROLE_ESELON1, 'deputi', self::ROLE_DEPUTI_D2], true);
     }
 
     /** Check if user is Eselon II (Asdep / Sesdep / Kabiro) */
     public function isEselon2(): bool
     {
-        return $this->role === self::ROLE_ESELON2;
+        return in_array($this->role, [self::ROLE_ESELON2, 'asdep', self::ROLE_ASDEP_D2], true);
     }
 
     /** Check if user is Regular User / Staf Pelaksana */
     public function isUser(): bool
     {
-        return $this->role === self::ROLE_USER;
+        return in_array($this->role, [self::ROLE_USER, 'pegawai', self::ROLE_PEGAWAI_D2], true);
+    }
+
+    /** Check if user is Pimpinan (Eselon 1, Eselon 2, Deputi, Asdep) */
+    public function isPimpinan(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_PIMPINAN,
+            self::ROLE_ESELON1,
+            self::ROLE_ESELON2,
+            self::ROLE_DEPUTI_D2,
+            self::ROLE_ASDEP_D2,
+            'deputi',
+            'asdep'
+        ], true);
     }
 
     /**
@@ -94,9 +123,13 @@ class User extends Authenticatable
     {
         return in_array($this->role, [
             self::ROLE_ADMIN,
+            self::ROLE_ADMIN_D2,
             self::ROLE_TU,
+            self::ROLE_TU_D2,
             self::ROLE_ESELON1,
+            self::ROLE_DEPUTI_D2,
             self::ROLE_ESELON2,
+            self::ROLE_ASDEP_D2,
         ], true);
     }
 

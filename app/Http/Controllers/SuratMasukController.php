@@ -5,27 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Disposisi;
 use App\Models\SuratMasuk;
 use App\Models\User;
-use App\Services\SuratMasukNumberService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class SuratMasukController extends Controller
 {
-    /** Role yang boleh menginput/mengelola surat masuk (Admin & TU). */
-    private const ROLE_INPUT = ['admin', 'tu'];
-
-    /** Role penerima disposisi awal otomatis, urut berdasarkan prioritas Eselon 1 (Deputi). */
-    private const ROLE_PENERIMA_AWAL = ['eselon1', 'eselon2'];
-
-    public function __construct(private SuratMasukNumberService $numbers)
+    /**
+     * Tampilkan daftar monitoring surat masuk.
+     */
+    public function index(Request $request): View
     {
-    }
-
-    public function index(Request $request)
-    {
-        $query = SuratMasuk::query()->with('pembuat');
+        $query = SuratMasuk::query();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -39,130 +32,160 @@ class SuratMasukController extends Controller
 
         $suratMasuk = $query->latest()->paginate(10)->withQueryString();
 
-        return view('surat-masuk.index', [
-            'suratMasuk' => $suratMasuk,
-            'bolehInput' => $this->bolehInput(),
-        ]);
+        return view('surat-masuk.index', compact('suratMasuk'));
     }
 
-    public function create()
+    /**
+     * Form tambah Surat Masuk baru (Khusus TU & Admin).
+     */
+    public function create(): View
     {
-        $this->pastikanBolehInput();
+        $this->authorizeAdminOrTu();
 
-        return view('surat-masuk.create', [
-            'nomorAgendaBerikutnya' => $this->numbers->nomorBerikutnya(),
-        ]);
+        return view('surat-masuk.create');
     }
 
+    /**
+     * Simpan Surat Masuk baru & buat disposisi awal ke Ibu Deputi 2.
+     */
     public function store(Request $request): RedirectResponse
     {
-        $this->pastikanBolehInput();
+        $this->authorizeAdminOrTu();
 
-        // nomor_agenda dibuat otomatis. nomor_surat (nomor dari pengirim) bersifat opsional.
         $validated = $request->validate([
-            'nomor_surat' => ['nullable', 'string', 'max:150'],
+            'nomor_agenda' => ['required', 'string', 'max:100', 'unique:surat_masuk,nomor_agenda'],
+            'nomor_surat' => ['nullable', 'string', 'max:100'],
             'asal_surat' => ['required', 'string', 'max:255'],
-            'tanggal_surat' => ['required', 'date'],
             'perihal' => ['required', 'string'],
-            'drive_link' => ['nullable', 'url'],
+            'tanggal_surat' => ['required', 'date'],
+            'tanggal_diterima' => ['nullable', 'date'],
+            'drive_link' => ['nullable', 'url', 'max:500'],
         ]);
 
-        $penerima = $this->cariPenerimaAwal();
+        DB::transaction(function () use ($validated) {
+            $user = Auth::user();
 
-        $suratMasuk = DB::transaction(function () use ($validated, $penerima) {
-            $suratMasuk = SuratMasuk::create([
-                'nomor_agenda' => $this->numbers->ambil(),
-                'nomor_surat' => filled($validated['nomor_surat'] ?? null) ? $validated['nomor_surat'] : '-',
+            $surat = SuratMasuk::create([
+                'nomor_agenda' => $validated['nomor_agenda'],
+                'nomor_surat' => $validated['nomor_surat'] ?? '-',
                 'asal_surat' => $validated['asal_surat'],
-                'tanggal_surat' => $validated['tanggal_surat'],
                 'perihal' => $validated['perihal'],
+                'tanggal_surat' => $validated['tanggal_surat'],
+                'tanggal_diterima' => $validated['tanggal_diterima'] ?? now()->format('Y-m-d'),
                 'drive_link' => $validated['drive_link'] ?? null,
-                'tanggal_diterima' => now()->toDateString(),
-                'created_by_id' => Auth::id(),
-                'status' => $penerima ? 'didisposisi' : 'baru',
+                'created_by_id' => $user->id,
+                'status' => 'baru',
             ]);
 
-            if ($penerima) {
+            // KUNCI PRESISI: Selalu cari akun "Ibu Deputi 2" yang sedang kamu gunakan (username deputi-d2 / name Ibu Deputi 2)
+            $deputiUser = User::where('username', 'deputi-d2')
+                ->orWhere('name', 'like', '%Ibu Deputi 2%')
+                ->orWhere('role', 'deputi-d2')
+                ->first();
+
+            // Fallback jika tidak ditemukan
+            if (!$deputiUser) {
+                $deputiUser = User::whereIn('role', ['eselon1', 'deputi'])->first();
+            }
+
+            if ($deputiUser) {
                 Disposisi::create([
-                    'surat_masuk_id' => $suratMasuk->id,
+                    'surat_masuk_id' => $surat->id,
                     'parent_dispo_id' => null,
-                    'pengirim_id' => Auth::id(),
-                    'penerima_id' => $penerima->id,
-                    'instruksi' => 'Mohon petunjuk dan arahan Ibu Deputi.',
+                    'pengirim_id' => $user->id,
+                    'penerima_id' => $deputiUser->id, // Tepat terkirim ke ID Ibu Deputi 2
+                    'instruksi' => 'Surat baru diterima. Mohon petunjuk dan arahan Ibu Deputi.',
                     'sifat' => 'biasa',
                     'status' => 'baru',
                 ]);
             }
-
-            return $suratMasuk;
         });
 
-        if (!$penerima) {
-            return redirect()->route('surat-masuk.index')->with(
-                'warning',
-                'Surat tersimpan dengan nomor agenda ' . $suratMasuk->nomor_agenda
-                . ', tetapi belum ada akun Deputi/Pimpinan (eselon1) sehingga belum didisposisikan.'
-            );
-        }
-
-        return redirect()->route('surat-masuk.index')->with(
-            'success',
-            'Surat masuk tersimpan dengan nomor agenda ' . $suratMasuk->nomor_agenda . ' dan diteruskan ke Deputi.'
-        );
+        return redirect()->route('surat-masuk.index')->with('success', 'Surat Masuk berhasil dicatat dan diteruskan ke Ibu Deputi.');
     }
 
-    public function show($id): RedirectResponse
+    /**
+     * Detail Surat Masuk & riwayat rantai disposisinya.
+     */
+    public function show(SuratMasuk $suratMasuk): View
     {
-        $suratMasuk = SuratMasuk::with('disposisi')->findOrFail($id);
+        $suratMasuk->load(['disposisi.pengirim', 'disposisi.penerima', 'createdBy']);
 
-        $disposisiUtama = $suratMasuk->disposisi->first();
-        if ($disposisiUtama) {
-            return redirect()->route('disposisi.show', $disposisiUtama->id);
-        }
-
-        return redirect()->route('surat-masuk.index')
-            ->with('error', 'Disposisi untuk surat ini belum ditemukan.');
+        return view('surat-masuk.show', compact('suratMasuk'));
     }
 
-    public function destroy($id): RedirectResponse
+    /**
+     * Form edit Surat Masuk.
+     */
+    public function edit(SuratMasuk $suratMasuk): View
     {
-        $this->pastikanBolehInput();
+        $this->authorizeAdminOrTu();
 
-        $suratMasuk = SuratMasuk::findOrFail($id);
+        return view('surat-masuk.edit', compact('suratMasuk'));
+    }
+
+    /**
+     * Update data Surat Masuk.
+     */
+    public function update(Request $request, SuratMasuk $suratMasuk): RedirectResponse
+    {
+        $this->authorizeAdminOrTu();
+
+        $validated = $request->validate([
+            'nomor_agenda' => ['required', 'string', 'max:100', 'unique:surat_masuk,nomor_agenda,' . $suratMasuk->id],
+            'nomor_surat' => ['nullable', 'string', 'max:100'],
+            'asal_surat' => ['required', 'string', 'max:255'],
+            'perihal' => ['required', 'string'],
+            'tanggal_surat' => ['required', 'date'],
+            'tanggal_diterima' => ['nullable', 'date'],
+            'drive_link' => ['nullable', 'url', 'max:500'],
+        ]);
+
+        $suratMasuk->update([
+            'nomor_agenda' => $validated['nomor_agenda'],
+            'nomor_surat' => $validated['nomor_surat'] ?? '-',
+            'asal_surat' => $validated['asal_surat'],
+            'perihal' => $validated['perihal'],
+            'tanggal_surat' => $validated['tanggal_surat'],
+            'tanggal_diterima' => $validated['tanggal_diterima'] ?? $suratMasuk->tanggal_diterima,
+            'drive_link' => $validated['drive_link'] ?? null,
+        ]);
+
+        return redirect()->route('surat-masuk.index')->with('success', 'Data Surat Masuk berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus Surat Masuk beserta seluruh disposisi terkait.
+     */
+    public function destroy(SuratMasuk $suratMasuk): RedirectResponse
+    {
+        $this->authorizeAdminOrTu();
 
         DB::transaction(function () use ($suratMasuk) {
-            // Hapus seluruh rantai disposisi terkait terlebih dahulu
             Disposisi::where('surat_masuk_id', $suratMasuk->id)->delete();
-            
-            // Hapus data surat masuk utama
             $suratMasuk->delete();
         });
 
-        return redirect()->route('surat-masuk.index')->with(
-            'success',
-            'Data Surat Masuk beserta seluruh rantai disposisinya berhasil dihapus.'
-        );
+        return redirect()->route('surat-masuk.index')->with('success', 'Surat Masuk dan seluruh rantai disposisi berhasil dihapus.');
     }
 
-    private function cariPenerimaAwal(): ?User
+    /**
+     * Helper Privasi Hak Akses Khusus Admin & TU
+     */
+    private function authorizeAdminOrTu(): void
     {
-        foreach (self::ROLE_PENERIMA_AWAL as $role) {
-            $user = User::where('role', $role)->first();
-            if ($user) {
-                return $user;
-            }
+        $user = Auth::user();
+
+        if (!$user) {
+            abort(403, 'Akses ditolak.');
         }
 
-        return null;
-    }
+        $isAuthorized = $user->isAdmin() 
+            || $user->isTu() 
+            || in_array($user->role, ['admin', 'tu', 'tu-d2', 'admin-d2'], true);
 
-    private function bolehInput(): bool
-    {
-        return in_array(Auth::user()?->role, self::ROLE_INPUT, true);
-    }
-
-    private function pastikanBolehInput(): void
-    {
-        abort_unless($this->bolehInput(), 403, 'Hanya admin / TU yang boleh menginput atau mengelola surat masuk.');
+        if (!$isAuthorized) {
+            abort(403, 'Hanya admin / TU yang boleh menginput atau mengelola surat masuk.');
+        }
     }
 }

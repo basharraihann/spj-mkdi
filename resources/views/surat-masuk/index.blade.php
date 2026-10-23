@@ -4,7 +4,7 @@
             <h2 class="font-semibold text-xl text-slate-800 leading-tight">
                 {{ __('Monitoring Surat Masuk') }}
             </h2>
-            @if(in_array(auth()->user()->role ?? '', ['admin', 'tu']))
+            @if(auth()->user()?->isTu() || auth()->user()?->isAdmin() || in_array(auth()->user()->role ?? '', ['admin', 'tu', 'tu-d2', 'admin-d2'], true))
                 <a href="{{ route('surat-masuk.create') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition flex items-center gap-2">
                     <span>+</span> Input Surat Masuk
                 </a>
@@ -58,8 +58,8 @@
                                     {{-- Tombol Detail --}}
                                     <a href="{{ route('surat-masuk.show', $surat->id) }}" class="text-xs font-medium text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition">Detail</a>
 
-                                    {{-- Tombol Hapus (Khusus Admin / TU) --}}
-                                    @if(in_array(auth()->user()->role ?? '', ['admin', 'tu']))
+                                    {{-- Tombol Hapus (Khusus Admin & TU) --}}
+                                    @if(auth()->user()?->isTu() || auth()->user()?->isAdmin() || in_array(auth()->user()->role ?? '', ['admin', 'tu', 'tu-d2', 'admin-d2'], true))
                                         <form action="{{ route('surat-masuk.destroy', $surat->id) }}" method="POST"
                                             onsubmit="return confirm('Yakin ingin menghapus Surat Masuk ini? Seluruh rantai disposisi terkait juga akan terhapus.')">
                                             @csrf

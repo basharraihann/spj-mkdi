@@ -20,9 +20,16 @@ use App\Http\Controllers\TugasSayaController;
 use App\Http\Controllers\TusiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserPegawaiController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn() => redirect()->route('dashboard'));
+Route::get('/', function () {
+    $user = Auth::user();
+    if ($user && in_array($user->role, ['deputi-d2', 'asdep-d2'], true)) {
+        return redirect()->route('surat-masuk.index');
+    }
+    return redirect()->route('dashboard');
+});
 
 Route::middleware(['auth', 'verified'])
     ->controller(DashboardController::class)

@@ -1,25 +1,47 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-slate-800 leading-tight">
-            {{ __('Input Surat Masuk Baru') }}
-        </h2>
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">
+                {{ __('Input Surat Masuk Baru') }}
+            </h2>
+            <a href="{{ route('surat-masuk.index') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition">
+                Kembali
+            </a>
+        </div>
     </x-slot>
 
     <div class="py-6 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {{-- Penampil Pesan Kesalahan Validasi --}}
+        @if ($errors->any())
+            <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium space-y-1">
+                <p class="font-bold text-sm mb-1">Gagal menyimpan data! Periksa kembali inputan berikut:</p>
+                <ul class="list-disc list-inside space-y-0.5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <form action="{{ route('surat-masuk.store') }}" method="POST" class="space-y-4">
                 @csrf
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {{-- 1. Nomor Agenda / Disposisi (Otomatis & Read-Only) --}}
+                    {{-- 1. Nomor Agenda / Disposisi --}}
+                    @php
+                        $agendaAuto = 'AG-' . sprintf('%03d', (\App\Models\SuratMasuk::max('id') + 1)) . '/MKDI/' . \Carbon\Carbon::now()->format('X/Y');
+                    @endphp
                     <div>
                         <label class="block text-sm font-medium text-slate-700">Nomor Agenda / Disposisi</label>
-                        <input type="text" value="{{ $nomorAgendaBerikutnya ?? 'AG-001/MKDI/X/2026' }}" readonly
+                        <input type="text" value="{{ old('nomor_agenda', $agendaAuto) }}" readonly
                             class="mt-1 w-full rounded-xl border-slate-200 bg-slate-100/80 text-sm font-semibold text-slate-700 cursor-not-allowed focus:ring-0">
+                        <input type="hidden" name="nomor_agenda" value="{{ old('nomor_agenda', $agendaAuto) }}">
                         <p class="text-[11px] text-slate-400 mt-1">Nomor agenda dibuat otomatis oleh sistem saat disimpan.</p>
                     </div>
 
-                    {{-- 2. Nomor Surat Physical/Asal (Opsional / Boleh Kosong) --}}
+                    {{-- 2. Nomor Surat Physical/Asal (Opsional) --}}
                     <div>
                         <label class="block text-sm font-medium text-slate-700">
                             Nomor Surat Physical/Asal <span class="text-xs font-normal text-slate-400">(Opsional)</span>

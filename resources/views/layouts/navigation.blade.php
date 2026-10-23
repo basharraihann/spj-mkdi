@@ -57,6 +57,9 @@
         <nav class="sb-nav flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-4 pb-2">
 
             @php
+                $user = Auth::user();
+                $role = $user?->role ?? '';
+
                 $tugasMenunggu = (Auth::check() && class_exists(\App\Models\LaporanStTugas::class))
                     ? \App\Models\LaporanStTugas::where('user_id', Auth::id())
                         ->where('status', \App\Models\LaporanStTugas::STATUS_MENUNGGU)
@@ -68,17 +71,20 @@
                     ? \App\Models\Disposisi::where('penerima_id', Auth::id())->where('status', 'baru')->count()
                     : 0;
 
-                $groups = [
+                // Definisi Struktur Menu Utama Lengkap
+                $allGroups = [
                     [
                         'label' => 'Tata Kelola & Persuratan',
                         'items' => [
                             [
+                                'key' => 'surat_masuk',
                                 'route' => 'surat-masuk.index',
                                 'active' => request()->routeIs('surat-masuk.*'),
                                 'label' => __('Surat Masuk'),
                                 'icon' => 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
                             ],
                             [
+                                'key' => 'disposisi',
                                 'route' => 'disposisi.index',
                                 'active' => request()->routeIs('disposisi.*'),
                                 'label' => __('Disposisi Digital'),
@@ -91,18 +97,21 @@
                         'label' => 'SPJ',
                         'items' => [
                             [
+                                'key' => 'dashboard',
                                 'route' => 'dashboard',
                                 'active' => request()->routeIs('dashboard'),
                                 'label' => __('Dashboard'),
                                 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
                             ],
                             [
+                                'key' => 'surat_tugas',
                                 'route' => 'surat-tugas.index',
                                 'active' => request()->routeIs('surat-tugas.*'),
                                 'label' => __('Surat Tugas'),
                                 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'
                             ],
                             [
+                                'key' => 'tugas_saya',
                                 'route' => 'tugas-saya.index',
                                 'active' => request()->routeIs('tugas-saya.*'),
                                 'label' => __('Tugas Saya'),
@@ -110,30 +119,35 @@
                                 'icon' => 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4'
                             ],
                             [
+                                'key' => 'agendas',
                                 'route' => 'agendas.index',
                                 'active' => request()->routeIs('agendas.*'),
                                 'label' => __('Agenda'),
                                 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
                             ],
                             [
+                                'key' => 'memo',
                                 'route' => 'memo.index',
                                 'active' => request()->routeIs('memo.*'),
                                 'label' => __('Memorandum'),
-                                'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                                'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
                             ],
                             [
+                                'key' => 'nominatif',
                                 'route' => 'nominatif.index',
                                 'active' => request()->routeIs('nominatif.*'),
                                 'label' => __('Nominatif'),
                                 'icon' => 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'
                             ],
                             [
+                                'key' => 'pegawais',
                                 'route' => 'pegawais.index',
                                 'active' => request()->routeIs('pegawais.*'),
                                 'label' => __('Pegawai'),
                                 'icon' => 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4'
                             ],
                             [
+                                'key' => 'mak_options',
                                 'route' => 'mak-options.index',
                                 'active' => request()->routeIs('mak-options.*'),
                                 'label' => __('Nomor MAK'),
@@ -145,6 +159,7 @@
                         'label' => 'Anggaran',
                         'items' => [
                             [
+                                'key' => 'anggaran',
                                 'route' => 'anggaran.index',
                                 'active' => request()->routeIs('anggaran.*') && !request()->routeIs('anggaran.pemetaan*'),
                                 'label' => __('Realisasi Anggaran'),
@@ -154,30 +169,35 @@
                     ],
                 ];
 
-                if (Auth::user()?->isAdmin()) {
-                    $groups[2]['items'][] = [
+                // Menu Tambahan khusus Admin Sistem Utama
+                if ($user?->isAdmin() && !in_array($role, ['admin-d2'], true)) {
+                    $allGroups[2]['items'][] = [
+                        'key' => 'anggaran_pemetaan',
                         'route' => 'anggaran.pemetaan',
                         'active' => request()->routeIs('anggaran.pemetaan*'),
                         'label' => __('Pemetaan Unit'),
                         'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
                     ];
 
-                    $groups[] = [
+                    $allGroups[] = [
                         'label' => null,
                         'items' => [
                             [
+                                'key' => 'tusi',
                                 'route' => 'tusi.index',
                                 'active' => request()->routeIs('tusi.*'),
                                 'label' => __('Master Tusi'),
                                 'icon' => 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
                             ],
                             [
+                                'key' => 'pemetaan_akun',
                                 'route' => 'pemetaan-akun.index',
                                 'active' => request()->routeIs('pemetaan-akun.*'),
                                 'label' => __('Pemetaan Akun'),
                                 'icon' => 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1'
                             ],
                             [
+                                'key' => 'users',
                                 'route' => 'users.index',
                                 'active' => request()->routeIs('users.*'),
                                 'label' => __('User Manajemen'),
@@ -187,19 +207,53 @@
                     ];
                 }
 
+                // Matriks Izin Akses Per Key Menu untuk Role D2
+                $allowedKeys = [];
+                switch ($role) {
+                    case 'tu-d2':
+                        $allowedKeys = ['surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
+                        break;
+                    case 'deputi-d2':
+                        // Tanpa 'dashboard' khusus Ibu Deputi 2
+                        $allowedKeys = ['surat_masuk', 'disposisi'];
+                        break;
+                    case 'asdep-d2':
+                        // Tanpa 'dashboard' khusus Bapak Asdep 2
+                        $allowedKeys = ['surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
+                        break;
+                    case 'pegawai-d2':
+                        $allowedKeys = ['surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'agendas', 'memo', 'nominatif', 'pegawais', 'mak_options', 'anggaran'];
+                        break;
+                    case 'admin-d2':
+                        $allowedKeys = ['surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'anggaran'];
+                        break;
+                    default:
+                        $allowedKeys = null;
+                        break;
+                }
+
+                // Melakukan penyaringan grup menu jika user menggunakan Role D2
+                $groups = [];
+                if ($allowedKeys !== null) {
+                    foreach ($allGroups as $grp) {
+                        $filteredItems = array_filter($grp['items'], fn($item) => in_array($item['key'], $allowedKeys, true));
+                        if (!empty($filteredItems)) {
+                            $groups[] = [
+                                'label' => $grp['label'],
+                                'items' => array_values($filteredItems)
+                            ];
+                        }
+                    }
+                } else {
+                    $groups = $allGroups;
+                }
+
                 $footer = [
                     [
                         'route' => 'profile.edit',
                         'active' => request()->routeIs('profile.*'),
                         'label' => __('Profile'),
                         'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                    ],
-                    [
-                        'route' => 'logout',
-                        'post' => true,
-                        'active' => false,
-                        'label' => __('Log Out'),
-                        'icon' => 'M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1'
                     ],
                 ];
             @endphp
@@ -227,10 +281,9 @@
                         @foreach ($group['items'] as $item)
                             <a href="{{ Route::has($item['route']) ? route($item['route']) : '#' }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                                 class="sb-link relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                                                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
+                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
                                 :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                    stroke-width="2">
+                                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                                 </svg>
                                 <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
@@ -253,31 +306,28 @@
         <!-- Profile + Log out -->
         <div class="sb-foot px-4 pb-4 pt-3 border-t border-slate-200 space-y-1">
             @foreach ($footer as $item)
-                @if (!empty($item['post']))
-                    <form method="POST" action="{{ route($item['route']) }}">
-                        @csrf
-                        <button type="submit" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
-                            class="sb-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-red-50 hover:text-red-600"
-                            :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
-                            </svg>
-                            <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
-                        </button>
-                    </form>
-                @else
-                    <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
-                        class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                                                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
-                        :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                        <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
-                        </svg>
-                        <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
-                    </a>
-                @endif
+                <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
+                    class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
+                        {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
+                    :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
+                    </svg>
+                    <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
+                </a>
             @endforeach
+
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" :title="sidebarCollapsed ? 'Log Out' : ''"
+                    class="sb-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-red-50 hover:text-red-600"
+                    :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>Log Out</span>
+                </button>
+            </form>
         </div>
 
     </div>

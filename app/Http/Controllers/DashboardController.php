@@ -5,24 +5,30 @@ namespace App\Http\Controllers;
 use App\Models\Agenda;
 use App\Models\MemoEntry;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
+
+        // KUNCI: Pengalihan khusus untuk Deputi 2 dan Asdep 2 ke Surat Masuk
+        if ($user && in_array($user->role, ['deputi-d2', 'asdep-d2'], true)) {
+            return redirect()->route('surat-masuk.index');
+        }
+
         $now = now();
 
         // Statistik jumlah agenda
         $agendaBulanIni = Agenda::whereMonth('tanggal_mulai', $now->month)
             ->whereYear('tanggal_mulai', $now->year)
             ->count();
-        // Dana diajukan (LS) bulan ini, lengkap dengan breakdown per jenis
-        // (Perdin / Konsumsi / Honorarium) — dipakai di card ringkasan.
+
         $danaLsBulanIni = $this->danaLsBulan($now->month, $now->year);
         $totalDanaBulanIni = $danaLsBulanIni['total'];
 
-        // Data chart per bulan (Jan - Des) tahun berjalan — cuma butuh totalnya
         $chartLabels = [];
         $chartData = [];
         for ($i = 1; $i <= 12; $i++) {
@@ -30,7 +36,6 @@ class DashboardController extends Controller
             $chartData[] = $this->danaLsBulan($i, $now->year)['total'];
         }
 
-        // Data awal kalender (bulan dari ?bulan=YYYY-MM, default bulan berjalan)
         $kalender = $this->dataKalender($request);
 
         return view('dashboard', compact(
@@ -43,26 +48,11 @@ class DashboardController extends Controller
         ));
     }
 
-    /**
-     * Endpoint JSON untuk pindah bulan kalender tanpa reload halaman.
-     * GET /dashboard/kalender?bulan=2026-10
-     */
     public function kalender(Request $request)
     {
         return response()->json($this->dataKalender($request));
     }
 
-    /**
-     * Dana yang diajukan lewat LS pada bulan & tahun tertentu, dipecah per
-     * jenis, gabungan dari dua sumber (sama persis dengan yang dipakai
-     * MemoController@index buat nampilin daftar nomor memo):
-     * - Perdin: dari Agenda yang nomor_memo_pns/non_pns sudah diisi
-     *   (nominalnya biaya_asn utk PNS, biaya_non_asn utk Non PNS)
-     * - Konsumsi & Honorarium: dari MemoEntry (nomor memo mandiri),
-     *   dipisah berdasarkan kolom jenis_memo
-     *
-     * Difilter berdasarkan tanggal_mulai (Agenda) / tanggal_memo (MemoEntry).
-     */
     private function danaLsBulan(int $bulan, int $tahun): array
     {
         $agendas = Agenda::whereMonth('tanggal_mulai', $bulan)
@@ -103,7 +93,6 @@ class DashboardController extends Controller
         $now = now();
         $bulanParam = (string) $request->query('bulan', '');
 
-        // Validasi format YYYY-MM; kalau salah/kosong, pakai bulan berjalan
         $bulan = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $bulanParam)
             ? Carbon::createFromFormat('!Y-m', $bulanParam)
             : $now->copy()->startOfMonth();
@@ -111,15 +100,12 @@ class DashboardController extends Controller
         $startOfMonth = $bulan->copy()->startOfMonth();
         $endOfMonth = $bulan->copy()->endOfMonth();
 
-        // Agenda yang periodenya overlap dengan bulan ini (termasuk yang
-        // nyambung dari bulan lalu / ke bulan depan).
         $agendaList = Agenda::where('tanggal_mulai', '<=', $endOfMonth)
             ->where('tanggal_selesai', '>=', $startOfMonth)
             ->with('pegawai')
             ->orderBy('tanggal_mulai')
             ->get();
 
-        // marks[tanggal] = [ {id, uraian, lokasi, pegawai[], periode}, ... ]
         $marks = [];
         foreach ($agendaList as $agenda) {
             $periodeMulai = $agenda->tanggal_mulai->greaterThan($startOfMonth)
@@ -153,7 +139,7 @@ class DashboardController extends Controller
             'tahun' => $startOfMonth->year,
             'bulan' => $startOfMonth->month,
             'namaBulan' => $startOfMonth->translatedFormat('F Y'),
-            'offset' => $startOfMonth->dayOfWeekIso - 1, // Senin = 0
+            'offset' => $startOfMonth->dayOfWeekIso - 1,
             'jumlahHari' => $startOfMonth->daysInMonth,
             'hariIni' => $isBulanIni ? $now->day : null,
             'isBulanIni' => $isBulanIni,

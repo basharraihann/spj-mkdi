@@ -46,9 +46,32 @@ class UserController extends Controller
         $units = Unit::orderBy('nama')->get();
 
         $totalUsers = User::count();
-        $totalAdmin = User::where('role', User::ROLE_ADMIN)->count();
-        $totalPimpinan = User::where('role', User::ROLE_PIMPINAN)->count();
-        $totalStaf = User::where('role', User::ROLE_USER)->count();
+        
+        // Akumulasi Admin (Admin Utama & Admin D2)
+        $totalAdmin = User::whereIn('role', [
+            User::ROLE_ADMIN ?? 'admin', 
+            User::ROLE_ADMIN_D2 ?? 'admin-d2'
+        ])->count();
+
+        // Akumulasi Pimpinan (Eselon 1, Eselon 2, Deputi, Asdep)
+        $totalPimpinan = User::whereIn('role', [
+            User::ROLE_ESELON1 ?? 'eselon1',
+            User::ROLE_ESELON2 ?? 'eselon2',
+            User::ROLE_DEPUTI_D2 ?? 'deputi-d2',
+            User::ROLE_ASDEP_D2 ?? 'asdep-d2',
+            'pimpinan',
+            'deputi',
+            'asdep'
+        ])->count();
+
+        // Akumulasi Staf / TU / Pelaksana
+        $totalStaf = User::whereIn('role', [
+            User::ROLE_USER ?? 'user',
+            User::ROLE_TU ?? 'tu',
+            User::ROLE_TU_D2 ?? 'tu-d2',
+            User::ROLE_PEGAWAI_D2 ?? 'pegawai-d2',
+            'pegawai'
+        ])->count();
 
         return view('users.index', compact(
             'users',

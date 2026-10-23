@@ -28,6 +28,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+
+        // Jika user ber-role deputi-d2, langsung arahkan ke Surat Masuk
+        if ($user && in_array($user->role, ['deputi-d2'], true)) {
+            return redirect()->intended(route('surat-masuk.index', absolute: false));
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

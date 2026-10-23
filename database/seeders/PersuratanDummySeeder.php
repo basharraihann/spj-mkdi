@@ -12,11 +12,22 @@ class PersuratanDummySeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Ambil User Berdasarkan 5 Role Baku
-        $tu = User::where('role', 'tu')->first() ?? User::where('username', 'tu')->first();
-        $deputi = User::where('role', 'eselon1')->first() ?? User::where('username', 'deputi')->first();
-        $asdep = User::where('role', 'eselon2')->first() ?? User::where('username', 'asdep')->first();
-        $pegawai = User::where('role', 'user')->first() ?? User::where('username', 'pegawai')->first();
+        // 1. Ambil User Berdasarkan Role Standar ATAU Role Deputi 2
+        $tu = User::whereIn('role', ['tu', 'tu-d2'])->first() 
+            ?? User::where('username', 'tu-d2')->first() 
+            ?? User::where('username', 'tu')->first();
+
+        $deputi = User::whereIn('role', ['eselon1', 'deputi', 'deputi-d2'])->first() 
+            ?? User::where('username', 'deputi-d2')->first() 
+            ?? User::where('username', 'deputi')->first();
+
+        $asdep = User::whereIn('role', ['eselon2', 'asdep', 'asdep-d2'])->first() 
+            ?? User::where('username', 'asdep-d2')->first() 
+            ?? User::where('username', 'asdep')->first();
+
+        $pegawai = User::whereIn('role', ['user', 'pegawai', 'pegawai-d2'])->first() 
+            ?? User::where('username', 'pegawai-d2')->first() 
+            ?? User::where('username', 'pegawai')->first();
 
         if (!$tu || !$deputi || !$asdep || !$pegawai) {
             return; // Pastikan UserSeeder sudah dijalankan lebih dahulu
@@ -168,16 +179,18 @@ class PersuratanDummySeeder extends Seeder
                     'dibaca_at'       => now()->subDay(),
                 ]);
 
-                NotaDinas::updateOrCreate(
-                    ['disposisi_id' => $d3->id],
-                    [
-                        'nomor_nd'         => 'ND-0' . ($idx + 1) . '/MKDI/2026',
-                        'perihal'          => 'Laporan Hasil Tindak Lanjut ' . $surat->perihal,
-                        'ringkasan_hasil'  => 'Telah diselesaikan penyusunan kajian teknis dan bahan paparan pimpinan.',
-                        'drive_link_hasil' => $dummyDrive,
-                        'pembuat_id'       => $pegawai->id,
-                    ]
-                );
+                if (class_exists(NotaDinas::class)) {
+                    NotaDinas::updateOrCreate(
+                        ['disposisi_id' => $d3->id],
+                        [
+                            'nomor_nd'         => 'ND-0' . ($idx + 1) . '/MKDI/2026',
+                            'perihal'          => 'Laporan Hasil Tindak Lanjut ' . $surat->perihal,
+                            'ringkasan_hasil'  => 'Telah diselesaikan penyusunan kajian teknis dan bahan paparan pimpinan.',
+                            'drive_link_hasil' => $dummyDrive,
+                            'pembuat_id'       => $pegawai->id,
+                        ]
+                    );
+                }
             }
             // Skenario 2: Surat Sedang Didisposisi (Disposisi TU -> Deputi -> Asdep)
             elseif ($data['status'] === 'didisposisi') {
