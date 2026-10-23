@@ -30,8 +30,8 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        // Jika user ber-role deputi-d2, langsung arahkan ke Surat Masuk
-        if ($user && in_array($user->role, ['deputi-d2'], true)) {
+        // Redirect otomatis untuk Deputi 2, Asdep 2, dan TU Deputi 2 langsung ke Surat Masuk
+        if ($user && in_array($user->role, ['deputi-d2', 'asdep-d2', 'tu-d2'], true)) {
             return redirect()->intended(route('surat-masuk.index', absolute: false));
         }
 

@@ -76,13 +76,13 @@ class DisposisiController extends Controller
             ? User::with('pegawai:id,jabatan,unit_kerja')
                 ->where('id', '!=', Auth::id())
                 ->when(in_array($currentUser->role, ['eselon1', 'deputi', 'deputi-d2'], true), function ($q) {
-                    $q->whereIn('role', ['eselon2', 'user', 'asdep', 'pegawai', 'asdep-d2', 'pegawai-d2']);
+                    $q->whereIn('role', ['eselon2', 'user', 'asdep', 'pegawai', 'asdep-d2', 'pegawai-d2', 'admin-d2']);
                 })
                 ->when(in_array($currentUser->role, ['eselon2', 'asdep', 'asdep-d2'], true), function ($q) {
-                    $q->whereIn('role', ['user', 'pegawai', 'pegawai-d2']);
+                    $q->whereIn('role', ['user', 'pegawai', 'pegawai-d2', 'admin-d2']);
                 })
                 ->when(in_array($currentUser->role, ['tu', 'tu-d2'], true), function ($q) {
-                    $q->whereIn('role', ['eselon1', 'deputi', 'deputi-d2']);
+                    $q->whereIn('role', ['eselon1', 'deputi', 'deputi-d2', 'eselon2', 'asdep', 'asdep-d2']);
                 })
                 ->orderBy('name')
                 ->get(['id', 'name', 'role', 'pegawai_id'])
@@ -105,7 +105,8 @@ class DisposisiController extends Controller
         $validated = $request->validate([
             'penerima_ids' => ['required', 'array', 'min:1'],
             'penerima_ids.*' => ['integer', 'distinct', 'exists:users,id', Rule::notIn([Auth::id()])],
-            'instruksi' => ['required', 'string'],
+            'opsi_tindak_lanjut' => ['nullable', 'array'],
+            'instruksi' => ['nullable', 'string'],
             'tenggat_waktu' => ['nullable', 'date'],
             'sifat' => ['required', 'in:biasa,segera,rahasia'],
             'perlu_st' => ['nullable', 'boolean'],
@@ -113,11 +114,17 @@ class DisposisiController extends Controller
             'penerima_ids.required' => 'Pilih minimal satu penerima disposisi.',
             'penerima_ids.min' => 'Pilih minimal satu penerima disposisi.',
             'penerima_ids.*.not_in' => 'Anda tidak bisa mendisposisikan ke diri sendiri.',
-            'instruksi.required' => 'Instruksi / Catatan Tugas wajib diisi.',
         ]);
 
         DB::transaction(function () use ($validated, $parentDispo, $request) {
             $currentUser = Auth::user();
+
+            // Gabungkan Opsi Checkbox dengan Teks Catatan
+            $opsiStr = !empty($validated['opsi_tindak_lanjut']) 
+                ? '[Tindak Lanjut: ' . implode(', ', $validated['opsi_tindak_lanjut']) . '] ' 
+                : '';
+            
+            $instruksiFinal = trim($opsiStr . ($validated['instruksi'] ?? ''));
 
             foreach ($validated['penerima_ids'] as $penerimaId) {
                 // Buat disposisi utama
@@ -126,7 +133,7 @@ class DisposisiController extends Controller
                     'parent_dispo_id' => $parentDispo->id,
                     'pengirim_id' => Auth::id(),
                     'penerima_id' => $penerimaId,
-                    'instruksi' => $validated['instruksi'],
+                    'instruksi' => $instruksiFinal ?: 'Mohon ditindaklanjuti.',
                     'tenggat_waktu' => $validated['tenggat_waktu'] ?? null,
                     'sifat' => $validated['sifat'],
                     'perlu_st' => $request->boolean('perlu_st'),
@@ -148,10 +155,10 @@ class DisposisiController extends Controller
                             'parent_dispo_id' => $parentDispo->id,
                             'pengirim_id' => Auth::id(),
                             'penerima_id' => $asdepUser->id,
-                            'instruksi' => '[TEMBUSAN JALUR B] ' . $validated['instruksi'],
+                            'instruksi' => '[TEMBUSAN JALUR B] ' . $instruksiFinal,
                             'tenggat_waktu' => $validated['tenggat_waktu'] ?? null,
                             'sifat' => $validated['sifat'],
-                            'perlu_st' => false, // Jalur B tanpa ST
+                            'perlu_st' => false,
                             'status' => 'baru',
                         ]);
                     }
@@ -175,7 +182,6 @@ class DisposisiController extends Controller
             return false;
         }
 
-        // Semua user yang terautentikasi dan memiliki role valid diizinkan melihat lembar disposisi
         if ($user->isAdmin() || $user->isTu() || in_array($user->role, ['deputi-d2', 'asdep-d2', 'pegawai-d2', 'admin-d2', 'eselon1', 'eselon2', 'user', 'pegawai'], true)) {
             return true;
         }
@@ -193,7 +199,6 @@ class DisposisiController extends Controller
             return false;
         }
 
-        // Boleh meneruskan jika penerima disposisi adalah user tersebut, atau bertindak sebagai admin/pejabat yang berhak
         return (int) $disposisi->penerima_id === (int) $user->id 
             || $user->isAdmin() 
             || in_array($user->role, ['deputi-d2', 'asdep-d2', 'tu-d2'], true);

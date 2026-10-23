@@ -6,6 +6,7 @@ use App\Http\Controllers\AnggaranController;
 use App\Http\Controllers\AnggaranPemetaanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
+use App\Http\Controllers\DocumentPdfController;
 use App\Http\Controllers\LaporanStController;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\NotaDinasController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SuratKeluarController;
 use App\Http\Controllers\SuratMasukController;
 use App\Http\Controllers\SuratTugasController;
 use App\Http\Controllers\TugasSayaController;
@@ -23,14 +25,22 @@ use App\Http\Controllers\UserPegawaiController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes - Sistem Persuratan, Disposisi & SPJ
+|--------------------------------------------------------------------------
+*/
+
+// Halaman Utama: Redirect otomatis untuk Deputi 2, Asdep 2, dan TU Deputi 2 ke Surat Masuk
 Route::get('/', function () {
     $user = Auth::user();
-    if ($user && in_array($user->role, ['deputi-d2', 'asdep-d2'], true)) {
+    if ($user && in_array($user->role, ['deputi-d2', 'asdep-d2', 'tu-d2'], true)) {
         return redirect()->route('surat-masuk.index');
     }
     return redirect()->route('dashboard');
 });
 
+// Dashboard SPJ & Endpoint Kalender
 Route::middleware(['auth', 'verified'])
     ->controller(DashboardController::class)
     ->group(function () {
@@ -40,6 +50,9 @@ Route::middleware(['auth', 'verified'])
 
 Route::middleware('auth')->group(function () {
 
+    // ==========================================
+    // MODUL PROFILE USER
+    // ==========================================
     Route::controller(ProfileController::class)
         ->prefix('profile')
         ->name('profile.')
@@ -71,6 +84,17 @@ Route::middleware('auth')->group(function () {
             Route::post('{disposisi}', 'store')->name('store');
             Route::get('{notaDinas}', 'show')->name('show');
         });
+
+    // Modul Surat Keluar (Nota Dinas, Undangan, Telaah Staf, Notula, Surat Pernyataan)
+    Route::resource('surat-keluar', SuratKeluarController::class);
+
+    // ==========================================
+    // MODUL CETAK DOKUMEN & PDF STREAMING
+    // ==========================================
+    Route::controller(DocumentPdfController::class)->group(function () {
+        Route::get('/disposisi/{id}/pdf', 'cetakDisposisi')->name('disposisi.pdf');
+        Route::get('/surat-keluar/{suratKeluar}/pdf', 'cetakSuratKeluar')->name('surat-keluar.pdf');
+    });
 
     // ==========================================
     // MODUL SPJ & AGENDA EXISTING

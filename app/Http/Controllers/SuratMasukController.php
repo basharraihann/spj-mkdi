@@ -46,7 +46,7 @@ class SuratMasukController extends Controller
     }
 
     /**
-     * Simpan Surat Masuk baru & buat disposisi awal ke Ibu Deputi 2.
+     * Simpan Surat Masuk baru & buat disposisi awal sesuai jalur (Deputi vs Eselon 2).
      */
     public function store(Request $request): RedirectResponse
     {
@@ -59,6 +59,7 @@ class SuratMasukController extends Controller
             'perihal' => ['required', 'string'],
             'tanggal_surat' => ['required', 'date'],
             'tanggal_diterima' => ['nullable', 'date'],
+            'jalur_tujuan' => ['required', 'in:deputi,eselon2'],
             'drive_link' => ['nullable', 'url', 'max:500'],
         ]);
 
@@ -72,36 +73,39 @@ class SuratMasukController extends Controller
                 'perihal' => $validated['perihal'],
                 'tanggal_surat' => $validated['tanggal_surat'],
                 'tanggal_diterima' => $validated['tanggal_diterima'] ?? now()->format('Y-m-d'),
+                'jalur_tujuan' => $validated['jalur_tujuan'],
                 'drive_link' => $validated['drive_link'] ?? null,
                 'created_by_id' => $user->id,
                 'status' => 'baru',
             ]);
 
-            // KUNCI PRESISI: Selalu cari akun "Ibu Deputi 2" yang sedang kamu gunakan (username deputi-d2 / name Ibu Deputi 2)
-            $deputiUser = User::where('username', 'deputi-d2')
-                ->orWhere('name', 'like', '%Ibu Deputi 2%')
-                ->orWhere('role', 'deputi-d2')
-                ->first();
-
-            // Fallback jika tidak ditemukan
-            if (!$deputiUser) {
-                $deputiUser = User::whereIn('role', ['eselon1', 'deputi'])->first();
+            // Penentuan Penerima Berdasarkan Jalur
+            if ($validated['jalur_tujuan'] === 'deputi') {
+                $targetUser = User::where('username', 'deputi-d2')
+                    ->orWhere('role', 'deputi-d2')
+                    ->orWhere('role', 'eselon1')
+                    ->first();
+            } else {
+                $targetUser = User::where('username', 'asdep-d2')
+                    ->orWhere('role', 'asdep-d2')
+                    ->orWhere('role', 'eselon2')
+                    ->first();
             }
 
-            if ($deputiUser) {
+            if ($targetUser) {
                 Disposisi::create([
                     'surat_masuk_id' => $surat->id,
                     'parent_dispo_id' => null,
                     'pengirim_id' => $user->id,
-                    'penerima_id' => $deputiUser->id, // Tepat terkirim ke ID Ibu Deputi 2
-                    'instruksi' => 'Surat baru diterima. Mohon petunjuk dan arahan Ibu Deputi.',
+                    'penerima_id' => $targetUser->id,
+                    'instruksi' => 'Surat baru diterima. Mohon petunjuk dan arahan.',
                     'sifat' => 'biasa',
                     'status' => 'baru',
                 ]);
             }
         });
 
-        return redirect()->route('surat-masuk.index')->with('success', 'Surat Masuk berhasil dicatat dan diteruskan ke Ibu Deputi.');
+        return redirect()->route('surat-masuk.index')->with('success', 'Surat Masuk berhasil dicatat dan diteruskan.');
     }
 
     /**
@@ -138,6 +142,7 @@ class SuratMasukController extends Controller
             'perihal' => ['required', 'string'],
             'tanggal_surat' => ['required', 'date'],
             'tanggal_diterima' => ['nullable', 'date'],
+            'jalur_tujuan' => ['required', 'in:deputi,eselon2'],
             'drive_link' => ['nullable', 'url', 'max:500'],
         ]);
 
@@ -148,6 +153,7 @@ class SuratMasukController extends Controller
             'perihal' => $validated['perihal'],
             'tanggal_surat' => $validated['tanggal_surat'],
             'tanggal_diterima' => $validated['tanggal_diterima'] ?? $suratMasuk->tanggal_diterima,
+            'jalur_tujuan' => $validated['jalur_tujuan'],
             'drive_link' => $validated['drive_link'] ?? null,
         ]);
 

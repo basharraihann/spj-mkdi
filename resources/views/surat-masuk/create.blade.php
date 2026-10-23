@@ -28,10 +28,42 @@
             <form action="{{ route('surat-masuk.store') }}" method="POST" class="space-y-4">
                 @csrf
                 
+                {{-- PEMISAHAN ALUR SURAT MASUK (MEETING 23/10/26) --}}
+                <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-200/80 space-y-2">
+                    <label class="block text-sm font-bold text-blue-900">
+                        Jalur Tujuan Surat Masuk <span class="text-red-600">*</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-blue-500 transition">
+                            <input type="radio" name="jalur_tujuan" value="deputi" @checked(old('jalur_tujuan', 'deputi') === 'deputi') class="text-blue-600 focus:ring-blue-500">
+                            <div>
+                                <span class="block text-xs font-bold text-slate-800">Jalur Ibu Deputi (Eselon I)</span>
+                                <span class="block text-[11px] text-slate-500">Diteruskan langsung ke Inbox Disposisi Deputi 2</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-blue-500 transition">
+                            <input type="radio" name="jalur_tujuan" value="eselon2" @checked(old('jalur_tujuan') === 'eselon2') class="text-blue-600 focus:ring-blue-500">
+                            <div>
+                                <span class="block text-xs font-bold text-slate-800">Jalur Asdep / Karo (Eselon II)</span>
+                                <span class="block text-[11px] text-slate-500">Diteruskan ke Inbox Disposisi Asdep 2</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {{-- 1. Nomor Agenda / Disposisi --}}
                     @php
-                        $agendaAuto = 'AG-' . sprintf('%03d', (\App\Models\SuratMasuk::max('id') + 1)) . '/MKDI/' . \Carbon\Carbon::now()->format('X/Y');
+                        // Konversi Bulan Angka ke Romawi (1-12)
+                        $romawiBulan = [
+                            1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+                            7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
+                        ];
+                        $now = \Carbon\Carbon::now();
+                        $bulanRomawi = $romawiBulan[$now->month] ?? 'X';
+                        
+                        // Kode Unit D2 (Deputi 2)
+                        $agendaAuto = 'AG-' . sprintf('%03d', (\App\Models\SuratMasuk::max('id') + 1)) . '/D2/' . $bulanRomawi . '/' . $now->year;
                     @endphp
                     <div>
                         <label class="block text-sm font-medium text-slate-700">Nomor Agenda / Disposisi</label>
@@ -80,7 +112,7 @@
 
                 <div class="pt-4 flex justify-end gap-3">
                     <a href="{{ route('surat-masuk.index') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition">Batal</a>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition">Simpan & Teruskan ke Deputi ➔</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition">Simpan & Teruskan Surat ➔</button>
                 </div>
             </form>
         </div>
