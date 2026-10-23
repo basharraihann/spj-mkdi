@@ -60,33 +60,29 @@ class DisposisiController extends Controller
             ]);
         }
 
-        // Seluruh rantai disposisi surat ini, dikelompokkan per induk (0 = disposisi awal)
         $byParent = Disposisi::where('surat_masuk_id', $disposisi->surat_masuk_id)
             ->with(['pengirim', 'penerima'])
             ->orderBy('id')
             ->get()
             ->groupBy(fn($d) => $d->parent_dispo_id ?? 0);
 
-        $bolehDisposisi = $this->bolehMeneruskan($disposisi);
-
-        // Filter penerima disposisi berdasarkan unit kerja & 5 role baku
+        // Staf / Pegawai Pelaksana (role user/pegawai) TIDAK BOLEH mendisposisikan lanjutan
         $currentUser = Auth::user();
+        $isStaff = in_array($currentUser->role, ['user', 'pegawai'], true);
+        
+        $bolehDisposisi = $this->bolehMeneruskan($disposisi) && !$isStaff;
 
         $users = $bolehDisposisi
             ? User::with('pegawai:id,jabatan,unit_kerja')
                 ->where('id', '!=', Auth::id())
                 ->when(in_array($currentUser->role, ['eselon1', 'deputi'], true), function ($q) use ($currentUser) {
-                    // Ambil unit kerja dari akun Deputi yang login (Default: Deputi 2)
                     $unitUser = $currentUser->pegawai?->unit_kerja ?? 'Deputi 2';
-
-                    // Hanya tampilkan Asdep (eselon2) dan Pegawai (user) di unit Deputi tersebut
                     $q->whereIn('role', ['eselon2', 'user', 'asdep', 'pegawai'])
                       ->whereHas('pegawai', function ($p) use ($unitUser) {
                           $p->where('unit_kerja', 'like', "%{$unitUser}%");
                       });
                 })
                 ->when(in_array($currentUser->role, ['eselon2', 'asdep'], true), function ($q) use ($currentUser) {
-                    // Eselon 2 hanya mendisposisikan ke pegawai di unit kerjanya
                     $unitUser = $currentUser->pegawai?->unit_kerja;
                     $q->whereIn('role', ['user', 'pegawai'])
                       ->when($unitUser, function ($query) use ($unitUser) {
@@ -96,21 +92,19 @@ class DisposisiController extends Controller
                       });
                 })
                 ->when($currentUser->role === 'tu', function ($q) {
-                    // TU mendisposisikan awal ke Deputi/Eselon 1
                     $q->whereIn('role', ['eselon1', 'deputi']);
                 })
                 ->orderBy('name')
                 ->get(['id', 'name', 'role', 'pegawai_id'])
             : collect();
 
-        return view('disposisi.show', compact('disposisi', 'users', 'byParent', 'bolehDisposisi'));
+        return view('disposisi.show', compact('disposisi', 'users', 'byParent', 'bolehDisposisi', 'isStaff'));
     }
 
     public function store(Request $request, $id): RedirectResponse
     {
         $parentDispo = Disposisi::findOrFail($id);
 
-        // Proteksi: Jika disposisi ini sudah pernah diteruskan/diproses, cegah pengiriman ganda
         if ($parentDispo->status === 'diproses') {
             return redirect()->route('disposisi.show', $id)
                 ->with('error', 'Disposisi ini sudah pernah Anda kirimkan.');
@@ -147,7 +141,6 @@ class DisposisiController extends Controller
                 ]);
             }
 
-            // Tandai disposisi asal sebagai diproses
             $parentDispo->update(['status' => 'diproses']);
         });
 
@@ -157,7 +150,6 @@ class DisposisiController extends Controller
         );
     }
 
-    /** Admin, pembuat surat, atau siapa pun yang terlibat di rantai disposisi surat ini. */
     private function bolehMelihat(Disposisi $disposisi): bool
     {
         $user = Auth::user();
@@ -174,7 +166,6 @@ class DisposisiController extends Controller
             ->exists();
     }
 
-    /** Hanya penerima disposisi ini (atau admin) yang boleh meneruskan. */
     private function bolehMeneruskan(Disposisi $disposisi): bool
     {
         $user = Auth::user();
