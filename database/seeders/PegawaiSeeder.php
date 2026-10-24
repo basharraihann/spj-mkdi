@@ -28,10 +28,103 @@ class PegawaiSeeder extends Seeder
             ['nama' => 'Najwa Kania Ash Shidiq', 'jabatan' => 'Tenaga Pendukung Administrasi', 'status_kepegawaian' => 'Non PNS'],
         ];
 
-        foreach ($data as $row) {
+        // Pegawai Deputi Bidang Koordinasi Usaha Pangan dan Pertanian (Deputi 2).
+        // Sumber: Data pegawai D2 untuk dashboard Persuratan.xlsx
+        // Baris ini membawa 'unit_kerja' sendiri sehingga tidak ikut unit Biro MKDI di atas.
+        $dataD2 = [
+            ['nama' => 'Widiastuti', 'nip' => '197005121994032001', 'pangkat' => 'Pembina Utama Madya', 'golongan' => 'IV/d', 'jabatan' => 'Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'unit_kerja' => 'Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Yasser', 'jabatan' => 'Tenaga Pendukung di Bidang Tata Usaha Pimpinan', 'unit_kerja' => 'Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            // --- SESDEP ---
+            ['nama' => 'Karsan', 'nip' => '196803221991031003', 'pangkat' => 'Pembina Utama Muda', 'golongan' => 'IV/c', 'jabatan' => 'Sekretaris Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Kunto Nugroho', 'nip' => '198912142018011001', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d', 'jabatan' => 'Analis Kebijakan Ahli Muda', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Achmad Kimsan', 'nip' => '197904092005021007', 'pangkat' => 'Penata', 'golongan' => 'III/c', 'jabatan' => 'Penelaah Teknis Kebijakan', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Sendy Pratiwi', 'nip' => '199309032018012001', 'pangkat' => 'Penata', 'golongan' => 'III/c', 'jabatan' => 'Analis Kebijakan Ahli Pertama', 'unit_kerja' => 'Biro Sumber Daya Manusia dan Organisasi', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Wahid Setiadi', 'nip' => '198808112022031002', 'pangkat' => 'Penata Muda Tingkat I', 'golongan' => 'III/b', 'jabatan' => 'Analis Kebijakan Ahli Pertama', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Laily Fitriah', 'nip' => '198304122008042002', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Penelaah Teknis Kebijakan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Chyntya Syafril', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Reza Rama Gunada', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Rizka Awaliah', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Renato Fortinov Parulian Tampubolon', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Fathimah Husna', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Ira Putri Rahayu', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Yolanda Rosa Debora Panjaitan', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Nurrachmawati', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Yemima Veronika', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Rr Rizka Nurul Cahyani Santoso', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'St. Wulan Aprianti', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Rizki Catur Parmanto', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Adi Suheri', 'jabatan' => 'Driver Deputi', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Bagus Dwi Yulianto', 'jabatan' => 'Driver Sesdep', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            // --- A1 ---
+            ['nama' => 'Kus Prisetiahadi', 'nip' => '197009251995031001', 'pangkat' => 'Pembina Utama Madya', 'golongan' => 'IV/d', 'jabatan' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Henry Antonius Manalu', 'nip' => '197306031999031002', 'pangkat' => 'Pembina Tingkat I', 'golongan' => 'IV/b', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Yuyun Kurnia Lestari', 'nip' => '198805042015022001', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Ronald Hasintongan', 'nip' => '198209162014031001', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d', 'jabatan' => 'Analis Kebijakan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Indira Wido Primadipta', 'nip' => '199506042019012001', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b', 'jabatan' => 'Analis Kebijakan Ahli Pertama', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Kunthi Habri Saputri', 'jabatan' => 'Staf Asdep PDSP Tanaman Pangan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Eduardus Eka Ramanditya', 'jabatan' => 'Staf Asdep PDSP Tanaman Pangan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Fatimah Kusuma Dewi', 'jabatan' => 'Staf Asdep PDSP Tanaman Pangan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Sabrina Nurraihana', 'jabatan' => 'Staf Asdep PDSP Tanaman Pangan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Ibnu Fajar Bisri', 'jabatan' => 'Driver A1', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Tanaman Pangan', 'status_kepegawaian' => 'Non PNS'],
+            // --- A2 ---
+            ['nama' => 'Silvi Charlote Sumanti', 'nip' => '197504122005022001', 'pangkat' => 'Pembina Utama Muda', 'golongan' => 'IV/c', 'jabatan' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Ratih Sintya Suly', 'nip' => '197912122005022001', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Analis Perdagangan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Noviarina Purnami Putri', 'nip' => '198211042009012004', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'R. Stevanus Bayu Mangkurat', 'nip' => '198509272019011001', 'pangkat' => 'Penata', 'golongan' => 'III/c', 'jabatan' => 'Analis Perdagangan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Wasinton Tulus Oktavianus Sianturi', 'nip' => '198010112014021001', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d', 'jabatan' => 'Analis Perdagangan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Retno Sawitri', 'nip' => '199004302014022001', 'pangkat' => 'Penata', 'golongan' => 'III/c', 'jabatan' => 'Negosiator Perdagangan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Salma Jihan Nabiilah', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Rima Nur Latifah', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Dimas Naufaldy Ardian', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Muhammad Khladun', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Bambang Utomo', 'jabatan' => 'Driver A2', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            // --- A3 ---
+            ['nama' => 'Bona Kusuma', 'nip' => '197610242005021001', 'pangkat' => 'Pembina Utama Muda', 'golongan' => 'IV/c', 'jabatan' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Muhammad Rizal Panrelly', 'nip' => '196911231994031010', 'pangkat' => 'Pembina Utama Muda', 'golongan' => 'IV/c', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Yonatan Kriswidiyanto Sitohang', 'nip' => '197608052005021001', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Analis Perdagangan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Dian Dwi Laksani', 'nip' => '198407162010122002', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Lailun Maulidiyah', 'nip' => '198412052010122002', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d', 'jabatan' => 'Analis Sumber Daya Manusia Aparatur Ahli Muda', 'unit_kerja' => 'Sekretariat Deputi Bidang Koordinasi Usaha Pangan dan Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Randi Morin', 'nip' => '198508062015051001', 'pangkat' => 'Penata Tk. I', 'golongan' => 'III/d', 'jabatan' => 'Analis Kebijakan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Gabriel Malona', 'nip' => '198807202014021002', 'pangkat' => 'Penata', 'golongan' => 'III/c', 'jabatan' => 'Negosiator Perdagangan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Suhantono', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Randi Ernawan', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Claudia Yuliarta Abigael', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Azzahra Asya D S', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Naesha Ardibi', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Shalma Azzahra', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Shintia Octaviani Simanjuntak', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Utari Praba Ningrum', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Anwar Sanusi', 'jabatan' => 'Driver A3', 'unit_kerja' => 'Asisten Deputi Pengelolaan Sarana dan Prasarana Produksi Pertanian', 'status_kepegawaian' => 'Non PNS'],
+            // --- A4 ---
+            ['nama' => 'Radian Bagiyono', 'nip' => '197411082000031002', 'pangkat' => 'Pembina Utama Muda', 'golongan' => 'IV/c', 'jabatan' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Darto', 'nip' => '196811101991021001', 'pangkat' => 'Pembina Tk. I', 'golongan' => 'IV/b', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Jhon Hasudungan Pardomuan Tambun', 'nip' => '196901291996031001', 'pangkat' => 'Pembina Tk. I', 'golongan' => 'IV/b', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Mielyon Erison Datty', 'nip' => '197505212000031001', 'pangkat' => 'Pembina Utama Muda', 'golongan' => 'IV/c', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Naufal Farras Syihab', 'nip' => '199711132022031004', 'pangkat' => 'Penata Muda', 'golongan' => 'III/a', 'jabatan' => 'Penelaah Teknis Kebijakan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Muhammad Fathin Akbar', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Intan Dwi Handayani', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Stephanie Silvi Tamba', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Neyreza Arviana Putri', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Gabriela Oktaviani Ayudya Putri', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Hasan Prastowo', 'jabatan' => 'Driver A4', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Perkebunan dan Hortikultura', 'status_kepegawaian' => 'Non PNS'],
+            // --- A5 ---
+            ['nama' => 'Harimurti', 'nip' => '197312252000031001', 'pangkat' => 'Pembina Utama Muda', 'golongan' => 'IV/c', 'jabatan' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Fatma Puspitasari', 'nip' => '197905042003122001', 'pangkat' => 'Pembina Tk. I', 'golongan' => 'IV/b', 'jabatan' => 'Analis Kebijakan Ahli Madya', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Yudhi Ratna Kurniawan', 'nip' => '198008062005021001', 'pangkat' => 'Pembina', 'golongan' => 'IV/a', 'jabatan' => 'Analis Kebijakan Ahli Muda', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Riana Sri Hastuti', 'nip' => '199511272020122013', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b', 'jabatan' => 'Analis Kebijakan Ahli Pertama', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'Ikka Fitri Mei Kennedy', 'nip' => '198905102020121009', 'pangkat' => 'Penata Muda Tk. I', 'golongan' => 'III/b', 'jabatan' => 'Penelaah Teknis Kebijakan', 'unit_kerja' => 'Biro Sumber Daya Manusia dan Organisasi', 'status_kepegawaian' => 'PNS'],
+            ['nama' => 'M Khubbab Fairus', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Exceline Viska Desyanti', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Alifia Herizha', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Nadya Ramadhani Suherwin', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Ibad Dwi Alfreda', 'jabatan' => 'Staf Pelaksana', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'Non PNS'],
+            ['nama' => 'Driver Pak Hari', 'jabatan' => 'Driver A5', 'unit_kerja' => 'Asisten Deputi Peningkatan Daya Saing Produk Peternakan', 'status_kepegawaian' => 'Non PNS'],
+        ];
+
+        foreach (array_merge($data, $dataD2) as $row) {
             Pegawai::updateOrCreate(
                 ['nama' => $row['nama']],
-                array_merge($row, ['unit_kerja' => $unitKerja])
+                array_merge(['unit_kerja' => $unitKerja], $row)
             );
         }
     }
