@@ -41,8 +41,7 @@ class UserController extends Controller
             $query->where('unit_id', $request->unit_id);
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
-
+        $users = $query->orderBy('created_at', 'desc')->get();
         $units = Unit::orderBy('nama')->get();
 
         $totalUsers = User::count();
