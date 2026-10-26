@@ -176,6 +176,11 @@ class SuratTugasController extends Controller
     {
         abort_unless($this->bolehKelola($suratTugas), 403);
 
+        // Jika ST memakai lembar kontrol, semua tahap harus disetujui lebih dulu
+        if ($suratTugas->kontrol()->exists() && $suratTugas->kontrol()->where('status', '!=', 'disetujui')->exists()) {
+            return $this->keShow($suratTugas, 'Lembar kontrol belum selesai disetujui, ST belum dapat diterbitkan.', 'error');
+        }
+
         try {
             [$st, $jumlahAkun] = DB::transaction(function () use ($suratTugas, $laporan) {
                 $st = $this->numbers->terbitkan($suratTugas->id);
@@ -274,6 +279,16 @@ class SuratTugasController extends Controller
         $suratTugas->load('peserta');
 
         $nama = 'Surat Tugas ' . str_replace('/', '-', $suratTugas->nomor ?? 'Draf ' . $suratTugas->id) . '.pdf';
+
+        // Format template 2026 (opsional). Tanpa parameter = tampilan lama (standar).
+        $format = request('format');
+        if (in_array($format, ['lampiran', 'tanpa_lampiran', 'an_sesdep'], true)) {
+            $suratTugas->load('peserta.pegawai');
+
+            return Pdf::loadView('pdf.surat-tugas-template', ['st' => $suratTugas, 'format' => $format])
+                ->setPaper('a4', 'portrait')
+                ->stream($nama);
+        }
 
         return Pdf::loadView('pdf.surat-tugas', ['st' => $suratTugas])
             ->setPaper('a4', 'portrait')

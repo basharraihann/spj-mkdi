@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
 
                 // 4. Dummy Modul Surat Masuk, Disposisi, & Surat Tugas
             PersuratanDummySeeder::class,
+            DummyPerUnitSeeder::class,
             SuratTugasContohSeeder::class,
         ]);
     }

@@ -91,6 +91,20 @@
                                 'badge' => $disposisiBaru,
                                 'icon' => 'M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8'
                             ],
+                            [
+                                'key' => 'surat_keluar',
+                                'route' => 'surat-keluar.index',
+                                'active' => request()->routeIs('surat-keluar.*'),
+                                'label' => __('Surat Keluar'),
+                                'icon' => 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8'
+                            ],
+                            [
+                                'key' => 'monitoring',
+                                'route' => 'monitoring.index',
+                                'active' => request()->routeIs('monitoring.*'),
+                                'label' => __('Monitoring'),
+                                'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+                            ],
                         ],
                     ],
                     [
@@ -211,21 +225,21 @@
                 $allowedKeys = [];
                 switch ($role) {
                     case 'tu-d2':
-                        $allowedKeys = ['surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
+                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
                         break;
                     case 'deputi-d2':
                         // Tanpa 'dashboard' khusus Ibu Deputi 2
-                        $allowedKeys = ['surat_masuk', 'disposisi'];
+                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi'];
                         break;
                     case 'asdep-d2':
                         // Tanpa 'dashboard' khusus Bapak Asdep 2
-                        $allowedKeys = ['surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
+                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
                         break;
                     case 'pegawai-d2':
-                        $allowedKeys = ['surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'agendas', 'memo', 'nominatif', 'pegawais', 'mak_options', 'anggaran'];
+                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'agendas', 'memo', 'nominatif', 'pegawais', 'mak_options', 'anggaran'];
                         break;
                     case 'admin-d2':
-                        $allowedKeys = ['surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'anggaran'];
+                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'anggaran'];
                         break;
                     default:
                         $allowedKeys = null;

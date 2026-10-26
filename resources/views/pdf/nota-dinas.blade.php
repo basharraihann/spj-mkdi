@@ -18,8 +18,15 @@
 </head>
 <body>
 
+    @php
+        $tplNd = $dokumen->isi_payload['template'] ?? null;
+        $es1 = $tplNd === 'es1_deputi2';
+    @endphp
     <div class="header">
         DEPUTI BIDANG KOORDINASI USAHA PANGAN DAN PERTANIAN
+        @if ($tplNd === 'es2')
+            <br>{{ strtoupper($dokumen->isi_payload['jabatan_penandatangan'] ?? 'SEKRETARIAT DEPUTI BIDANG KOORDINASI USAHA PANGAN DAN PERTANIAN') }}
+        @endif
     </div>
 
     <div class="title">NOTA DINAS</div>
@@ -63,8 +70,14 @@
         {!! nl2br(e($dokumen->isi_payload['isi_ringkasan'] ?? '')) !!}
     </div>
 
+    @if ($tplNd)
+    <div class="content">
+        Demikian atas perhatian dan arahan {{ $es1 ? 'Bapak Sekretaris Kementerian Koordinator' : 'Ibu Deputi' }}, kami ucapkan terima kasih.
+    </div>
+    @endif
+
     <div class="ttd-container">
-        <p>{{ $dokumen->dari }},</p>
+        <p>{{ $dokumen->isi_payload['jabatan_penandatangan'] ?? $dokumen->dari }},</p>
         <br><br><br><br>
         <p style="font-weight: bold; text-decoration: underline;">{{ $dokumen->isi_payload['nama_penandatangan'] ?? '................' }}</p>
         <p>NIP. {{ $dokumen->isi_payload['nip_penandatangan'] ?? '................' }}</p>

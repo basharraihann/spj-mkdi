@@ -23,12 +23,26 @@ class SuratMasuk extends Model
         'drive_link',
         'created_by_id',
         'status',
+        'jalur_tujuan',
+        'unit_id',
     ];
 
     protected $casts = [
         'tanggal_surat'    => 'date',
         'tanggal_diterima' => 'date',
     ];
+
+    public const JALUR_LABEL = [
+        'deputi' => 'Jalur Deputi (Eselon I)',
+        'eselon2' => 'Jalur Eselon 2',
+        'admin' => 'Jalur Admin',
+        'ppk' => 'Jalur PPK',
+    ];
+
+    public function getJalurLabelAttribute(): string
+    {
+        return self::JALUR_LABEL[$this->jalur_tujuan] ?? '-';
+    }
 
     /**
      * Relasi ke seluruh rantai Disposisi terkait Surat Masuk ini.

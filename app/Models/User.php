@@ -87,6 +87,20 @@ class User extends Authenticatable
         return $this->role === self::ROLE_USER;
     }
 
+    /**
+     * Setelah login, TU / Eselon 1 / Eselon 2 yang terhubung ke sebuah unit langsung ke Surat Masuk.
+     * Role lama (deputi-d2, asdep-d2, tu-d2) tetap didukung.
+     */
+    public function landsOnSuratMasuk(): bool
+    {
+        if (in_array($this->role, ['deputi-d2', 'asdep-d2', 'tu-d2'], true)) {
+            return true;
+        }
+
+        return $this->unit_id !== null
+            && in_array($this->role, [self::ROLE_TU, self::ROLE_ESELON1, self::ROLE_ESELON2], true);
+    }
+
     /** Pimpinan = Eselon 1 & Eselon 2 */
     public function isPimpinan(): bool
     {

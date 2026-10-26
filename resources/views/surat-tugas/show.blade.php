@@ -186,6 +186,10 @@
                     </div>
                 </section>
 
+                @include('surat-tugas._kontrol', ['st' => $st])
+
+                @include('surat-tugas._format-pdf', ['st' => $st])
+
                 @if (in_array($st->status, ['terbit', 'selesai']))
                     @php
                         $laporan = $laporan ?? null;

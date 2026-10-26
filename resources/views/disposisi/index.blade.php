@@ -1,165 +1,327 @@
-<x-app-layout>
+@php
+    $activeTab = $tab ?? 'semua';
+    $q = $q ?? '';
+    $adaFilter = $activeTab !== 'semua' || $q !== '';
+
+    $opsiStatus = [
+        'semua' => 'Semua',
+        'baru' => 'Baru',
+        'dibaca' => 'Dibaca',
+        'diproses' => 'Diproses',
+        'selesai' => 'Selesai',
+    ];
+
+    $chipStatus = [
+        'baru' => ['Baru', 'bg-blue-100 text-blue-700'],
+        'dibaca' => ['Dibaca', 'bg-gray-100 text-gray-600'],
+        'diproses' => ['Diproses', 'bg-amber-100 text-amber-700'],
+        'selesai' => ['Selesai', 'bg-green-100 text-green-700'],
+    ];
+
+    $chipSifat = [
+        'biasa' => 'bg-gray-100 text-gray-600',
+        'segera' => 'bg-red-100 text-red-600',
+        'rahasia' => 'bg-amber-100 text-amber-700',
+    ];
+
+    // Kelas label khusus tampilan mobile (satu baris = satu kartu)
+    $mobileLabel = "max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:text-right max-lg:py-1 max-lg:px-0 max-lg:before:content-[attr(data-label)] max-lg:before:text-[10px] max-lg:before:font-semibold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-gray-400";
+@endphp
+
+<x-app-layout title="Disposisi">
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-                <h2 class="font-bold text-xl text-slate-800 leading-tight">
-                    {{ __('Inbox Disposisi Digital') }}
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">Daftar lembar disposisi masuk yang memerlukan tindak lanjut Anda.</p>
-            </div>
-        </div>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Inbox Disposisi Digital</h2>
     </x-slot>
 
-    <div class="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-        {{-- ===== 1. Bilah Filter Tab Status & Form Pencarian ===== --}}
-        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-            
-            {{-- Navigation Tabs Filter --}}
-            <div class="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-                @php
-                    $activeTab = $tab ?? 'semua';
-                    $tabs = [
-                        'semua' => ['label' => 'Semua', 'count' => $jumlah['semua'] ?? 0],
-                        'baru' => ['label' => 'Baru', 'count' => $jumlah['baru'] ?? 0],
-                        'dibaca' => ['label' => 'Dibaca', 'count' => $jumlah['dibaca'] ?? 0],
-                        'diproses' => ['label' => 'Diproses', 'count' => $jumlah['diproses'] ?? 0],
-                    ];
-                @endphp
+            {{-- Kartu utama: judul + filter + tabel --}}
+            <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-6">
 
-                @foreach ($tabs as $key => $t)
-                    <a href="{{ route('disposisi.index', array_merge(request()->query(), ['tab' => $key])) }}"
-                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition {{ $activeTab === $key ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                        <span>{{ $t['label'] }}</span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $activeTab === $key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600' }}">
-                            {{ $t['count'] }}
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div class="min-w-0">
+                        <h3 class="text-lg font-bold text-gray-800">Disposisi</h3>
+                        <p class="text-sm text-gray-400">Daftar lembar disposisi masuk yang memerlukan tindak lanjut Anda.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        @if (($jumlah['baru'] ?? 0) > 0)
+                            <a href="{{ route('disposisi.index', ['tab' => 'baru']) }}"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-3 py-1.5 hover:bg-blue-100 transition">
+                                <span class="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                                {{ $jumlah['baru'] }} baru
+                            </a>
+                        @endif
+                        <span class="text-xs font-semibold text-gray-400 bg-gray-50 border border-gray-100 rounded-full px-3 py-1.5">
+                            {{ $disposisi->total() }} disposisi
                         </span>
-                    </a>
-                @endforeach
-            </div>
+                    </div>
+                </div>
 
-            {{-- Form Search Query --}}
-            <form action="{{ route('disposisi.index') }}" method="GET" class="relative min-w-[240px] sm:min-w-[280px]">
-                <input type="hidden" name="tab" value="{{ $activeTab }}">
-                <div class="relative">
-                    <input type="text" name="q" value="{{ $q ?? '' }}" placeholder="Cari perihal, agenda, atau asal surat..."
-                        class="w-full pl-9 pr-4 py-2 bg-slate-50 border-slate-200 rounded-xl text-xs focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                {{-- Filter bar --}}
+                <form action="{{ route('disposisi.index') }}" method="GET" class="flex flex-wrap items-end gap-3">
+                    <div class="flex flex-col gap-1 w-full sm:w-auto">
+                        <label for="dispo-filter-q" class="text-xs font-semibold text-gray-500">Perihal / Agenda / Asal Surat</label>
+                        <input type="text" id="dispo-filter-q" name="q" value="{{ $q }}" autocomplete="off"
+                            placeholder="Ketik kata kunci..."
+                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-72 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                    </div>
+
+                    <div class="flex flex-col gap-1 flex-1 sm:flex-none">
+                        <label for="dispo-filter-tab" class="text-xs font-semibold text-gray-500">Status</label>
+                        <select id="dispo-filter-tab" name="tab" onchange="this.form.submit()"
+                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                            @foreach ($opsiStatus as $key => $label)
+                                <option value="{{ $key }}" @selected($activeTab === $key)>
+                                    {{ $label }} ({{ $jumlah[$key] ?? 0 }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if ($adaFilter)
+                        <a href="{{ route('disposisi.index') }}"
+                            class="text-sm text-gray-400 hover:text-gray-600 transition px-1 py-2 sm:py-0">
+                            Reset
+                        </a>
+                    @endif
+
+                    <div class="hidden sm:block flex-1"></div>
+
+                    <button type="submit"
+                        class="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-md shadow-blue-600/20 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
-                    </div>
-                </div>
-            </form>
-        </div>
+                        Cari
+                    </button>
+                </form>
 
-        {{-- ===== 2. Container List Disposisi ===== --}}
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div class="divide-y divide-slate-100">
-                @forelse($disposisi ?? [] as $dispo)
-                    @php
-                        $isBaru = $dispo->status === 'baru';
-                    @endphp
+                {{-- Tabel responsif murni Tailwind --}}
+                <div class="border border-gray-100 rounded-xl overflow-hidden">
+                    <table class="w-full text-sm table-fixed max-lg:block max-lg:w-full">
+                        <colgroup class="max-lg:hidden">
+                            <col class="w-10">
+                            <col>
+                            <col class="w-44">
+                            <col class="w-24">
+                            <col class="w-24">
+                            <col class="w-28">
+                            <col class="w-28">
+                            <col class="w-20">
+                        </colgroup>
+                        <thead class="max-lg:hidden">
+                            <tr class="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-400">
+                                <th class="text-center px-2 py-3 font-semibold">No</th>
+                                <th class="text-left px-3 py-3 font-semibold">Perihal Surat</th>
+                                <th class="text-left px-3 py-3 font-semibold">Dari / Asal Surat</th>
+                                <th class="text-center px-3 py-3 font-semibold">Sifat</th>
+                                <th class="text-center px-3 py-3 font-semibold">Status</th>
+                                <th class="text-left px-3 py-3 font-semibold">Tenggat</th>
+                                <th class="text-left px-3 py-3 font-semibold">Diterima</th>
+                                <th class="text-center px-3 py-3 font-semibold">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 max-lg:block max-lg:w-full">
+                            @forelse ($disposisi as $i => $dispo)
+                                @php
+                                    $surat = $dispo->suratMasuk;
+                                    $isBaru = $dispo->status === 'baru';
+                                    $isSelesai = $dispo->status === 'selesai';
 
-                    <a href="{{ route('disposisi.show', $dispo->id) }}" 
-                        class="p-4 sm:p-5 block hover:bg-slate-50/80 transition relative group border-l-4 {{ $isBaru ? 'border-l-blue-600 bg-blue-50/20' : 'border-l-transparent' }}">
-                        
-                        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
-                            
-                            {{-- Info Disposisi Left Side --}}
-                            <div class="flex items-start gap-3.5">
-                                {{-- Avatar Pengirim --}}
-                                <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-600 font-bold text-xs uppercase shadow-2xs group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-200 transition">
-                                    {{ substr($dispo->pengirim->name ?? 'TU', 0, 2) }}
-                                </div>
+                                    $tenggat = $dispo->tenggat_waktu;
+                                    $terlambat = $tenggat && !$isSelesai && $tenggat->copy()->startOfDay()->lt(today());
+                                    $hariIni = $tenggat && !$isSelesai && $tenggat->copy()->startOfDay()->eq(today());
 
-                                <div class="space-y-1">
-                                    {{-- Agenda & Badges --}}
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
-                                            {{ $dispo->suratMasuk->nomor_agenda ?? '-' }}
-                                        </span>
+                                    $petunjuk = is_array($dispo->petunjuk) ? $dispo->petunjuk : [];
+                                @endphp
 
-                                        {{-- Badge Sifat --}}
-                                        <span class="px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-md border {{ $dispo->sifat === 'segera' ? 'bg-red-50 text-red-600 border-red-200/80' : 'bg-slate-100 text-slate-600 border-slate-200/60' }}">
-                                            {{ $dispo->sifat }}
-                                        </span>
+                                {{-- BARIS UTAMA --}}
+                                <tr class="js-dispo-toggle bg-white hover:bg-gray-50/60 transition align-top cursor-pointer max-lg:block max-lg:p-3">
 
-                                        {{-- Badge Status Disposisi --}}
-                                        @if ($isBaru)
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-100 text-blue-700">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-                                                Baru
-                                            </span>
-                                        @elseif($dispo->status === 'dibaca')
-                                            <span class="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
-                                                Dibaca
-                                            </span>
-                                        @elseif($dispo->status === 'diproses')
-                                            <span class="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                                                Diteruskan
-                                            </span>
-                                        @endif
-                                    </div>
+                                    {{-- No --}}
+                                    <td class="px-2 py-3 text-center text-gray-400 tabular-nums max-lg:flex max-lg:items-center max-lg:justify-between max-lg:py-1 max-lg:px-0">
+                                        <div class="max-lg:text-[11px] max-lg:font-semibold max-lg:before:content-['No._']">{{ $disposisi->firstItem() + $i }}</div>
+                                        <svg class="js-toggle-chevron h-3 w-3 mx-auto mt-1 text-gray-300 transition-all duration-200 max-lg:m-0 max-lg:h-4 max-lg:w-4"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </td>
 
-                                    {{-- Perihal Surat Masuk --}}
-                                    <h4 class="text-sm sm:text-base font-semibold {{ $isBaru ? 'text-slate-900 font-bold' : 'text-slate-800' }} group-hover:text-blue-600 transition leading-snug">
-                                        {{ $dispo->suratMasuk->perihal ?? '-' }}
-                                    </h4>
-
-                                    {{-- Pengirim & Instruksi --}}
-                                    <div class="text-xs text-slate-500 space-y-0.5 pt-0.5">
-                                        <p class="flex items-center gap-1.5">
-                                            <span class="font-medium text-slate-700">Dari: {{ $dispo->pengirim->name ?? 'Staf TU' }}</span>
-                                            @if($dispo->suratMasuk->asal_surat)
-                                                <span class="text-slate-300">•</span>
-                                                <span class="text-slate-400">Asal: {{ $dispo->suratMasuk->asal_surat }}</span>
+                                    {{-- Perihal --}}
+                                    <td class="px-3 py-3 max-lg:block max-lg:py-1 max-lg:px-0">
+                                        <div class="flex items-start gap-2">
+                                            @if ($isBaru)
+                                                <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600 animate-pulse"></span>
                                             @endif
-                                        </p>
-                                        <p class="text-slate-600 italic line-clamp-1">
-                                            Catatan: "{{ Str::limit($dispo->instruksi, 110) }}"
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                                            <span class="line-clamp-2 break-words {{ $isBaru ? 'font-bold text-gray-900' : 'font-semibold text-gray-800' }}">
+                                                {{ $surat->perihal ?? '-' }}
+                                            </span>
+                                        </div>
+                                        <div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-400 {{ $isBaru ? 'pl-3.5' : '' }}">
+                                            <span class="font-mono">{{ $surat->nomor_agenda ?? '-' }}</span>
+                                            @if ($dispo->is_tembusan)
+                                                <span class="inline-flex items-center bg-violet-100 text-violet-700 text-[10px] font-medium px-2 py-0.5 rounded-full">Tembusan</span>
+                                            @endif
+                                        </div>
+                                    </td>
 
-                            {{-- Time Ago Right Side --}}
-                            <div class="flex items-center sm:flex-col sm:items-end justify-between shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
-                                <span class="text-[11px] text-slate-400 font-medium">
-                                    {{ $dispo->created_at ? $dispo->created_at->diffForHumans() : '' }}
-                                </span>
-                                <span class="text-xs text-blue-600 font-semibold group-hover:translate-x-0.5 transition hidden sm:inline-flex items-center gap-1 mt-2">
-                                    <span>Buka Detail</span>
-                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                    </svg>
-                                </span>
-                            </div>
+                                    {{-- Dari / Asal --}}
+                                    <td data-label="Dari / Asal" class="px-3 py-3 text-gray-500 {{ $mobileLabel }}">
+                                        <div class="max-lg:w-1/2 min-w-0">
+                                            <div class="font-medium text-gray-700 truncate">{{ $dispo->pengirim->name ?? 'Staf TU' }}</div>
+                                            <div class="text-xs text-gray-400 truncate">{{ $surat->asal_surat ?? '—' }}</div>
+                                        </div>
+                                    </td>
 
-                        </div>
-                    </a>
-                @empty
-                    <div class="p-12 text-center space-y-3">
-                        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Tidak ada disposisi</h4>
-                            <p class="text-xs text-slate-400 mt-1">Belum ada lembar disposisi masuk pada kategori atau hasil pencarian ini.</p>
-                        </div>
-                    </div>
-                @endforelse
-            </div>
+                                    {{-- Sifat --}}
+                                    <td data-label="Sifat" class="px-3 py-3 text-center {{ $mobileLabel }}">
+                                        <span class="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize {{ $chipSifat[$dispo->sifat] ?? $chipSifat['biasa'] }}">
+                                            {{ $dispo->sifat ?: 'biasa' }}
+                                        </span>
+                                    </td>
 
-            {{-- ===== 3. Pagination Links ===== --}}
-            @if(method_exists($disposisi ?? collect(), 'hasPages') && $disposisi->hasPages())
-                <div class="p-4 border-t border-slate-100 bg-slate-50/50">
-                    {{ $disposisi->links() }}
+                                    {{-- Status --}}
+                                    <td data-label="Status" class="px-3 py-3 text-center {{ $mobileLabel }}">
+                                        <span class="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full {{ $chipStatus[$dispo->status][1] ?? 'bg-gray-100 text-gray-600' }}">
+                                            {{ $chipStatus[$dispo->status][0] ?? ucfirst($dispo->status) }}
+                                        </span>
+                                    </td>
+
+                                    {{-- Tenggat --}}
+                                    <td data-label="Tenggat" class="px-3 py-3 text-xs leading-snug {{ $mobileLabel }}">
+                                        <div class="max-lg:w-1/2">
+                                            @if ($tenggat)
+                                                <span class="{{ $terlambat ? 'text-red-600 font-semibold' : ($hariIni ? 'text-amber-600 font-semibold' : 'text-gray-500') }}">
+                                                    {{ $tenggat->format('d M Y') }}
+                                                </span>
+                                                @if ($terlambat)
+                                                    <span class="block text-[10px] font-semibold text-red-500">Terlambat</span>
+                                                @elseif ($hariIni)
+                                                    <span class="block text-[10px] font-semibold text-amber-500">Hari ini</span>
+                                                @endif
+                                            @else
+                                                <span class="text-gray-300">—</span>
+                                            @endif
+                                        </div>
+                                    </td>
+
+                                    {{-- Diterima --}}
+                                    <td data-label="Diterima" class="px-3 py-3 text-xs text-gray-500 leading-snug {{ $mobileLabel }}">
+                                        <div class="max-lg:w-1/2" title="{{ $dispo->created_at?->format('d M Y, H:i') }}">
+                                            {{ $dispo->created_at?->diffForHumans() }}
+                                        </div>
+                                    </td>
+
+                                    {{-- Aksi --}}
+                                    <td class="px-2 py-3 js-no-toggle max-lg:block max-lg:pt-2 max-lg:px-0">
+                                        <a href="{{ route('disposisi.show', $dispo->id) }}" title="Buka"
+                                            class="inline-flex items-center justify-center w-full px-2 py-2 lg:py-1 rounded-md text-[11px] font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
+                                            Buka
+                                        </a>
+                                    </td>
+                                </tr>
+
+                                {{-- BARIS DETAIL --}}
+                                <tr class="js-dispo-detail hidden bg-blue-50/40 max-lg:[&:not(.hidden)]:block">
+                                    <td class="align-top pt-3 max-lg:hidden">
+                                        <svg class="h-4 w-4 mx-auto text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 12h11m0 0l-4-4m4 4l-4 4" />
+                                        </svg>
+                                    </td>
+
+                                    <td colspan="7" class="px-3 py-4 max-lg:block max-lg:p-4">
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-3">Detail Disposisi</p>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">Nomor Surat</p>
+                                                <p class="text-gray-700 font-medium break-words">{{ $surat->nomor_surat ?? '—' }}</p>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">Asal Surat</p>
+                                                <p class="text-gray-700 font-medium break-words">{{ $surat->asal_surat ?? '—' }}</p>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">Petunjuk</p>
+                                                @if (count($petunjuk))
+                                                    <div class="flex flex-wrap gap-1">
+                                                        @foreach ($petunjuk as $pt)
+                                                            <span class="inline-flex items-center bg-blue-100 text-blue-700 text-[10px] font-medium px-2 py-0.5 rounded-full">{{ $pt }}</span>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <p class="text-gray-400">—</p>
+                                                @endif
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-gray-400 uppercase tracking-wide text-[10px] mb-1">Catatan</p>
+                                                <p class="text-gray-700 font-medium break-words whitespace-pre-line">{{ \Illuminate\Support\Str::limit($dispo->instruksi ?: '—', 200) }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-5 py-14 text-center text-gray-400">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <span>{{ $adaFilter ? 'Belum ada disposisi yang cocok.' : 'Belum ada disposisi masuk.' }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
-            @endif
-        </div>
 
+                {{-- Pagination --}}
+                @if ($disposisi->total() > 0)
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <p class="text-xs text-gray-400">
+                            Menampilkan <span class="font-semibold text-gray-500">{{ $disposisi->firstItem() }}–{{ $disposisi->lastItem() }}</span>
+                            dari <span class="font-semibold text-gray-500">{{ $disposisi->total() }}</span> disposisi
+                        </p>
+                        @if ($disposisi->hasPages())
+                            <div>{{ $disposisi->links() }}</div>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
+
+    <script>
+        (function () {
+            const rows = Array.from(document.querySelectorAll('.js-dispo-toggle'));
+            if (rows.length === 0) return;
+
+            function setOpen(row, open) {
+                const detailRow = row.nextElementSibling;
+                const chevron = row.querySelector('.js-toggle-chevron');
+
+                if (detailRow && detailRow.classList.contains('js-dispo-detail')) {
+                    detailRow.classList.toggle('hidden', !open);
+                }
+                row.classList.toggle('bg-blue-50/50', open);
+                row.classList.toggle('bg-white', !open);
+                if (chevron) {
+                    chevron.classList.toggle('rotate-90', open);
+                    chevron.classList.toggle('text-blue-500', open);
+                    chevron.classList.toggle('text-gray-300', !open);
+                }
+                row.dataset.open = open ? '1' : '0';
+            }
+
+            rows.forEach(function (row) {
+                row.addEventListener('click', function (e) {
+                    if (e.target.closest('.js-no-toggle')) return;
+                    setOpen(row, row.dataset.open !== '1');
+                });
+            });
+        })();
+    </script>
 </x-app-layout>

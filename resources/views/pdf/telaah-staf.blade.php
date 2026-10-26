@@ -35,9 +35,9 @@
     <div class="section-content">{!! nl2br(e($dokumen->isi_payload['saran'] ?? '-')) !!}</div>
 
     <div style="float: right; width: 45%; margin-top: 30px;">
-        <p>{{ $dokumen->isi_payload['jabatan_pembuat'] ?? 'Pembuat Telaah Staf' }},</p>
+        <p>{{ $dokumen->isi_payload['jabatan_pembuat'] ?? ($dokumen->isi_payload['jabatan_penandatangan'] ?? 'Nama Jabatan Pembuat Telaah Staf') }},</p>
         <br><br><br>
-        <p style="font-weight: bold; text-decoration: underline;">{{ $dokumen->isi_payload['nama_pembuat'] ?? '................' }}</p>
+        <p style="font-weight: bold; text-decoration: underline;">{{ $dokumen->isi_payload['nama_pembuat'] ?? ($dokumen->isi_payload['nama_penandatangan'] ?? '................') }}</p>
     </div>
 
 </body>

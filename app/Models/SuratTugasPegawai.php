@@ -24,6 +24,12 @@ class SuratTugasPegawai extends Model
         return $this->belongsTo(SuratTugas::class);
     }
 
+    /** Data master pegawai (untuk pangkat/golongan pada template ST). Bisa null. */
+    public function pegawai(): BelongsTo
+    {
+        return $this->belongsTo(Pegawai::class);
+    }
+
     public function getJenisLabelAttribute(): string
     {
         return $this->jenis === 'non_pns' ? 'Non PNS' : 'PNS';

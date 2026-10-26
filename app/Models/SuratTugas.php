@@ -64,6 +64,12 @@ class SuratTugas extends Model
         return $this->hasMany(SuratTugasPegawai::class)->orderBy('urutan');
     }
 
+    /** Lembar kontrol (opsional): tahapan konseptor, pemeriksa, persetujuan atasan. */
+    public function kontrol(): HasMany
+    {
+        return $this->hasMany(SuratTugasKontrol::class)->orderBy('urutan');
+    }
+
     public function tusi(): BelongsTo
     {
         return $this->belongsTo(Tusi::class);

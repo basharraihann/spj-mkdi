@@ -33,6 +33,7 @@ class DocumentPdfController extends Controller
             'telaah_staf' => 'pdf.telaah-staf',
             'notula' => 'pdf.notula',
             'surat_pernyataan' => 'pdf.surat-pernyataan',
+            'laporan' => 'pdf.laporan',
             default => abort(404, 'Template dokumen tidak ditemukan.'),
         };
 

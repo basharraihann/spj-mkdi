@@ -10,11 +10,13 @@ use App\Http\Controllers\DocumentPdfController;
 use App\Http\Controllers\LaporanStController;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
+use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\NominatifController;
 use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\NotaDinasController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\KontrolStController;
 use App\Http\Controllers\SuratKeluarController;
 use App\Http\Controllers\SuratMasukController;
 use App\Http\Controllers\SuratTugasController;
@@ -34,7 +36,7 @@ use Illuminate\Support\Facades\Route;
 // Halaman Utama: Redirect otomatis untuk Deputi 2, Asdep 2, dan TU Deputi 2 ke Surat Masuk
 Route::get('/', function () {
     $user = Auth::user();
-    if ($user && in_array($user->role, ['deputi-d2', 'asdep-d2', 'tu-d2'], true)) {
+    if ($user && $user->landsOnSuratMasuk()) {
         return redirect()->route('surat-masuk.index');
     }
     return redirect()->route('dashboard');
@@ -74,6 +76,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('{disposisi}', 'show')->name('show');
             Route::post('{disposisi}', 'store')->name('store');
+            Route::post('{disposisi}/laporan', 'laporan')->name('laporan');
         });
 
     Route::prefix('nota-dinas')
@@ -86,6 +89,7 @@ Route::middleware('auth')->group(function () {
         });
 
     // Modul Surat Keluar (Nota Dinas, Undangan, Telaah Staf, Notula, Surat Pernyataan)
+    Route::patch('surat-keluar/{suratKeluar}/status', [SuratKeluarController::class, 'ubahStatus'])->name('surat-keluar.status');
     Route::resource('surat-keluar', SuratKeluarController::class);
 
     // ==========================================
@@ -186,6 +190,11 @@ Route::middleware('auth')->group(function () {
 
             Route::post('{suratTugas}/terbitkan', 'terbitkan')->name('terbitkan');
 
+            // Lembar kontrol ST (opsional)
+            Route::post('{suratTugas}/kontrol', [KontrolStController::class, 'mulai'])->name('kontrol.mulai');
+            Route::patch('kontrol/{kontrol}', [KontrolStController::class, 'aksi'])->name('kontrol.aksi');
+            Route::get('{suratTugas}/kontrol/cetak', [KontrolStController::class, 'cetak'])->name('kontrol.cetak');
+
             Route::post('{suratTugas}/laporan', [LaporanStController::class, 'simpan'])->name('laporan.simpan');
 
             Route::get('{suratTugas}/laporan/berkas', [LaporanStController::class, 'berkas'])->name('laporan.berkas');
@@ -197,6 +206,10 @@ Route::middleware('auth')->group(function () {
         });
 
     Route::get('tugas-saya', [TugasSayaController::class, 'index'])->name('tugas-saya.index');
+
+    // Monitoring terpadu & rekap Excel
+    Route::get('monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
+    Route::get('monitoring/export', [MonitoringController::class, 'export'])->name('monitoring.export');
 
     Route::middleware('admin')
         ->resource('tusi', TusiController::class)

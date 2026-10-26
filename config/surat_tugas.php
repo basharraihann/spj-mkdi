@@ -19,6 +19,11 @@ return [
         'nip' => null,
     ],
 
+    // Template ST 2026 (format: lampiran, tanpa_lampiran, an_sesdep)
+    'nama_deputi' => 'Deputi Bidang Koordinasi Usaha Pangan dan Pertanian',
+    'tembusan_default' => ['Deputi Bidang Koordinasi Usaha Pangan dan Pertanian'],
+    'tembusan_an_sesdep' => ['Sekretaris Kementerian Koordinator'],
+
     'untuk_default' => [
         'Selesai melaksanakan tugas agar menyampaikan laporan tertulis sesuai dengan ketentuan yang berlaku;',
         'Biaya yang diperlukan untuk kegiatan tersebut dibebankan pada Anggaran Kementerian Koordinator Bidang Pangan.',

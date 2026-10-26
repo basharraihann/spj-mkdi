@@ -15,7 +15,7 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         // KUNCI: Pengalihan khusus untuk Deputi 2, Asdep 2, dan TU Deputi 2 ke Surat Masuk
-        if ($user && in_array($user->role, ['deputi-d2', 'asdep-d2', 'tu-d2'], true)) {
+        if ($user && $user->landsOnSuratMasuk()) {
             return redirect()->route('surat-masuk.index');
         }
 
