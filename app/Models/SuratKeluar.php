@@ -77,13 +77,39 @@ class SuratKeluar extends Model
         ],
     ];
 
+    /**
+     * Alur sesuai Diagram D2 Surat Keluar:
+     * draft (buat/revisi konsep, TU) -> diajukan (Es 3 / Madya periksa konsep)
+     * -> diperiksa_es3 (Es 2 & Admin persetujuan) -> disetujui_es2 (proses TTD/TTE)
+     * -> [disetujui_es1, hanya bila perlu_es1] -> terbit (TU terima surat TTD & penomoran)
+     * -> terkirim (TU kirim ke unit tujuan = selesai).
+     * "Perlu Revisi" dari Es 3 / Es 2 mengembalikan dokumen ke draft.
+     */
     public const STATUS_LABEL = [
         'draft' => 'Draf',
-        'diajukan' => 'Diajukan / Diperiksa',
-        'disetujui_es2' => 'Disetujui Eselon 2',
+        'diajukan' => 'Diajukan / Diperiksa Eselon 3',
+        'diperiksa_es3' => 'Diperiksa Eselon 3 (menunggu Eselon 2)',
+        'disetujui_es2' => 'Disetujui Eselon 2 (proses TTD/TTE)',
         'disetujui_es1' => 'Disetujui Eselon 1',
-        'terbit' => 'Terbit (TTD Basah)',
+        'terbit' => 'Terbit (TTD diterima & bernomor)',
+        'terkirim' => 'Terkirim ke Unit Tujuan (Selesai)',
     ];
+
+    /** Label pendek untuk badge tabel & kartu rekap agar tidak membungkus baris. */
+    public const STATUS_SINGKAT = [
+        'draft' => 'Draf',
+        'diajukan' => 'Periksa Es 3',
+        'diperiksa_es3' => 'Menunggu Es 2',
+        'disetujui_es2' => 'Proses TTD/TTE',
+        'disetujui_es1' => 'Disetujui Es 1',
+        'terbit' => 'Terbit',
+        'terkirim' => 'Terkirim',
+    ];
+
+    public function getStatusSingkatAttribute(): string
+    {
+        return self::STATUS_SINGKAT[$this->status_persetujuan] ?? $this->status_label;
+    }
 
     public function getStatusLabelAttribute(): string
     {
@@ -116,6 +142,28 @@ class SuratKeluar extends Model
     public function getButuhEselon1Attribute(): bool
     {
         return (bool) $this->payload('perlu_es1', false);
+    }
+
+    /** Sudah ditandatangani & siap diterima TU untuk penomoran/penerbitan. */
+    public function getSiapTerbitAttribute(): bool
+    {
+        return $this->status_persetujuan === 'disetujui_es1'
+            || ($this->status_persetujuan === 'disetujui_es2' && !$this->butuh_eselon1);
+    }
+
+    /** Siapa yang boleh menekan "Perlu Revisi" (kembalikan ke TU) pada status saat ini. */
+    public function bolehDikembalikanOleh(User $user): bool
+    {
+        if ($user->isAdmin()) {
+            return in_array($this->status_persetujuan, ['diajukan', 'diperiksa_es3', 'disetujui_es2', 'disetujui_es1'], true);
+        }
+
+        return match (true) {
+            $user->isEselon3() => $this->status_persetujuan === 'diajukan',
+            $user->isEselon2() => in_array($this->status_persetujuan, ['diperiksa_es3', 'disetujui_es2'], true),
+            $user->isEselon1() => in_array($this->status_persetujuan, ['disetujui_es2', 'disetujui_es1'], true),
+            default => false,
+        };
     }
 
     /** Hanya draf yang boleh diedit/dihapus (kecuali admin). */

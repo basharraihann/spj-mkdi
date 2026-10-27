@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Laporan {{ $dokumen->hal }}</title>
     <style>
-        @page { margin: 2cm 2.5cm; }
-        body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.45; color: #000; }
+        @page { margin: 2cm 2cm 2.5cm 3cm; }
+        body { font-family: "Bookman Old Style", "DejaVu Serif", Georgia, serif; font-size: 12pt; line-height: 1.45; color: #000; }
         .judul { font-weight: bold; margin-top: 12px; }
         .isi { text-align: justify; margin-left: 18px; }
     </style>

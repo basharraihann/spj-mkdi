@@ -45,11 +45,12 @@
                 @if ($suratKeluarSaya->isNotEmpty())
                     <div>
                         <p class="text-xs font-semibold text-slate-500 mb-1">Surat keluar ({{ $suratKeluarSaya->count() }})</p>
-                        <ul class="divide-y divide-slate-100">
+                        <ul class="divide-y divide-slate-100 max-h-96 overflow-y-auto pr-1">
                             @foreach ($suratKeluarSaya as [$s, $ket])
-                                <li class="py-2 flex flex-wrap items-center justify-between gap-2">
-                                    <span>{{ $s->nama_jenis }}: {{ \Illuminate\Support\Str::limit($s->hal, 70) }} <span class="text-[11px] text-slate-400">&mdash; {{ $ket }}</span></span>
-                                    <a href="{{ route('surat-keluar.show', $s->id) }}" class="text-xs font-medium text-blue-600 hover:underline">Buka</a>
+                                <li class="py-2 flex items-center justify-between gap-3">
+                                    <span class="min-w-0 flex-1 truncate" title="{{ $s->nama_jenis }}: {{ $s->hal }}">{{ $s->nama_jenis }}: {{ \Illuminate\Support\Str::limit($s->hal, 70) }}</span>
+                                    <span class="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{{ $ket }}</span>
+                                    <a href="{{ route('surat-keluar.show', $s->id) }}" class="shrink-0 text-xs font-medium text-blue-600 hover:underline">Buka</a>
                                 </li>
                             @endforeach
                         </ul>
@@ -108,8 +109,8 @@
                 <div class="{{ $kartu }}">
                     <div class="{{ $kepala }}">Surat Keluar, Surat Tugas &amp; Laporan (SPJ)</div>
                     <div class="p-4 grid grid-cols-2 gap-3 text-xs">
-                        @foreach (\App\Models\SuratKeluar::STATUS_LABEL as $k => $lb)
-                            <div class="rounded-xl bg-slate-50 p-3"><div class="text-slate-500">Surat Keluar: {{ $lb }}</div><div class="text-xl font-bold text-slate-800">{{ $total($rekap['surat_keluar'], $k) }}</div></div>
+                        @foreach (\App\Models\SuratKeluar::STATUS_SINGKAT as $k => $lb)
+                            <div class="rounded-xl bg-slate-50 p-3" title="{{ \App\Models\SuratKeluar::STATUS_LABEL[$k] ?? $lb }}"><div class="text-slate-500">Surat Keluar: {{ $lb }}</div><div class="text-xl font-bold text-slate-800">{{ $total($rekap['surat_keluar'], $k) }}</div></div>
                         @endforeach
                         @foreach (\App\Models\SuratTugas::STATUS_LABEL as $k => $lb)
                             <div class="rounded-xl bg-blue-50/60 p-3"><div class="text-slate-500">Surat Tugas: {{ $lb }}</div><div class="text-xl font-bold text-slate-800">{{ $total($rekap['surat_tugas'], $k) }}</div></div>

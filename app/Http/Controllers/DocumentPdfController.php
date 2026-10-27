@@ -19,7 +19,9 @@ class DocumentPdfController extends Controller
         $pdf = Pdf::loadView('pdf.lembar-disposisi', compact('disposisi'))
             ->setPaper('a4', 'portrait');
 
-        return $pdf->stream('Lembar-Disposisi-' . ($disposisi->suratMasuk->nomor_agenda ?? $disposisi->id) . '.pdf');
+        $namaFile = trim(preg_replace('/[\\\\\/:*?"<>|\s]+/', '-', 'Lembar-Disposisi-' . ($disposisi->suratMasuk->nomor_agenda ?? $disposisi->id)), '-');
+
+        return $pdf->stream($namaFile . '.pdf');
     }
 
     /**
@@ -40,6 +42,10 @@ class DocumentPdfController extends Controller
         $pdf = Pdf::loadView($viewName, ['dokumen' => $suratKeluar])
             ->setPaper('a4', 'portrait');
 
-        return $pdf->stream($suratKeluar->nama_jenis . '-' . ($suratKeluar->nomor_surat ?: 'Draft') . '.pdf');
+        // Nomor surat & jenis dokumen bisa memuat "/" atau "\\" yang tidak boleh ada di nama file
+        $namaFile = $suratKeluar->nama_jenis . '-' . ($suratKeluar->nomor_surat ?: 'Draft');
+        $namaFile = trim(preg_replace('/[\\\\\/:*?"<>|\s]+/', '-', $namaFile), '-');
+
+        return $pdf->stream($namaFile . '.pdf');
     }
 }

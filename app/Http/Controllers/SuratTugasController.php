@@ -19,7 +19,7 @@ use Illuminate\Validation\Rule;
 
 class SuratTugasController extends Controller
 {
-    private const DASAR_TETAP = 'Daftar Isian Pelaksanaan Anggaran (DIPA) Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2025 Nomor: SP DIPA-131.01-0/2026 tanggal 1 Desember 2025';
+    private const DASAR_TETAP = 'Daftar Isian Pelaksanaan Anggaran (DIPA) Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2026 Nomor: SP DIPA-131.01.1.694775/2026 tanggal 1 Desember 2025';
 
     public function __construct(private SuratTugasNumberService $numbers)
     {

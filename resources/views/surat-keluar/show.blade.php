@@ -3,11 +3,12 @@
     $st = $suratKeluar->status_persetujuan;
     $admin = $u->isAdmin();
     $payload = $suratKeluar->isi_payload ?? [];
-    $siapTerbit = $st === 'disetujui_es1' || ($st === 'disetujui_es2' && !$suratKeluar->butuh_eselon1);
+    $siapTerbit = $suratKeluar->siap_terbit;
     $bolehUbah = ($suratKeluar->bisa_diubah || $admin) && ($admin || $u->isTu() || $suratKeluar->created_by === $u->id);
-    $tahap = ['draft' => 'Draf', 'diajukan' => 'Diperiksa Es 2', 'disetujui_es2' => 'Disetujui Es 2'];
+    $tahap = ['draft' => 'Draf', 'diajukan' => 'Diperiksa Es 3', 'diperiksa_es3' => 'Persetujuan Es 2', 'disetujui_es2' => 'Disetujui Es 2 (TTD/TTE)'];
     if ($suratKeluar->butuh_eselon1) { $tahap['disetujui_es1'] = 'Disetujui Es 1'; }
-    $tahap['terbit'] = 'Terbit';
+    $tahap['terbit'] = 'Terima TTD & Nomor';
+    $tahap['terkirim'] = 'Terkirim (Selesai)';
     $urutan = array_keys($tahap);
     $posisi = array_search($st, $urutan, true);
     $btn = 'px-4 py-2 text-xs font-semibold rounded-xl shadow-sm transition';
@@ -54,7 +55,14 @@
                     </form>
                 @endif
 
-                @if ($st === 'diajukan' && ($admin || $u->isEselon2()))
+                @if ($st === 'diajukan' && ($admin || $u->isEselon3()))
+                    <form method="POST" action="{{ route('surat-keluar.status', $suratKeluar->id) }}">@csrf @method('PATCH')
+                        <input type="hidden" name="aksi" value="periksa_es3">
+                        <button class="{{ $btn }} bg-emerald-600 hover:bg-emerald-700 text-white">Konsep Sesuai (Eselon 3 / Madya)</button>
+                    </form>
+                @endif
+
+                @if ($st === 'diperiksa_es3' && ($admin || $u->isEselon2()))
                     <form method="POST" action="{{ route('surat-keluar.status', $suratKeluar->id) }}">@csrf @method('PATCH')
                         <input type="hidden" name="aksi" value="setujui_es2">
                         <button class="{{ $btn }} bg-emerald-600 hover:bg-emerald-700 text-white">Setujui (Eselon 2)</button>
@@ -68,7 +76,7 @@
                     </form>
                 @endif
 
-                @if (in_array($st, ['diajukan', 'disetujui_es2', 'disetujui_es1'], true) && ($admin || $u->isEselon2() || $u->isEselon1()))
+                @if ($suratKeluar->bolehDikembalikanOleh($u))
                     <form method="POST" action="{{ route('surat-keluar.status', $suratKeluar->id) }}" class="flex gap-2">@csrf @method('PATCH')
                         <input type="hidden" name="aksi" value="kembalikan">
                         <input type="text" name="catatan" placeholder="Catatan revisi..." class="rounded-xl border-slate-200 text-xs">
@@ -79,8 +87,16 @@
                 @if ($siapTerbit && ($admin || $u->isTu()))
                     <form method="POST" action="{{ route('surat-keluar.status', $suratKeluar->id) }}" enctype="multipart/form-data" class="flex flex-wrap gap-2 items-center">@csrf @method('PATCH')
                         <input type="hidden" name="aksi" value="terbit">
+                        <input type="text" name="nomor_surat" value="{{ old('nomor_surat', $suratKeluar->nomor_surat) }}" placeholder="Nomor surat (penomoran)" required class="rounded-xl border-slate-200 text-xs">
                         <input type="file" name="file_scan_ttd" accept=".pdf,.jpg,.jpeg,.png" class="text-xs">
-                        <button class="{{ $btn }} bg-slate-800 hover:bg-slate-900 text-white">Terbitkan (TTD Basah)</button>
+                        <button class="{{ $btn }} bg-slate-800 hover:bg-slate-900 text-white">Terima Surat TTD &amp; Nomori</button>
+                    </form>
+                @endif
+
+                @if ($st === 'terbit' && ($admin || $u->isTu()))
+                    <form method="POST" action="{{ route('surat-keluar.status', $suratKeluar->id) }}">@csrf @method('PATCH')
+                        <input type="hidden" name="aksi" value="kirim">
+                        <button class="{{ $btn }} bg-blue-600 hover:bg-blue-700 text-white">Kirim ke Unit Tujuan (Selesai)</button>
                     </form>
                 @endif
             </div>
@@ -99,10 +115,13 @@
                 <div><dt class="font-semibold text-slate-500">Dari</dt><dd>{{ $suratKeluar->dari ?: '-' }}</dd></div>
                 <div><dt class="font-semibold text-slate-500">Lampiran</dt><dd>{{ $suratKeluar->dengan_lampiran ? 'Dengan lampiran' : 'Tanpa lampiran' }}</dd></div>
                 <div><dt class="font-semibold text-slate-500">Pembuat</dt><dd>{{ $suratKeluar->pembuat->name ?? '-' }}</dd></div>
+                @if (!empty($payload['tanggal_kirim']))
+                    <div><dt class="font-semibold text-slate-500">Dikirim ke Unit Tujuan</dt><dd>{{ \Carbon\Carbon::parse($payload['tanggal_kirim'])->format('d M Y') }}</dd></div>
+                @endif
             </dl>
 
             @if ($suratKeluar->file_scan_ttd)
-                <p class="mt-4 text-xs"><a class="text-blue-600 underline" target="_blank" href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($suratKeluar->file_scan_ttd) }}">Lihat hasil scan TTD basah</a></p>
+                <p class="mt-4 text-xs"><a class="text-blue-600 underline" target="_blank" href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($suratKeluar->file_scan_ttd) }}">Lihat hasil scan surat TTD/TTE</a></p>
             @endif
         </div>
 

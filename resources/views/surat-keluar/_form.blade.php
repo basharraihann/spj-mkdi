@@ -126,7 +126,7 @@
         <h4 class="text-xs font-bold text-blue-900 uppercase tracking-wider">Isian Khusus Surat Undangan</h4>
         <div>
             <label class="{{ $lbl }}">Dalam rangka (kalimat pembuka)</label>
-            <input type="text" name="isi_payload[pembuka]" value="{{ $p('pembuka') }}" placeholder="Dalam rangka ..., bersama ini kami mengundang Saudara untuk hadir dalam rapat yang akan dilaksanakan pada:" class="{{ $inp }}">
+            <input type="text" name="isi_payload[pembuka]" value="{{ $p('pembuka') }}" placeholder="Dalam rangka ..., bersama ini kami mengundang Saudara untuk hadir dalam rapat yang akan dilaksanakan" class="{{ $inp }}">
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -162,7 +162,7 @@
     {{-- 3. TELAAH STAF --}}
     <fieldset x-show="jenis === 'telaah_staf'" :disabled="jenis !== 'telaah_staf'" x-cloak class="{{ $sect }}">
         <h4 class="text-xs font-bold text-blue-900 uppercase tracking-wider">Isian Khusus Telaah Staf</h4>
-        @foreach ([['persoalan', 'I. Persoalan', 2], ['praanggapan', 'II. Praanggapan', 2], ['fakta', 'III. Fakta yang Mempengaruhi', 2], ['analisis', 'IV. Analisis', 3], ['kesimpulan', 'V. Kesimpulan', 2], ['saran', 'VI. Saran', 2]] as [$k, $label, $rows])
+        @foreach ([['persoalan', 'A. Persoalan', 2], ['praanggapan', 'B. Praanggapan', 2], ['fakta', 'C. Fakta yang Mempengaruhi', 2], ['analisis', 'D. Analisis', 3], ['kesimpulan', 'E. Kesimpulan', 2], ['saran', 'F. Saran', 2]] as [$k, $label, $rows])
             <div>
                 <label class="{{ $lbl }}">{{ $label }}</label>
                 <textarea name="isi_payload[{{ $k }}]" rows="{{ $rows }}" class="{{ $inp }}">{{ $p($k) }}</textarea>

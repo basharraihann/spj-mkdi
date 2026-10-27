@@ -4,7 +4,7 @@
         ? 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($logoPath))
         : null;
 @endphp
-<table style="width:100%; border-collapse:collapse; border-bottom:3px solid #000; margin-bottom:14px;">
+<table style="width:100%; border-collapse:collapse; border-bottom:3px solid #000; margin-bottom:14px; font-family:Arial, Helvetica, sans-serif;">
     <tr>
         <td style="width:95px; vertical-align:middle; padding-bottom:8px;">
             @if ($logoSrc)

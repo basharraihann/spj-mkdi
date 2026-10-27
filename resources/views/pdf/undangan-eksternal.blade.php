@@ -9,6 +9,11 @@
     $jabatan = $dokumen->payload('jabatan_penandatangan') ?: 'Sekretaris Deputi Bidang Koordinasi Usaha Pangan dan Pertanian';
     $daftar = $dokumen->payloadList('daftar_undangan');
     $tglId = $dokumen->tanggal_surat->locale('id')->translatedFormat('j F Y');
+    // Margin mengikuti template: Surat Dinas (format undangan) 2/3/2,5/3 cm; Undangan Internal & Eksternal 1,25/2,25/1,25/2,54 cm
+    $margin = $tpl === 'surat_dinas' ? '2cm 3cm 2.5cm 3cm' : '1.25cm 2.25cm 1.25cm 2.54cm';
+    // "pada" dipindah ke label hari/tanggal (sesuai template), jadi buang "pada:" di ujung kalimat pembuka
+    $pembuka = $dokumen->payload('pembuka') ?: 'Dalam rangka ..., bersama ini kami mengundang Saudara untuk hadir dalam rapat yang akan dilaksanakan';
+    $pembuka = trim(preg_replace('/\s*\bpada\s*:?\s*$/iu', '', trim($pembuka)));
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -16,12 +21,12 @@
     <meta charset="UTF-8">
     <title>{{ $dokumen->hal }}</title>
     <style>
-        @page { margin: 2cm 2.5cm 2cm 2.5cm; }
-        body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.35; color: #000; }
+        @page { margin: {{ $margin }}; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.35; color: #000; }
         td { vertical-align: top; }
         .meta td { padding: 1px 0; }
         .justify { text-align: justify; }
-        .judul-instansi { text-align:center; font-weight:bold; text-transform:uppercase; line-height:1.3; margin-bottom:14px; }
+        .judul-instansi { text-align:center; text-transform:uppercase; line-height:1.3; margin-bottom:14px; }
     </style>
 </head>
 <body>
@@ -50,10 +55,10 @@
 
     <p style="margin-top:14px;">Yth. {{ $dokumen->tujuan }}</p>
 
-    <p class="justify">{{ $dokumen->payload('pembuka') ?: 'Dalam rangka ..., bersama ini kami mengundang Saudara untuk hadir dalam rapat yang akan dilaksanakan pada:' }}</p>
+    <p class="justify" style="text-indent:30px;">{{ $pembuka }}</p>
 
     <table class="meta" style="width:100%; margin-left:30px;">
-        <tr><td style="width:22%;">hari/tanggal</td><td style="width:3%;">:</td><td>{{ $dokumen->payload('hari_tanggal', '...') }}</td></tr>
+        <tr><td style="width:22%;">pada hari/tanggal</td><td style="width:3%;">:</td><td>{{ $dokumen->payload('hari_tanggal', '...') }}</td></tr>
         <tr><td>waktu</td><td>:</td><td>{{ $dokumen->payload('waktu', 'Pukul ...') }}</td></tr>
         <tr><td>tempat</td><td>:</td><td>{{ $dokumen->payload('tempat', '...') }}</td></tr>
         <tr><td>acara</td><td>:</td><td>{{ $dokumen->payload('acara', '...') }}</td></tr>
@@ -61,18 +66,22 @@
 
     <p class="justify" style="margin-top:12px;">Demikian atas perhatian dan kerja sama Saudara, kami ucapkan terima kasih.</p>
 
-    <div style="width:50%; margin-left:50%; margin-top:18px; page-break-inside:avoid;">
+    <div style="width:50%; margin-left:50%; margin-top:18px; text-align:center; page-break-inside:avoid;">
         {{ $jabatan }},
         <br><br><br><br>
         {{ $dokumen->payload('nama_penandatangan', '................') }}
     </div>
 
     @if (!empty($dokumen->tembusan))
-        <div style="margin-top:24px; font-size:11pt; page-break-inside:avoid;">
+        <div style="margin-top:24px; page-break-inside:avoid;">
             Tembusan:
-            <ol style="margin:2px 0 0 0; padding-left:20px;">
-                @foreach ($dokumen->tembusan as $t)<li>{{ $t }}</li>@endforeach
-            </ol>
+            @if (count($dokumen->tembusan) === 1)
+                <div>{{ $dokumen->tembusan[0] }}</div>
+            @else
+                <ol style="margin:2px 0 0 0; padding-left:20px;">
+                    @foreach ($dokumen->tembusan as $t)<li>{{ $t }}</li>@endforeach
+                </ol>
+            @endif
         </div>
     @endif
 
@@ -88,7 +97,7 @@
             <ol>
                 @forelse ($daftar as $d)<li>{{ $d }}</li>@empty<li>...</li>@endforelse
             </ol>
-            <div style="width:50%; margin-left:50%; margin-top:18px;">
+            <div style="width:50%; margin-left:50%; margin-top:18px; text-align:center;">
                 {{ $jabatan }},
                 <br><br><br><br>
                 {{ $dokumen->payload('nama_penandatangan', '................') }}

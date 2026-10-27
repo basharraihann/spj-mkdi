@@ -26,6 +26,6 @@ return [
 
     'untuk_default' => [
         'Selesai melaksanakan tugas agar menyampaikan laporan tertulis sesuai dengan ketentuan yang berlaku;',
-        'Biaya yang diperlukan untuk kegiatan tersebut dibebankan pada Anggaran Kementerian Koordinator Bidang Pangan.',
+        'Biaya yang diperlukan untuk kegiatan tersebut dibebankan pada Anggaran Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2026.',
     ],
 ];

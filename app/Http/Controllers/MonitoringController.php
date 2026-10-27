@@ -32,9 +32,14 @@ class MonitoringController extends Controller
             ->latest()->limit(15)->get();
 
         $suratKeluarSaya = collect();
+        if ($user->isAdmin() || $user->isEselon3()) {
+            $suratKeluarSaya = $suratKeluarSaya->merge(
+                SuratKeluar::where('status_persetujuan', 'diajukan')->latest()->get()->map(fn ($s) => [$s, 'Menunggu pemeriksaan konsep (Eselon 3 / Madya)'])
+            );
+        }
         if ($user->isAdmin() || $user->isEselon2()) {
             $suratKeluarSaya = $suratKeluarSaya->merge(
-                SuratKeluar::where('status_persetujuan', 'diajukan')->latest()->get()->map(fn ($s) => [$s, 'Menunggu persetujuan Eselon 2'])
+                SuratKeluar::where('status_persetujuan', 'diperiksa_es3')->latest()->get()->map(fn ($s) => [$s, 'Menunggu persetujuan Eselon 2'])
             );
         }
         if ($user->isAdmin() || $user->isEselon1()) {
@@ -47,13 +52,25 @@ class MonitoringController extends Controller
             $suratKeluarSaya = $suratKeluarSaya->merge(
                 SuratKeluar::whereIn('status_persetujuan', ['disetujui_es2', 'disetujui_es1'])->latest()->get()
                     ->filter(fn ($s) => $s->status_persetujuan === 'disetujui_es1' || !$s->butuh_eselon1)
-                    ->map(fn ($s) => [$s, 'Siap diterbitkan (TTD basah)'])
+                    ->map(fn ($s) => [$s, 'Terima surat TTD & penomoran'])
+            );
+            $suratKeluarSaya = $suratKeluarSaya->merge(
+                SuratKeluar::where('status_persetujuan', 'terbit')->latest()->get()->map(fn ($s) => [$s, 'Siap dikirim ke unit tujuan'])
             );
         }
         $suratKeluarSaya = $suratKeluarSaya->merge(
             SuratKeluar::where('status_persetujuan', 'draft')->where('created_by', $user->id)->latest()->get()
                 ->filter(fn ($s) => filled($s->payload('catatan_revisi')))->map(fn ($s) => [$s, 'Dikembalikan untuk revisi'])
         );
+
+        // TU / Eselon 3 / Eselon 2 hanya diberi tugas untuk dokumen unitnya (Admin & Eselon 1 semua)
+        if ($user->unit_id && !$user->isAdmin() && ($user->isTu() || $user->isEselon3() || $user->isEselon2())) {
+            $suratKeluarSaya = $suratKeluarSaya->filter(function ($baris) use ($user) {
+                $unitPembuat = $baris[0]->pembuat?->unit_id;
+
+                return $unitPembuat === null || (int) $unitPembuat === (int) $user->unit_id;
+            })->values();
+        }
 
         $kontrolSaya = SuratTugasKontrol::with('suratTugas')
             ->where('petugas_id', $user->id)

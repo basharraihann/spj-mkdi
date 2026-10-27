@@ -20,8 +20,12 @@ class SuratKeluarController extends Controller
     {
         $query = SuratKeluar::with('pembuat');
 
-        if (Auth::user()?->role === 'user') {
+        $pengguna = Auth::user();
+        if ($pengguna?->role === 'user') {
             $query->where('created_by', Auth::id());
+        } elseif ($this->dibatasiUnit($pengguna)) {
+            // TU masing-masing unit: dokumen unit lain tidak ditampilkan
+            $query->whereHas('pembuat', fn ($p) => $p->where('unit_id', $pengguna->unit_id));
         }
 
         if ($request->filled('search')) {
@@ -65,7 +69,8 @@ class SuratKeluarController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->rules());
-        $data = $this->normalisasi($validated);
+        // Isian jenis dokumen dibaca utuh dari request (validated() hanya memuat kunci yang punya aturan khusus)
+        $data = $this->normalisasi($validated, $this->bersihkanPayload($request->input('isi_payload')));
 
         $suratKeluar = SuratKeluar::create($data + [
             'created_by' => Auth::id(),
@@ -82,6 +87,11 @@ class SuratKeluarController extends Controller
     public function show(SuratKeluar $suratKeluar): View
     {
         $suratKeluar->load('pembuat');
+
+        $pengguna = Auth::user();
+        if ($this->dibatasiUnit($pengguna) && !$this->satuUnit($suratKeluar, $pengguna)) {
+            abort(403, 'Dokumen ini bukan milik unit Anda.');
+        }
 
         return view('surat-keluar.show', compact('suratKeluar'));
     }
@@ -108,7 +118,12 @@ class SuratKeluarController extends Controller
         }
 
         $validated = $request->validate($this->rules());
-        $data = $this->normalisasi($validated);
+        // Gabungkan isian form dengan data sistem yang sudah ada (catatan revisi, tanggal kirim, dst.)
+        $payloadBaru = array_merge(
+            (array) ($suratKeluar->isi_payload ?? []),
+            $this->bersihkanPayload($request->input('isi_payload'))
+        );
+        $data = $this->normalisasi($validated, $payloadBaru);
         // Perilaku lama dipertahankan: nomor surat tidak terhapus bila dikosongkan saat edit
         $data['nomor_surat'] = $data['nomor_surat'] ?? $suratKeluar->nomor_surat;
 
@@ -136,14 +151,15 @@ class SuratKeluarController extends Controller
 
     // =========================================================
     // TAMBAHAN: alur persetujuan (lembar kontrol sederhana)
-    // draft -> diajukan -> disetujui_es2 -> (disetujui_es1) -> terbit
+    // draft -> diajukan (periksa Es 3) -> diperiksa_es3 -> disetujui_es2 -> (disetujui_es1) -> terbit -> terkirim
     // =========================================================
 
     public function ubahStatus(Request $request, SuratKeluar $suratKeluar): RedirectResponse
     {
         $request->validate([
-            'aksi' => ['required', 'in:ajukan,setujui_es2,setujui_es1,kembalikan,terbit'],
+            'aksi' => ['required', 'in:ajukan,periksa_es3,setujui_es2,setujui_es1,kembalikan,terbit,kirim'],
             'catatan' => ['nullable', 'string', 'max:1000'],
+            'nomor_surat' => ['nullable', 'string', 'max:100'],
             'file_scan_ttd' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
 
@@ -157,16 +173,23 @@ class SuratKeluarController extends Controller
                 $boleh = $status === 'draft' && ($admin || $user->isTu() || $suratKeluar->created_by === $user->id);
                 if ($boleh) {
                     $suratKeluar->status_persetujuan = 'diajukan';
-                    $pesan = 'Dokumen diajukan untuk diperiksa Eselon 2.';
+                    $pesan = 'Dokumen diajukan untuk diperiksa Eselon 3 / Madya.';
+                }
+                break;
+
+            case 'periksa_es3':
+                if ($status === 'diajukan' && ($admin || ($user->isEselon3() && $this->satuUnit($suratKeluar, $user)))) {
+                    $suratKeluar->status_persetujuan = 'diperiksa_es3';
+                    $pesan = 'Konsep sudah diperiksa Eselon 3, menunggu persetujuan Eselon 2.';
                 }
                 break;
 
             case 'setujui_es2':
-                if ($status === 'diajukan' && ($admin || $user->isEselon2())) {
+                if ($status === 'diperiksa_es3' && ($admin || ($user->isEselon2() && $this->satuUnit($suratKeluar, $user)))) {
                     $suratKeluar->status_persetujuan = 'disetujui_es2';
                     $pesan = $suratKeluar->butuh_eselon1
                         ? 'Disetujui Eselon 2, menunggu pemeriksaan Eselon 1.'
-                        : 'Disetujui Eselon 2, siap diterbitkan.';
+                        : 'Disetujui Eselon 2, lanjut proses penandatanganan (TTD/TTE).';
                 }
                 break;
 
@@ -178,8 +201,7 @@ class SuratKeluarController extends Controller
                 break;
 
             case 'kembalikan':
-                if (in_array($status, ['diajukan', 'disetujui_es2', 'disetujui_es1'], true)
-                    && ($admin || $user->isEselon2() || $user->isEselon1())) {
+                if ($suratKeluar->bolehDikembalikanOleh($user) && ($admin || $user->isEselon1() || $this->satuUnit($suratKeluar, $user))) {
                     $payload = $suratKeluar->isi_payload ?? [];
                     $payload['catatan_revisi'] = $request->input('catatan');
                     $suratKeluar->isi_payload = $payload;
@@ -189,15 +211,30 @@ class SuratKeluarController extends Controller
                 break;
 
             case 'terbit':
-                $siapTerbit = $status === 'disetujui_es1'
-                    || ($status === 'disetujui_es2' && !$suratKeluar->butuh_eselon1);
-                if ($siapTerbit && ($admin || $user->isTu())) {
+                if ($suratKeluar->siap_terbit && ($admin || ($user->isTu() && $this->satuUnit($suratKeluar, $user)))) {
+                    // Penomoran dilakukan TU saat menerima surat yang sudah ditandatangani
+                    $nomor = trim((string) $request->input('nomor_surat')) ?: $suratKeluar->nomor_surat;
+                    if (blank($nomor)) {
+                        return back()->withErrors(['nomor_surat' => 'Nomor surat wajib diisi saat menerima surat TTD (penomoran).'])->withInput();
+                    }
+                    $suratKeluar->nomor_surat = $nomor;
+
                     if ($request->hasFile('file_scan_ttd')) {
                         $suratKeluar->file_scan_ttd = $request->file('file_scan_ttd')
                             ->store('surat-keluar/ttd', 'public');
                     }
                     $suratKeluar->status_persetujuan = 'terbit';
-                    $pesan = 'Dokumen diterbitkan (TTD basah).';
+                    $pesan = 'Surat TTD diterima dan diberi nomor, siap dikirim ke unit tujuan.';
+                }
+                break;
+
+            case 'kirim':
+                if ($status === 'terbit' && ($admin || ($user->isTu() && $this->satuUnit($suratKeluar, $user)))) {
+                    $payload = $suratKeluar->isi_payload ?? [];
+                    $payload['tanggal_kirim'] = now()->toDateString();
+                    $suratKeluar->isi_payload = $payload;
+                    $suratKeluar->status_persetujuan = 'terkirim';
+                    $pesan = 'Surat sudah dikirim ke unit tujuan. Proses selesai.';
                 }
                 break;
         }
@@ -232,10 +269,49 @@ class SuratKeluarController extends Controller
         ];
     }
 
-    /** Rapikan hasil validasi menjadi atribut model. */
-    private function normalisasi(array $v): array
+    /** TU, Eselon 3, dan Eselon 2 yang terhubung ke sebuah unit hanya menangani dokumen unitnya. */
+    private function dibatasiUnit($user): bool
     {
-        $payload = $v['isi_payload'];
+        return $user && $user->unit_id
+            && ($user->isTu() || $user->isEselon3() || $user->isEselon2())
+            && !$user->isAdmin();
+    }
+
+    /** Pembuat dokumen berada di unit yang sama dengan pengguna (pembuat tanpa unit tidak dibatasi). */
+    private function satuUnit(SuratKeluar $suratKeluar, $user): bool
+    {
+        $unitPembuat = $suratKeluar->pembuat?->unit_id;
+
+        return $unitPembuat === null || !$user->unit_id || (int) $unitPembuat === (int) $user->unit_id;
+    }
+
+    /** Ambil isi_payload dari request: hanya kunci teks; nilai berupa teks/angka atau daftar teks. */
+    private function bersihkanPayload($payload): array
+    {
+        $bersih = [];
+
+        foreach ((array) $payload as $kunci => $nilai) {
+            if (!is_string($kunci)) {
+                continue;
+            }
+
+            if (is_array($nilai)) {
+                $bersih[$kunci] = array_values(array_map(
+                    fn ($x) => is_scalar($x) ? (string) $x : '',
+                    $nilai
+                ));
+            } elseif (is_scalar($nilai) || $nilai === null) {
+                $bersih[$kunci] = $nilai;
+            }
+        }
+
+        return $bersih;
+    }
+
+    /** Rapikan hasil validasi menjadi atribut model. */
+    private function normalisasi(array $v, ?array $payload = null): array
+    {
+        $payload = $payload ?? ($v['isi_payload'] ?? []);
         $payload['dengan_lampiran'] = !empty($payload['dengan_lampiran']) ? 1 : 0;
         $payload['perlu_es1'] = !empty($payload['perlu_es1']) ? 1 : 0;
 
@@ -285,6 +361,10 @@ class SuratKeluarController extends Controller
 
         if (!$admin && !$user->isTu() && $suratKeluar->created_by !== $user->id) {
             abort(403, 'Anda tidak berhak mengubah dokumen ini.');
+        }
+
+        if (!$admin && $user->isTu() && $suratKeluar->created_by !== $user->id && !$this->satuUnit($suratKeluar, $user)) {
+            abort(403, 'Dokumen ini bukan milik unit Anda.');
         }
 
         return null;

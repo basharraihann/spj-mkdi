@@ -59,14 +59,25 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
+                        @php
+                            $warnaStatus = [
+                                'draft' => 'bg-slate-100 text-slate-700 border-slate-200',
+                                'diajukan' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                'diperiksa_es3' => 'bg-sky-50 text-sky-700 border-sky-200',
+                                'disetujui_es2' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                                'disetujui_es1' => 'bg-violet-50 text-violet-700 border-violet-200',
+                                'terbit' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                'terkirim' => 'bg-teal-50 text-teal-700 border-teal-200',
+                            ];
+                        @endphp
                         @forelse ($suratKeluar as $s)
                             <tr class="hover:bg-slate-50/80 transition">
                                 <td class="py-3.5 px-4 text-xs font-semibold">{{ $s->nama_jenis }}</td>
-                                <td class="py-3.5 px-4 font-mono text-xs">{{ $s->nomor_surat ?: '— (draf)' }}</td>
-                                <td class="py-3.5 px-4 font-medium text-blue-600 max-w-xs truncate">{{ $s->hal }}</td>
-                                <td class="py-3.5 px-4 text-xs">{{ optional($s->tanggal_surat)->format('d M Y') }}</td>
+                                <td class="py-3.5 px-4 font-mono text-xs break-all min-w-[9rem]">{{ $s->nomor_surat ?: '— (draf)' }}</td>
+                                <td class="py-3.5 px-4 font-medium text-blue-600 max-w-xs truncate" title="{{ $s->hal }}">{{ $s->hal }}</td>
+                                <td class="py-3.5 px-4 text-xs whitespace-nowrap">{{ optional($s->tanggal_surat)->locale('id')->translatedFormat('d M Y') }}</td>
                                 <td class="py-3.5 px-4">
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">{{ $s->status_label }}</span>
+                                    <span title="{{ $s->status_label }}" class="inline-block whitespace-nowrap px-2.5 py-1 text-xs font-semibold rounded-full border {{ $warnaStatus[$s->status_persetujuan] ?? 'bg-blue-50 text-blue-700 border-blue-200' }}">{{ $s->status_singkat }}</span>
                                 </td>
                                 <td class="py-3.5 px-4 text-xs">{{ $s->pembuat->name ?? '-' }}</td>
                                 <td class="py-3.5 px-4 text-right">

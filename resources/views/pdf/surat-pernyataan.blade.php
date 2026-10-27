@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Surat Pernyataan</title>
     <style>
-        @page { margin: 2cm 2.5cm; }
-        body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.5; color: #000; }
+        @page { margin: 2cm 2cm 2.5cm 3cm; }
+        body { font-family: "Bookman Old Style", "DejaVu Serif", Georgia, serif; font-size: 12pt; line-height: 1.5; color: #000; }
         td { vertical-align: top; padding: 1px 0; }
     </style>
 </head>

@@ -9,8 +9,8 @@
     <meta charset="UTF-8">
     <title>Notula {{ $dokumen->hal }}</title>
     <style>
-        @page { margin: 2cm 2.5cm; }
-        body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.35; color: #000; }
+        @page { margin: 2cm 2cm 2.5cm 3cm; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.35; color: #000; }
         td { vertical-align: top; padding: 2px 0; }
     </style>
 </head>

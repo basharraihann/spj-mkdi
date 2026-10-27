@@ -27,6 +27,7 @@ class User extends Authenticatable
     public const ROLE_TU = 'tu';
     public const ROLE_ESELON1 = 'eselon1';
     public const ROLE_ESELON2 = 'eselon2';
+    public const ROLE_ESELON3 = 'eselon3';
     public const ROLE_USER = 'user';
     public const ROLE_ADMIN = 'admin';
 
@@ -37,6 +38,7 @@ class User extends Authenticatable
         self::ROLE_TU => 'Staf Persuratan / TU',
         self::ROLE_ESELON1 => 'Eselon I (Deputi)',
         self::ROLE_ESELON2 => 'Eselon II (Asdep / Sesdep / Kabiro)',
+        self::ROLE_ESELON3 => 'Eselon III / Madya (Pemeriksa Konsep)',
         self::ROLE_USER => 'Pegawai Pelaksana / Staf',
         self::ROLE_ADMIN => 'Administrator Sistem',
     ];
@@ -81,6 +83,12 @@ class User extends Authenticatable
         return $this->role === self::ROLE_ESELON2;
     }
 
+    /** Check if user is Eselon III / Madya (pemeriksa konsep Surat Keluar) */
+    public function isEselon3(): bool
+    {
+        return $this->role === self::ROLE_ESELON3;
+    }
+
     /** Check if user is Regular User / Staf Pelaksana */
     public function isUser(): bool
     {
@@ -120,6 +128,7 @@ class User extends Authenticatable
             self::ROLE_TU,
             self::ROLE_ESELON1,
             self::ROLE_ESELON2,
+            self::ROLE_ESELON3,
         ], true);
     }
 

@@ -126,7 +126,11 @@
         @if (!empty($tembusan))
             <div class="tembusan">
                 Tembusan:
-                <ol style="padding-left:18px;">@foreach ($tembusan as $t)<li>{{ $t }}</li>@endforeach</ol>
+                @if (count($tembusan) === 1)
+                    <div>{{ array_values($tembusan)[0] }}</div>
+                @else
+                    <ol style="padding-left:18px;">@foreach ($tembusan as $t)<li>{{ $t }}</li>@endforeach</ol>
+                @endif
             </div>
         @endif
 
