@@ -5,12 +5,10 @@ return [
         'admin' => '*',
         'tu' => [
             'surat_masuk',
-            'disposisi',
             'surat_keluar',
             'pegawais',
             'mak_options',
             'surat_tugas',
-            'tugas_saya'
         ],
         'eselon1' => ['disposisi', 'monitoring'],
         'eselon2' => ['disposisi', 'monitoring', 'anggaran', 'surat_tugas'],

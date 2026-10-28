@@ -7,6 +7,7 @@ use App\Models\KabupatenKota;
 use App\Models\Pegawai;
 use App\Models\SuratTugas;
 use App\Models\SuratTugasCounter;
+use App\Models\SuratTugasKontrol;
 use App\Models\Tusi;
 use App\Services\LaporanStService;
 use App\Services\SuratTugasNumberService;
@@ -15,11 +16,12 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class SuratTugasController extends Controller
 {
-    private const DASAR_TETAP = 'Daftar Isian Pelaksanaan Anggaran (DIPA) Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2026 Nomor: SP DIPA-131.01.1.694775/2026 tanggal 1 Desember 2025';
+    private const DASAR_TETAP = 'Daftar Isian Pelaksanaan Anggaran (DIPA) Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2025 Nomor: SP DIPA-131.01-0/2026 tanggal 1 Desember 2025';
 
     public function __construct(private SuratTugasNumberService $numbers)
     {
@@ -27,7 +29,11 @@ class SuratTugasController extends Controller
 
     public function index(Request $request)
     {
-        $q = SuratTugas::with('tusi')->withCount('peserta')->latest('tanggal')->latest('id');
+        $user = auth()->user();
+
+        $q = SuratTugas::dapatDilihat($user)
+            ->with('tusi')->withCount('peserta')
+            ->latest('tanggal')->latest('id');
 
         if ($s = $request->query('q')) {
             $q->where(function ($w) use ($s) {
@@ -52,7 +58,7 @@ class SuratTugasController extends Controller
             'nomorBerikutnya' => $this->numbers->nomorBerikutnya($tahun, config('surat_tugas.kode_klasifikasi')),
             'isAdmin' => $this->isAdmin(),
             'tusiOptions' => Tusi::urut()->get(['id', 'nama', 'aktif']),
-            'belumDikelompokkan' => SuratTugas::whereNull('tusi_id')->count(),
+            'belumDikelompokkan' => SuratTugas::dapatDilihat($user)->whereNull('tusi_id')->count(),
         ]);
     }
 
@@ -79,13 +85,15 @@ class SuratTugasController extends Controller
             $st = SuratTugas::create($this->payload($request) + [
                 'status' => 'draf',
                 'created_by' => auth()->id(),
+                'unit_id' => auth()->user()->unit_id,
             ]);
             $this->syncPeserta($st, $request->validated('peserta'));
 
             return $st;
         });
 
-        if ($request->boolean('minta_nomor')) {
+        // Ambil nomor manual hanya untuk admin (jalur lama). Jalur Sesdep memberi nomor lewat lembar kontrol.
+        if ($request->boolean('minta_nomor') && $this->isAdmin()) {
             $st = $this->kunciNomor($st);
 
             return $this->keShow($st, 'ST disimpan dengan nomor ' . $st->nomor . '.');
@@ -96,11 +104,15 @@ class SuratTugasController extends Controller
 
     public function show(SuratTugas $suratTugas, LaporanStService $laporan)
     {
+        abort_unless($this->bolehLihat($suratTugas), 403);
+
         return view('surat-tugas.show', [
-            'st' => $suratTugas->load('peserta', 'tusi'),
+            'st' => $suratTugas->load('peserta', 'tusi', 'kontrol.petugas'),
             'tusiOptions' => Tusi::aktif()->urut()->get(['id', 'nama']),
             'bolehUbahTusi' => $this->bolehUbahTusi($suratTugas),
             'bolehKelola' => $this->bolehKelola($suratTugas),
+            'bolehEdit' => $this->bolehEdit($suratTugas),
+            'bolehTerbitkan' => $this->bolehTerbitkan($suratTugas),
             'laporan' => $suratTugas->laporan()->with('tindakLanjut', 'dikirimOleh')->first(),
             'tugasLapor' => $suratTugas->tugasLapor()->with('user:id,name')->get(),
             'bolehIsiLaporan' => $laporan->bolehIsi($suratTugas, auth()->user()),
@@ -109,8 +121,13 @@ class SuratTugasController extends Controller
 
     public function edit(SuratTugas $suratTugas)
     {
+        abort_unless($this->bolehKelola($suratTugas), 403);
+
         if (!$suratTugas->isDraf()) {
             return $this->keShow($suratTugas, 'ST ini dikunci dan tidak bisa diedit.', 'error');
+        }
+        if ($suratTugas->terkunciKontrol()) {
+            return $this->keShow($suratTugas, 'ST sedang dalam proses persetujuan dan tidak bisa diedit.', 'error');
         }
 
         return view('surat-tugas.edit', $this->dataForm($suratTugas, $this->pesertaUntukForm($suratTugas)));
@@ -118,8 +135,13 @@ class SuratTugasController extends Controller
 
     public function update(SuratTugasRequest $request, SuratTugas $suratTugas): RedirectResponse
     {
+        abort_unless($this->bolehKelola($suratTugas), 403);
+
         if (!$suratTugas->isDraf()) {
             return back()->with('error', 'ST ini dikunci.');
+        }
+        if ($suratTugas->terkunciKontrol()) {
+            return back()->with('error', 'ST sedang dalam proses persetujuan dan tidak bisa diedit.');
         }
         if (
             $suratTugas->nomor_urut
@@ -134,7 +156,7 @@ class SuratTugasController extends Controller
             $this->syncPeserta($suratTugas, $request->validated('peserta'));
         });
 
-        if ($request->boolean('minta_nomor') && !$suratTugas->nomor_urut) {
+        if ($request->boolean('minta_nomor') && $this->isAdmin() && !$suratTugas->nomor_urut) {
             $suratTugas = $this->kunciNomor($suratTugas->refresh());
 
             return $this->keShow($suratTugas, 'ST disimpan dengan nomor ' . $suratTugas->nomor . '.');
@@ -145,7 +167,17 @@ class SuratTugasController extends Controller
 
     public function destroy(SuratTugas $suratTugas): RedirectResponse
     {
+        abort_unless($this->bolehKelola($suratTugas), 403);
+
+        if (!$suratTugas->isDraf()) {
+            return $this->keShow($suratTugas, 'ST yang sudah terbit tidak bisa dihapus.', 'error');
+        }
+        if ($suratTugas->terkunciKontrol()) {
+            return $this->keShow($suratTugas, 'ST sedang dalam proses persetujuan dan tidak bisa dihapus.', 'error');
+        }
+
         DB::transaction(function () use ($suratTugas) {
+            $suratTugas->kontrol()->delete();
             $suratTugas->peserta()->delete();
             $suratTugas->delete();
         });
@@ -172,23 +204,75 @@ class SuratTugasController extends Controller
         return $this->keShow($suratTugas, 'Pengelompokan ST diperbarui.');
     }
 
-    public function terbitkan(SuratTugas $suratTugas, LaporanStService $laporan): RedirectResponse
+    /**
+     * Terbitkan ST.
+     *
+     * Jalur Sesdep (unit berkode "... D<n>" atau sudah punya lembar kontrol):
+     *  - hanya petugas tahap kontrol (admin TU Sesdep) atau admin,
+     *  - lembar kontrol harus ada dan semua tahap disetujui,
+     *  - ST harus sudah bernomor (nomor diambil saat tahap kontrol disetujui),
+     *  - wajib unggah PDF hasil TTD.
+     * Jalur lama (mis. Biro MKDI): admin atau pembuat, file TTD opsional.
+     */
+    public function terbitkan(Request $request, SuratTugas $suratTugas, LaporanStService $laporan): RedirectResponse
     {
-        abort_unless($this->bolehKelola($suratTugas), 403);
+        abort_unless($suratTugas->isDraf() && $this->petugasTerbit($suratTugas), 403);
 
-        // Jika ST memakai lembar kontrol, semua tahap harus disetujui lebih dulu
-        if ($suratTugas->kontrol()->exists() && $suratTugas->kontrol()->where('status', '!=', 'disetujui')->exists()) {
-            return $this->keShow($suratTugas, 'Lembar kontrol belum selesai disetujui, ST belum dapat diterbitkan.', 'error');
+        $jalurSesdep = $this->jalurSesdep($suratTugas);
+
+        if ($jalurSesdep) {
+            if (!$suratTugas->kontrol()->exists()) {
+                return $this->keShow($suratTugas, 'ST belum diajukan untuk persetujuan.', 'error');
+            }
+            if (!$this->semuaTahapDisetujui($suratTugas)) {
+                return $this->keShow($suratTugas, 'Lembar kontrol belum selesai disetujui, ST belum dapat diterbitkan.', 'error');
+            }
+            if (!$suratTugas->nomor_urut) {
+                return $this->keShow($suratTugas, 'ST belum bernomor. Nomor diberikan saat tahap kontrol disetujui.', 'error');
+            }
         }
 
+        $request->validate([
+            'file_ttd' => [$jalurSesdep ? 'required' : 'nullable', 'file', 'mimes:pdf', 'max:10240'],
+        ], [
+            'file_ttd.required' => 'File ST yang sudah ditandatangani (PDF) wajib diunggah.',
+            'file_ttd.mimes' => 'File TTD harus berformat PDF.',
+            'file_ttd.max' => 'Ukuran file TTD maksimal 10 MB.',
+        ]);
+
+        $file = $request->file('file_ttd');
+        $path = null;
+
         try {
-            [$st, $jumlahAkun] = DB::transaction(function () use ($suratTugas, $laporan) {
+            [$st, $jumlahAkun] = DB::transaction(function () use ($suratTugas, $laporan, $file, &$path) {
+                if ($file) {
+                    $path = $file->store('surat-tugas/' . $suratTugas->id . '/ttd', LaporanStService::DISK);
+                }
+
                 $st = $this->numbers->terbitkan($suratTugas->id);
+
+                if ($file) {
+                    $st->update([
+                        'file_ttd_path' => $path,
+                        'file_ttd_nama' => mb_substr($file->getClientOriginalName(), 0, 180),
+                        'ditandatangani_by' => auth()->id(),
+                        'ditandatangani_at' => now(),
+                    ]);
+                }
 
                 return [$st, $laporan->buatTugas($st)];
             });
         } catch (\DomainException $e) {
+            if ($path) {
+                Storage::disk(LaporanStService::DISK)->delete($path);
+            }
+
             return $this->keShow($suratTugas, $e->getMessage(), 'error');
+        } catch (\Throwable $e) {
+            if ($path) {
+                Storage::disk(LaporanStService::DISK)->delete($path);
+            }
+            throw $e;
         }
 
         $pesan = 'ST diterbitkan dengan nomor ' . $st->nomor . '. ';
@@ -199,15 +283,84 @@ class SuratTugasController extends Controller
         return $this->keShow($st, $pesan, $jumlahAkun > 0 ? 'success' : 'warning');
     }
 
+    /** Unduh file ST yang sudah ditandatangani. */
+    public function unduhTtd(SuratTugas $suratTugas)
+    {
+        abort_unless($this->bolehLihat($suratTugas), 403);
+        abort_unless(
+            $suratTugas->file_ttd_path && Storage::disk(LaporanStService::DISK)->exists($suratTugas->file_ttd_path),
+            404
+        );
+
+        return Storage::disk(LaporanStService::DISK)
+            ->response($suratTugas->file_ttd_path, $suratTugas->file_ttd_nama ?: 'surat-tugas-ttd.pdf');
+    }
+
+    // ------------------------------------------------------------------
+    // Aturan akses
+    // ------------------------------------------------------------------
+
+    private function bolehLihat(SuratTugas $st): bool
+    {
+        $user = auth()->user();
+
+        return $user && SuratTugas::dapatDilihat($user)->whereKey($st->id)->exists();
+    }
+
     private function bolehKelola(SuratTugas $st): bool
     {
         return $this->isAdmin() || (int) $st->created_by === (int) auth()->id();
+    }
+
+    private function bolehEdit(SuratTugas $st): bool
+    {
+        return $st->isDraf() && $this->bolehKelola($st) && !$st->terkunciKontrol();
+    }
+
+    /** Jalur Sesdep: sudah punya lembar kontrol, atau unit pembuat berkode "... D<n>". Lihat SuratTugas::memakaiAlurSesdep(). */
+    private function jalurSesdep(SuratTugas $st): bool
+    {
+        return $st->memakaiAlurSesdep();
+    }
+
+    private function semuaTahapDisetujui(SuratTugas $st): bool
+    {
+        $kontrol = $st->kontrol()->get();
+
+        return $kontrol->isNotEmpty() && $kontrol->every(fn($k) => $k->status === 'disetujui');
+    }
+
+    /** Siapa yang boleh menekan Terbitkan (peran saja, belum menilai kesiapan ST). */
+    private function petugasTerbit(SuratTugas $st): bool
+    {
+        if (!$this->jalurSesdep($st)) {
+            return $this->bolehKelola($st);
+        }
+
+        return $this->isAdmin()
+            || $st->kontrol()
+                ->where('tahap', SuratTugasKontrol::TAHAP_NOMOR)
+                ->where('petugas_id', auth()->id())
+                ->exists();
+    }
+
+    /** Dipakai UI: tombol tampil hanya kalau peran cocok dan ST siap terbit. */
+    private function bolehTerbitkan(SuratTugas $st): bool
+    {
+        if (!$st->isDraf() || !$this->petugasTerbit($st)) {
+            return false;
+        }
+
+        return !$this->jalurSesdep($st)
+            || ($this->semuaTahapDisetujui($st) && (bool) $st->nomor_urut);
     }
 
     private function bolehUbahTusi(SuratTugas $st): bool
     {
         return $this->bolehKelola($st);
     }
+
+    // ------------------------------------------------------------------
 
     public function nomorBerikutnya(Request $request)
     {
@@ -235,6 +388,8 @@ class SuratTugasController extends Controller
 
     public function setCounter(Request $request): RedirectResponse
     {
+        abort_unless($this->isAdmin(), 403);
+
         $data = $request->validate([
             'tahun' => ['required', 'integer', 'min:2020', 'max:2100'],
             'last_number' => ['required', 'integer', 'min:0'],
@@ -276,6 +431,8 @@ class SuratTugasController extends Controller
 
     public function pdf(SuratTugas $suratTugas)
     {
+        abort_unless($this->bolehLihat($suratTugas), 403);
+
         $suratTugas->load('peserta');
 
         $nama = 'Surat Tugas ' . str_replace('/', '-', $suratTugas->nomor ?? 'Draf ' . $suratTugas->id) . '.pdf';
@@ -318,6 +475,8 @@ class SuratTugasController extends Controller
             'pegawaiOptions' => $this->pegawaiOptions(),
             'penandatanganOptions' => $this->penandatanganOptions(),
             'kabKotaMap' => $this->kabKotaMap(),
+            // Pengambilan nomor otomatis di form hanya untuk admin (jalur lama).
+            'bolehAmbilNomor' => $this->isAdmin(),
         ];
     }
 
@@ -388,7 +547,7 @@ class SuratTugasController extends Controller
 
             if (!$pegawaiId && $nama !== '') {
                 $jenisStatus = ($p['jenis'] ?? 'pns') === 'non_pns' ? 'Non PNS' : 'PNS';
-                
+
                 $pegawai = Pegawai::where('nama', $nama)->first();
 
                 if (!$pegawai) {

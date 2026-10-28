@@ -15,6 +15,17 @@
     $bolehKelola = $bolehKelola ?? false;
     $tusiNonaktifDipakai = $st->tusi && !$tusiOptions->contains('id', $st->tusi_id);
 
+    // Dikirim dari SuratTugasController@show. Untuk jalur Sesdep: true hanya kalau semua tahap disetujui
+    // dan user adalah petugas tahap kontrol atau admin. Fallback ke $bolehKelola untuk ST jalur lama.
+    $jalurSesdep = $st->memakaiAlurSesdep();
+    $bolehTerbitkan = $bolehTerbitkan ?? ($jalurSesdep ? false : $bolehKelola);
+
+    $errAlur = collect(['file_ttd', 'terbit', 'alur'])->map(fn($k) => $errors->first($k))->filter()->values();
+    $errLaporan = $errors->first('notulensi') ?: ($errors->first('materi') ?: ($errors->first('materi.*') ?: $errors->first('laporan')));
+
+    $adaTtd = filled($st->file_ttd_path ?? null);
+    $namaUnit = method_exists($st, 'unit') ? optional($st->unit)->nama : null;
+
     $card = 'overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm';
     $cardHead = 'flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5';
     $cardTitle = 'text-sm font-semibold text-slate-900';
@@ -33,6 +44,14 @@
 <x-app-layout>
     <div class="max-w-7xl mx-auto space-y-4 px-4 py-4 sm:px-6 lg:px-8">
 
+        @if ($errAlur->isNotEmpty())
+            <div class="rounded-md border border-red-200 bg-red-50 p-3 text-[13px] text-red-700" role="alert">
+                @foreach ($errAlur as $msg)
+                    <p>{{ $msg }}</p>
+                @endforeach
+            </div>
+        @endif
+
         <div class="{{ $card }} px-4 py-3">
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                 <div class="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -45,12 +64,23 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    @if ($st->status === 'draf' && $bolehKelola)
+                    @if ($st->status === 'draf' && $bolehTerbitkan)
                         <form method="POST" action="{{ route('surat-tugas.terbitkan', $st) }}"
+                            enctype="multipart/form-data" class="flex flex-wrap items-center gap-2"
                             onsubmit="return confirm('Terbitkan ST ini? Setelah terbit, isi ST dikunci dan tidak bisa diedit, dan peserta yang punya akun akan mendapat tugas laporan.')">
                             @csrf
+                            <label class="flex flex-col text-[11px] text-slate-500">
+                                <span>PDF hasil TTD @if ($jalurSesdep)<span class="text-red-600">*</span>@else(opsional)@endif</span>
+                                <input type="file" name="file_ttd" accept="application/pdf,.pdf"
+                                    @required($jalurSesdep)
+                                    class="max-w-[16rem] text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-medium file:text-slate-700">
+                            </label>
                             <button class="{{ $btnPrimary }}">Terbitkan</button>
                         </form>
+                    @endif
+
+                    @if ($adaTtd && Route::has('surat-tugas.ttd'))
+                        <a href="{{ route('surat-tugas.ttd', $st) }}" target="_blank" class="{{ $btnOutline }}">Unduh ST (TTD)</a>
                     @endif
 
                     @if ($st->status === 'terbit' && \Illuminate\Support\Facades\Route::has('surat-tugas.selesai'))
@@ -93,12 +123,30 @@
                         <span class="font-normal text-slate-500">&middot; {{ $st->jabatan_penandatangan }}</span>
                     </dd>
                 </div>
+                @if ($namaUnit)
+                    <div>
+                        <dt class="{{ $label }}">Unit pembuat</dt>
+                        <dd class="font-medium text-slate-900">{{ $namaUnit }}</dd>
+                    </div>
+                @endif
+                @if ($adaTtd)
+                    <div class="sm:col-span-2">
+                        <dt class="{{ $label }}">Ditandatangani dan diterbitkan</dt>
+                        <dd class="font-medium text-slate-900">
+                            {{ optional($st->penandatanganiOleh ?? null)->name ?? '-' }}
+                            <span class="font-normal text-slate-500">&middot;
+                                {{ optional($st->ditandatangani_at)->format('d/m/Y H:i') ?? '-' }}</span>
+                        </dd>
+                    </div>
+                @endif
             </dl>
         </div>
 
         <div class="grid items-start gap-4 lg:grid-cols-3">
 
             <div class="space-y-4 lg:col-span-2">
+
+                @include('surat-tugas._kontrol', ['st' => $st])
 
                 <section class="{{ $card }}">
                     <div class="{{ $cardHead }}">
@@ -186,8 +234,6 @@
                     </div>
                 </section>
 
-                @include('surat-tugas._kontrol', ['st' => $st])
-
                 @include('surat-tugas._format-pdf', ['st' => $st])
 
                 @if (in_array($st->status, ['terbit', 'selesai']))
@@ -249,10 +295,10 @@
                                 @endif
                             </div>
 
-                            @if ($errors->any())
+                            @if ($errLaporan)
                                 <div class="rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-700"
                                     role="alert">
-                                    {{ $errors->first() }}</div>
+                                    {{ $errLaporan }}</div>
                             @endif
 
                             @if ($bolehIsiLaporan)
@@ -459,7 +505,7 @@
                                 </form>
                             @elseif ($laporan)
                                 <div class="divide-y divide-slate-100 border-t border-slate-100 leading-6 text-slate-700">
-                                    
+
                                     <div class="py-3">
                                         <h4 class="font-medium text-slate-500 mb-1.5">Notulensi / Berkas Laporan Hasil (PDF)</h4>
                                         @if ($bolehBukaBerkas)

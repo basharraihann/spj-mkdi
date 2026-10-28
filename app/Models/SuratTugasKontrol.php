@@ -13,18 +13,22 @@ class SuratTugasKontrol extends Model
 
     protected $casts = ['acted_at' => 'datetime'];
 
-    /** Urutan baku tahapan lembar kontrol. */
+    /**
+     * Urutan baku tahapan lembar kontrol.
+     * Tahap 2 dilewati bila Eselon 2 unit pembuat = Sesdep sendiri (nomor urut tetap, boleh ada celah).
+     */
     public const TAHAP = [
         1 => 'konseptor',
-        2 => 'pemeriksa',
-        3 => 'persetujuan_es2',
-        4 => 'kontrol_sesdep',
-        5 => 'persetujuan_sesdep',
+        2 => 'persetujuan_es2',
+        3 => 'kontrol_sesdep',
+        4 => 'persetujuan_sesdep',
     ];
 
+    /** Tahap yang mengambil nomor saat disetujui. */
+    public const TAHAP_NOMOR = 'kontrol_sesdep';
+
     public const TAHAP_LABEL = [
-        'konseptor' => 'Konseptor (Admin TU)',
-        'pemeriksa' => 'Pemeriksa',
+        'konseptor' => 'Konseptor (TU)',
         'persetujuan_es2' => 'Persetujuan Eselon 2',
         'kontrol_sesdep' => 'Kontrol & Penomoran (Admin Sesdep)',
         'persetujuan_sesdep' => 'Persetujuan Sesdep',

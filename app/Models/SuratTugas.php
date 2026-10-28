@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -37,9 +38,14 @@ class SuratTugas extends Model
         'nip_penandatangan',
         'arsip_surat_id',
         'created_by',
+        'unit_id',
         'diterbitkan_at',
         'dibatalkan_at',
         'alasan_batal',
+        'file_ttd_path',
+        'file_ttd_nama',
+        'ditandatangani_by',
+        'ditandatangani_at',
     ];
 
     protected $casts = [
@@ -50,6 +56,7 @@ class SuratTugas extends Model
         'tanggal_selesai' => 'date',
         'diterbitkan_at' => 'datetime',
         'dibatalkan_at' => 'datetime',
+        'ditandatangani_at' => 'datetime',
     ];
 
     public const STATUS_LABEL = [
@@ -64,15 +71,26 @@ class SuratTugas extends Model
         return $this->hasMany(SuratTugasPegawai::class)->orderBy('urutan');
     }
 
-    /** Lembar kontrol (opsional): tahapan konseptor, pemeriksa, persetujuan atasan. */
+    /** Lembar kontrol: tahapan konseptor, persetujuan Eselon 2, kontrol Sesdep, persetujuan Sesdep. */
     public function kontrol(): HasMany
     {
         return $this->hasMany(SuratTugasKontrol::class)->orderBy('urutan');
     }
 
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
     public function tusi(): BelongsTo
     {
         return $this->belongsTo(Tusi::class);
+    }
+
+    /** User yang mengunggah file TTD dan menerbitkan ST. */
+    public function penandatanganiOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'ditandatangani_by');
     }
 
     /** Laporan hasil ST (satu per ST; belum ada baris = belum diisi). */
@@ -90,6 +108,62 @@ class SuratTugas extends Model
     public function isDraf(): bool
     {
         return $this->status === 'draf';
+    }
+
+    /**
+     * Jalur persetujuan Sesdep: sudah punya lembar kontrol, atau unit pembuat berkode "... D<n>"
+     * (Asdep 3 D2, Sekretariat D2, dst). ST Biro MKDI dan ST lama tanpa unit memakai jalur lama.
+     * Aturan kode unit sama dengan KontrolStController@mulai.
+     */
+    public function memakaiAlurSesdep(): bool
+    {
+        $adaKontrol = $this->relationLoaded('kontrol')
+            ? $this->kontrol->isNotEmpty()
+            : $this->kontrol()->exists();
+
+        if ($adaKontrol) {
+            return true;
+        }
+
+        return $this->unit_id
+            && preg_match('/\sD\d$/', (string) optional($this->unit)->kode) === 1;
+    }
+
+    /**
+     * ST sedang/selesai diproses lembar kontrol, jadi isinya dikunci.
+     * Terbuka lagi hanya kalau ada tahap yang ditolak (butuh revisi).
+     */
+    public function terkunciKontrol(): bool
+    {
+        return $this->kontrol()->exists()
+            && !$this->kontrol()->where('status', 'ditolak')->exists();
+    }
+
+    /**
+     * Batasi ST yang boleh dilihat user:
+     * admin = semua; selain itu pembuat, petugas lembar kontrol, peserta (lewat pemetaan pegawai),
+     * dan satu unit dengan pembuat. ST lama tanpa unit tetap terlihat oleh TU dan pimpinan.
+     */
+    public function scopeDapatDilihat(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $w) use ($user) {
+            $w->where('created_by', $user->id)
+                ->orWhereHas('kontrol', fn($k) => $k->where('petugas_id', $user->id));
+
+            if ($user->pegawai_id) {
+                $w->orWhereHas('peserta', fn($p) => $p->where('pegawai_id', $user->pegawai_id));
+            }
+            if ($user->unit_id) {
+                $w->orWhere('unit_id', $user->unit_id);
+            }
+            if ($user->isTu() || $user->isPimpinan()) {
+                $w->orWhereNull('unit_id');
+            }
+        });
     }
 
     public function getStatusLabelAttribute(): string

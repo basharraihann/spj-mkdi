@@ -1,7 +1,13 @@
 @php
-    $dasarTetap = 'Daftar Isian Pelaksanaan Anggaran (DIPA) Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2026 Nomor: SP DIPA-131.01.1.694775/2026 tanggal 1 Desember 2025';
+    // CATATAN: teks ini menyebut "Tahun 2025" tapi nomornya "/2026". Cek dan samakan sebelum dipakai.
+    $dasarTetap = 'Daftar Isian Pelaksanaan Anggaran (DIPA) Satuan Kerja Kementerian Koordinator Bidang Pangan Tahun 2025 Nomor: SP DIPA-131.01-0/2026 tanggal 1 Desember 2025';
 
     $kabKotaMap = $kabKotaMap ?? [];
+
+    // true = ambil nomor otomatis saat form dibuka (jalur lama / admin).
+    // false = nomor diberikan nanti saat admin Sesdep menyetujui tahap kontrol (jalur Sesdep).
+    // Controller boleh mengirim $bolehAmbilNomor; kalau tidak, hanya admin yang memakai jalur lama.
+    $bolehAmbilNomor = $bolehAmbilNomor ?? auth()->user()->isAdmin();
 
     $dasarLain = collect(old('dasar', $st->dasar ?? []))
         ->reject(fn($d) => str_starts_with(trim((string) $d), 'Daftar Isian Pelaksanaan Anggaran'))
@@ -53,6 +59,7 @@
         nomorUrut: @js($st->nomor_urut ?? null),
         nomor: @js($st->nomor ?? ''),
         tahunNomor: @js($st->tahun ?? date('Y')),
+        bolehAmbil: @js((bool) $bolehAmbilNomor),
         ambilUrl: @js(route('surat-tugas.nomor-berikutnya')),
         loadingNomor: false,
         errNomor: '',
@@ -66,7 +73,7 @@
         get daftarKota() { return this.kabKotaMap[this.provinsi] ?? []; },
 
         async ambilNomor() {
-            if (this.nomorUrut || !this.tanggal || !this.kode) return;
+            if (!this.bolehAmbil || this.nomorUrut || !this.tanggal || !this.kode) return;
             this.loadingNomor = true; this.errNomor = '';
             try {
                 const res = await fetch(this.ambilUrl, {
@@ -116,8 +123,9 @@
                 : { nama: '', nip: '', jabatan: '' };
         }
     }" x-init="pickTtd = (penandatangan.find(x => x.nama === ttd.nama)?.id) ?? '';
-            if (!nomorUrut) { ambilNomor(); }
-            $watch('tanggal', () => { if (!nomorUrut && tanggal) ambilNomor(); })" class="space-y-5">
+            if (!pickTtd && penandatangan.length === 1) { pickTtd = penandatangan[0].id; setTtd(); }
+            if (bolehAmbil && !nomorUrut) { ambilNomor(); }
+            $watch('tanggal', () => { if (bolehAmbil && !nomorUrut && tanggal) ambilNomor(); })" class="space-y-5">
 
     @if ($errors->any())
         <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
@@ -142,7 +150,8 @@
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label class="{{ $fLabel }}">Tempat</label>
-                    <input type="text" name="tempat" value="{{ old('tempat', $st->tempat ?? '') }}" class="{{ $fInput }}">
+                    <input type="text" name="tempat" value="{{ old('tempat', $st->tempat ?? '') }}"
+                        class="{{ $fInput }}">
                 </div>
                 <div>
                     <label class="{{ $fLabel }}">Tanggal surat</label>
@@ -152,11 +161,15 @@
                 <div class="sm:col-span-2">
                     <label class="{{ $fLabel }}">Nomor ST</label>
                     <input type="hidden" name="kode_klasifikasi" :value="kode">
-                    <input type="hidden" name="minta_nomor" :value="nomorUrut ? 0 : 1">
-                    <input type="text" readonly :value="nomor || (loadingNomor ? 'Memuat nomor…' : '—')"
+                    <input type="hidden" name="minta_nomor" :value="(nomorUrut || !bolehAmbil) ? 0 : 1">
+                    <input type="text" readonly
+                        :value="nomor || (loadingNomor ? 'Memuat nomor…' : (bolehAmbil ? '—' : 'Belum diberikan'))"
                         class="{{ $fReadonly }} font-semibold tabular-nums text-gray-900">
-                    <p class="mt-1 text-xs text-slate-500"
-                        x-text="nomorUrut ? 'Nomor sudah terkunci.' : 'Terisi otomatis, terkunci setelah klik Simpan.'">
+                    <p class="mt-1 text-xs text-slate-500" x-text="nomorUrut
+                            ? 'Nomor sudah terkunci.'
+                            : (bolehAmbil
+                                ? 'Terisi otomatis, terkunci setelah klik Simpan.'
+                                : 'Nomor diberikan otomatis saat admin Sesdep menyetujui tahap kontrol.')">
                     </p>
                     <p class="mt-1 text-xs text-red-600" x-show="errNomor" x-text="errNomor"></p>
                 </div>

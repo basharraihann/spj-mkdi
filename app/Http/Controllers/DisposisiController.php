@@ -16,19 +16,23 @@ use Illuminate\Validation\ValidationException;
 
 class DisposisiController extends Controller
 {
+    // Ganti const MODE dan seluruh method index() dengan ini:
+
     private const TAB = ['semua', 'baru', 'dibaca', 'diproses', 'selesai'];
 
-    /**
-     * Inbox disposisi milik user yang login.
-     */
     public function index(Request $request)
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+
         $tab = in_array($request->query('tab'), self::TAB, true) ? $request->query('tab') : 'semua';
         $q = trim((string) $request->query('q', ''));
 
-        $dasar = Disposisi::where('penerima_id', $userId);
+        // TU & admin melihat disposisi yang mereka kirim, yang lain melihat yang masuk ke mereka
+        $dasar = ($user->isTu() || $user->isAdmin())
+            ? Disposisi::where('pengirim_id', $user->id)
+            : Disposisi::where('penerima_id', $user->id);
 
+        // Angka di dropdown status
         $perStatus = (clone $dasar)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
         $jumlah = [
             'semua' => (int) $perStatus->sum(),
@@ -39,7 +43,7 @@ class DisposisiController extends Controller
         ];
 
         $disposisi = (clone $dasar)
-            ->with(['suratMasuk', 'pengirim'])
+            ->with(['suratMasuk', 'pengirim', 'penerima', 'children.penerima'])
             ->when($tab !== 'semua', fn($query) => $query->where('status', $tab))
             ->when($q !== '', function ($query) use ($q) {
                 $query->whereHas('suratMasuk', function ($s) use ($q) {
@@ -54,7 +58,6 @@ class DisposisiController extends Controller
 
         return view('disposisi.index', compact('disposisi', 'jumlah', 'tab', 'q'));
     }
-
     /**
      * Detail disposisi, pohon hierarki (sudah difilter sesuai role), form teruskan / lapor.
      */

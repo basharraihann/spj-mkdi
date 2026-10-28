@@ -154,7 +154,7 @@ class SuratMasukController extends Controller
                 'parent_dispo_id' => null,
                 'pengirim_id' => $user->id,
                 'penerima_id' => $targetUser->id,
-                'instruksi' => 'Surat baru diterima. Mohon petunjuk dan arahan.',
+                'instruksi' => '',
                 'sifat' => 'biasa',
                 'status' => 'baru',
             ]);
