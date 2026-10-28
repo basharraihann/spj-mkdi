@@ -7,6 +7,7 @@ use App\Http\Controllers\AnggaranPemetaanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
 use App\Http\Controllers\DocumentPdfController;
+use App\Http\Controllers\KontrolStController;
 use App\Http\Controllers\LaporanStController;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
@@ -16,7 +17,6 @@ use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\NotaDinasController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\KontrolStController;
 use App\Http\Controllers\SuratKeluarController;
 use App\Http\Controllers\SuratMasukController;
 use App\Http\Controllers\SuratTugasController;
@@ -31,19 +31,19 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Web Routes - Sistem Persuratan, Disposisi & SPJ
 |--------------------------------------------------------------------------
+| Akses per role diatur di config/menu.php dan dicek lewat middleware
+| "menu:<key>" (lihat App\Http\Middleware\EnsureUserCanAccessMenu).
 */
 
-// Halaman Utama: Redirect otomatis untuk Deputi 2, Asdep 2, dan TU Deputi 2 ke Surat Masuk
+// Halaman utama: arahkan ke beranda sesuai role (config/menu.php)
 Route::get('/', function () {
-    $user = Auth::user();
-    if ($user && $user->landsOnSuratMasuk()) {
-        return redirect()->route('surat-masuk.index');
-    }
-    return redirect()->route('dashboard');
+    $role = Auth::user()?->role ?? '';
+
+    return redirect()->route(config('menu.beranda.' . $role, 'dashboard'));
 });
 
-// Dashboard SPJ & Endpoint Kalender
-Route::middleware(['auth', 'verified'])
+// Dashboard SPJ & endpoint kalender
+Route::middleware(['auth', 'verified', 'menu:dashboard'])
     ->controller(DashboardController::class)
     ->group(function () {
         Route::get('/dashboard', 'index')->name('dashboard');
@@ -67,10 +67,19 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // MODUL PERSURATAN & DISPOSISI BERJENJANG
     // ==========================================
-    Route::resource('surat-masuk', SuratMasukController::class);
+
+    // Surat masuk: kelola oleh TU (+admin). Halaman detail juga boleh dibuka
+    // dari disposisi supaya pimpinan bisa melihat surat yang didisposisikan.
+    Route::resource('surat-masuk', SuratMasukController::class)
+        ->except(['show'])
+        ->middleware('menu:surat_masuk');
+    Route::get('surat-masuk/{surat_masuk}', [SuratMasukController::class, 'show'])
+        ->middleware('menu:surat_masuk,disposisi')
+        ->name('surat-masuk.show');
 
     Route::prefix('disposisi')
         ->name('disposisi.')
+        ->middleware('menu:disposisi')
         ->controller(DisposisiController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');
@@ -81,6 +90,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('nota-dinas')
         ->name('nota-dinas.')
+        ->middleware('menu:disposisi')
         ->controller(NotaDinasController::class)
         ->group(function () {
             Route::get('create/{disposisi}', 'create')->name('create');
@@ -88,16 +98,23 @@ Route::middleware('auth')->group(function () {
             Route::get('{notaDinas}', 'show')->name('show');
         });
 
-    // Modul Surat Keluar (Nota Dinas, Undangan, Telaah Staf, Notula, Surat Pernyataan)
-    Route::patch('surat-keluar/{suratKeluar}/status', [SuratKeluarController::class, 'ubahStatus'])->name('surat-keluar.status');
-    Route::resource('surat-keluar', SuratKeluarController::class);
+    // Surat keluar (Nota Dinas, Undangan, Telaah Staf, Notula, Surat Pernyataan)
+    Route::patch('surat-keluar/{suratKeluar}/status', [SuratKeluarController::class, 'ubahStatus'])
+        ->middleware('menu:surat_keluar')
+        ->name('surat-keluar.status');
+    Route::resource('surat-keluar', SuratKeluarController::class)
+        ->middleware('menu:surat_keluar');
 
     // ==========================================
     // MODUL CETAK DOKUMEN & PDF STREAMING
     // ==========================================
     Route::controller(DocumentPdfController::class)->group(function () {
-        Route::get('/disposisi/{id}/pdf', 'cetakDisposisi')->name('disposisi.pdf');
-        Route::get('/surat-keluar/{suratKeluar}/pdf', 'cetakSuratKeluar')->name('surat-keluar.pdf');
+        Route::get('/disposisi/{id}/pdf', 'cetakDisposisi')
+            ->middleware('menu:disposisi')
+            ->name('disposisi.pdf');
+        Route::get('/surat-keluar/{suratKeluar}/pdf', 'cetakSuratKeluar')
+            ->middleware('menu:surat_keluar')
+            ->name('surat-keluar.pdf');
     });
 
     // ==========================================
@@ -105,6 +122,7 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::prefix('agendas/{agenda}')
         ->name('agendas.')
+        ->middleware('menu:agendas')
         ->group(function () {
 
             Route::controller(AgendaController::class)->group(function () {
@@ -127,14 +145,18 @@ Route::middleware('auth')->group(function () {
             });
         });
 
-    Route::resource('agendas', AgendaController::class);
+    Route::resource('agendas', AgendaController::class)->middleware('menu:agendas');
 
-    Route::post('pegawais/reorder', [PegawaiController::class, 'reorder'])->name('pegawais.reorder');
-    Route::resource('pegawais', PegawaiController::class);
+    // Pegawai (fitur TU)
+    Route::post('pegawais/reorder', [PegawaiController::class, 'reorder'])
+        ->middleware('menu:pegawais')
+        ->name('pegawais.reorder');
+    Route::resource('pegawais', PegawaiController::class)->middleware('menu:pegawais');
 
     Route::controller(MemoController::class)
         ->prefix('nomor-memo')
         ->name('memo.')
+        ->middleware('menu:memo')
         ->group(function () {
             Route::get('berikutnya', 'nomorBerikutnya')->name('nomor-berikutnya');
             Route::get('create', 'create')->name('create');
@@ -148,6 +170,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('nominatif')
         ->name('nominatif.')
+        ->middleware('menu:nominatif')
         ->group(function () {
 
             Route::controller(NominatifCustomController::class)->group(function () {
@@ -169,65 +192,79 @@ Route::middleware('auth')->group(function () {
             });
         });
 
+    // ==========================================
+    // SURAT TUGAS
+    // ==========================================
     Route::prefix('surat-tugas')
         ->name('surat-tugas.')
         ->controller(SuratTugasController::class)
         ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('create', 'create')->name('create');
-            Route::post('/', 'store')->name('store');
 
-            Route::post('counter', 'setCounter')->middleware('admin')->name('counter');
+            // Kelola ST dan alur persetujuan: TU, Eselon 2, admin
+            Route::middleware('menu:surat_tugas')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('create', 'create')->name('create');
+                Route::post('/', 'store')->name('store');
 
-            Route::post('nomor-berikutnya', 'nomorBerikutnya')->name('nomor-berikutnya');
+                Route::post('counter', 'setCounter')->middleware('admin')->name('counter');
+                Route::post('nomor-berikutnya', 'nomorBerikutnya')->name('nomor-berikutnya');
 
-            Route::get('{suratTugas}', 'show')->name('show');
-            Route::get('{suratTugas}/edit', 'edit')->name('edit');
-            Route::put('{suratTugas}', 'update')->name('update');
-            Route::delete('{suratTugas}', 'destroy')->name('destroy');
+                Route::get('{suratTugas}/edit', 'edit')->name('edit');
+                Route::put('{suratTugas}', 'update')->name('update');
+                Route::delete('{suratTugas}', 'destroy')->name('destroy');
 
-            Route::patch('{suratTugas}/tusi', 'updateTusi')->name('tusi');
+                Route::patch('{suratTugas}/tusi', 'updateTusi')->name('tusi');
+                Route::post('{suratTugas}/terbitkan', 'terbitkan')->name('terbitkan');
 
-            Route::post('{suratTugas}/terbitkan', 'terbitkan')->name('terbitkan');
+                // Lembar kontrol ST (alur persetujuan Sesdep)
+                Route::post('{suratTugas}/kontrol', [KontrolStController::class, 'mulai'])->name('kontrol.mulai');
+                Route::patch('kontrol/{kontrol}', [KontrolStController::class, 'aksi'])->name('kontrol.aksi');
+                Route::get('{suratTugas}/kontrol/cetak', [KontrolStController::class, 'cetak'])->name('kontrol.cetak');
+            });
 
-            // Lembar kontrol ST (opsional)
-            Route::post('{suratTugas}/kontrol', [KontrolStController::class, 'mulai'])->name('kontrol.mulai');
-            Route::patch('kontrol/{kontrol}', [KontrolStController::class, 'aksi'])->name('kontrol.aksi');
-            Route::get('{suratTugas}/kontrol/cetak', [KontrolStController::class, 'cetak'])->name('kontrol.cetak');
+            // Lihat ST dan laporan: juga dibuka untuk pegawai lewat Tugas Saya.
+            // Pembatasan per-ST tetap di controller/model (dapatDilihat).
+            Route::middleware('menu:surat_tugas,tugas_saya')->group(function () {
+                Route::get('{suratTugas}', 'show')->name('show');
+                Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
+                Route::get('{suratTugas}/ttd', 'unduhTtd')->name('ttd');
+                Route::get('{suratTugas}/data', 'data')->name('data');
 
-            Route::post('{suratTugas}/laporan', [LaporanStController::class, 'simpan'])->name('laporan.simpan');
-
-            Route::get('{suratTugas}/laporan/berkas', [LaporanStController::class, 'berkas'])->name('laporan.berkas');
-
-            Route::get('{suratTugas}/laporan/materi/{filename}', [LaporanStController::class, 'berkasMateri'])->name('laporan.materi');
-
-            Route::get('{suratTugas}/pdf', 'pdf')->name('pdf');
-            Route::get('{suratTugas}/data', 'data')->name('data');
+                Route::post('{suratTugas}/laporan', [LaporanStController::class, 'simpan'])->name('laporan.simpan');
+                Route::get('{suratTugas}/laporan/berkas', [LaporanStController::class, 'berkas'])->name('laporan.berkas');
+                Route::get('{suratTugas}/laporan/materi/{filename}', [LaporanStController::class, 'berkasMateri'])->name('laporan.materi');
+            });
         });
 
-    Route::get('tugas-saya', [TugasSayaController::class, 'index'])->name('tugas-saya.index');
+    Route::get('tugas-saya', [TugasSayaController::class, 'index'])
+        ->middleware('menu:tugas_saya')
+        ->name('tugas-saya.index');
 
     // Monitoring terpadu & rekap Excel
-    Route::get('monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
-    Route::get('monitoring/export', [MonitoringController::class, 'export'])->name('monitoring.export');
+    Route::middleware('menu:monitoring')->group(function () {
+        Route::get('monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
+        Route::get('monitoring/export', [MonitoringController::class, 'export'])->name('monitoring.export');
+    });
 
     Route::middleware('admin')
         ->resource('tusi', TusiController::class)
         ->except(['show', 'create', 'edit'])
         ->parameters(['tusi' => 'tusi']);
 
-    Route::middleware(['auth'])->group(function () {
-        Route::resource('mak-options', MakOptionController::class)
-            ->except(['show', 'create', 'edit']);
-    });
+    // Nomor MAK (fitur TU)
+    Route::resource('mak-options', MakOptionController::class)
+        ->middleware('menu:mak_options')
+        ->except(['show', 'create', 'edit']);
 
     Route::controller(AnggaranController::class)
         ->prefix('anggaran')
         ->name('anggaran.')
         ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('data', 'data')->name('data');
-            Route::get('export', 'export')->name('export');
+            Route::middleware('menu:anggaran')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('data', 'data')->name('data');
+                Route::get('export', 'export')->name('export');
+            });
 
             Route::middleware('admin')->group(function () {
                 Route::get('upload', 'uploadForm')->name('upload');

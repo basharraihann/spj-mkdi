@@ -131,7 +131,12 @@ class User extends Authenticatable
             self::ROLE_ESELON3,
         ], true);
     }
+    public function bolehMenu(string $key): bool
+    {
+        $akses = config('menu.akses.' . $this->role, []);
 
+        return $akses === '*' || in_array($key, $akses, true);
+    }
     /**
      * Label role
      */

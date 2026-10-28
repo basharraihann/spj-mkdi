@@ -18,11 +18,29 @@
     }
 
     @media (max-height: 820px) {
-        .sb-nav { padding-top: .5rem !important; }
-        .sb-group { padding-top: .25rem !important; }
-        .sb-head { padding-top: .125rem !important; padding-bottom: .125rem !important; margin-bottom: 0 !important; }
-        .sb-link { padding-top: .375rem !important; padding-bottom: .375rem !important; }
-        .sb-foot { padding-top: .5rem !important; padding-bottom: .5rem !important; }
+        .sb-nav {
+            padding-top: .5rem !important;
+        }
+
+        .sb-group {
+            padding-top: .25rem !important;
+        }
+
+        .sb-head {
+            padding-top: .125rem !important;
+            padding-bottom: .125rem !important;
+            margin-bottom: 0 !important;
+        }
+
+        .sb-link {
+            padding-top: .375rem !important;
+            padding-bottom: .375rem !important;
+        }
+
+        .sb-foot {
+            padding-top: .5rem !important;
+            padding-bottom: .5rem !important;
+        }
     }
 </style>
 
@@ -58,7 +76,6 @@
 
             @php
                 $user = Auth::user();
-                $role = $user?->role ?? '';
 
                 $tugasMenunggu = (Auth::check() && class_exists(\App\Models\LaporanStTugas::class))
                     ? \App\Models\LaporanStTugas::where('user_id', Auth::id())
@@ -71,7 +88,8 @@
                     ? \App\Models\Disposisi::where('penerima_id', Auth::id())->where('status', 'baru')->count()
                     : 0;
 
-                // Definisi Struktur Menu Utama Lengkap
+                // Semua menu didefinisikan di sini; yang tampil disaring lewat
+                // User::bolehMenu($key) berdasarkan config/menu.php.
                 $allGroups = [
                     [
                         'label' => 'Tata Kelola & Persuratan',
@@ -179,21 +197,16 @@
                                 'label' => __('Realisasi Anggaran'),
                                 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'
                             ],
+                            [
+                                'key' => 'anggaran_pemetaan',
+                                'route' => 'anggaran.pemetaan',
+                                'active' => request()->routeIs('anggaran.pemetaan*'),
+                                'label' => __('Pemetaan Unit'),
+                                'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+                            ],
                         ],
                     ],
-                ];
-
-                // Menu Tambahan khusus Admin Sistem Utama
-                if ($user?->isAdmin() && !in_array($role, ['admin-d2'], true)) {
-                    $allGroups[2]['items'][] = [
-                        'key' => 'anggaran_pemetaan',
-                        'route' => 'anggaran.pemetaan',
-                        'active' => request()->routeIs('anggaran.pemetaan*'),
-                        'label' => __('Pemetaan Unit'),
-                        'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
-                    ];
-
-                    $allGroups[] = [
+                    [
                         'label' => null,
                         'items' => [
                             [
@@ -218,48 +231,22 @@
                                 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'
                             ],
                         ],
-                    ];
-                }
+                    ],
+                ];
 
-                // Matriks Izin Akses Per Key Menu untuk Role D2
-                $allowedKeys = [];
-                switch ($role) {
-                    case 'tu-d2':
-                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
-                        break;
-                    case 'deputi-d2':
-                        // Tanpa 'dashboard' khusus Ibu Deputi 2
-                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi'];
-                        break;
-                    case 'asdep-d2':
-                        // Tanpa 'dashboard' khusus Bapak Asdep 2
-                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'surat_tugas', 'tugas_saya'];
-                        break;
-                    case 'pegawai-d2':
-                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'agendas', 'memo', 'nominatif', 'pegawais', 'mak_options', 'anggaran'];
-                        break;
-                    case 'admin-d2':
-                        $allowedKeys = ['monitoring', 'surat_keluar', 'surat_masuk', 'disposisi', 'dashboard', 'surat_tugas', 'tugas_saya', 'anggaran'];
-                        break;
-                    default:
-                        $allowedKeys = null;
-                        break;
-                }
-
-                // Melakukan penyaringan grup menu jika user menggunakan Role D2
+                // Saring menu per role. Item admin-only (anggaran_pemetaan, tusi,
+                // pemetaan_akun, users) otomatis hilang untuk role selain admin
+                // karena key-nya tidak ada di config/menu.php.
                 $groups = [];
-                if ($allowedKeys !== null) {
-                    foreach ($allGroups as $grp) {
-                        $filteredItems = array_filter($grp['items'], fn($item) => in_array($item['key'], $allowedKeys, true));
-                        if (!empty($filteredItems)) {
-                            $groups[] = [
-                                'label' => $grp['label'],
-                                'items' => array_values($filteredItems)
-                            ];
-                        }
+                foreach ($allGroups as $grp) {
+                    $items = array_values(array_filter(
+                        $grp['items'],
+                        fn($item) => $user?->bolehMenu($item['key'])
+                    ));
+
+                    if ($items) {
+                        $groups[] = ['label' => $grp['label'], 'items' => $items];
                     }
-                } else {
-                    $groups = $allGroups;
                 }
 
                 $footer = [
@@ -293,11 +280,13 @@
 
                     <div x-show="open || !(sidebarOpen || !sidebarCollapsed)" class="space-y-1">
                         @foreach ($group['items'] as $item)
-                            <a href="{{ Route::has($item['route']) ? route($item['route']) : '#' }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
+                            <a href="{{ Route::has($item['route']) ? route($item['route']) : '#' }}"
+                                :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                                 class="sb-link relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
+                                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
                                 :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                                 </svg>
                                 <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
@@ -322,8 +311,7 @@
             @foreach ($footer as $item)
                 <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                     class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                        {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
-                    :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                     <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                     </svg>
@@ -336,8 +324,10 @@
                 <button type="submit" :title="sidebarCollapsed ? 'Log Out' : ''"
                     class="sb-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-red-50 hover:text-red-600"
                     :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
-                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                     <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>Log Out</span>
                 </button>

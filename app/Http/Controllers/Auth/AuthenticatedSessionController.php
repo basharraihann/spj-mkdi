@@ -29,15 +29,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
-
-        // Redirect otomatis untuk Deputi 2, Asdep 2, dan TU Deputi 2 langsung ke Surat Masuk
-        $landingD2 = $user && $user->landsOnSuratMasuk();
-
-        if ($landingD2) {
-            return redirect()->intended(route('surat-masuk.index', absolute: false));
-        }
-
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect('/');
     }
 
     /**

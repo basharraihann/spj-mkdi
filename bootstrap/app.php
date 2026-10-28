@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'pimpinan' => \App\Http\Middleware\EnsureUserIsPimpinan::class,
+            'menu' => \App\Http\Middleware\EnsureUserCanAccessMenu::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
