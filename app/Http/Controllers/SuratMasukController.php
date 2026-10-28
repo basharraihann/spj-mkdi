@@ -7,6 +7,7 @@ use App\Models\Laporan;
 use App\Models\SuratMasuk;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\SuratMasukNumberService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,9 +21,23 @@ class SuratMasukController extends Controller
      * Daftar monitoring surat masuk.
      * TU hanya melihat surat unitnya sendiri. Admin & role lain melihat semua.
      */
-    public function index(Request $request): View
+    public function index(Request $request, SuratMasukNumberService $numbering): View
     {
-        $query = $this->batasiAkses(SuratMasuk::query(), Auth::user());
+        $user = Auth::user();
+
+        // Dasar query sesuai hak akses (dipakai juga untuk hitungan chip status)
+        $base = $this->batasiAkses(SuratMasuk::query(), $user);
+
+        $statusCounts = (clone $base)
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $query = clone $base;
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -34,16 +49,25 @@ class SuratMasukController extends Controller
             });
         }
 
-        $suratMasuk = $query->latest()->paginate(10)->withQueryString();
+        $suratMasuk = $query
+            ->with('disposisi.penerima')
+            ->latest('id')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('surat-masuk.index', compact('suratMasuk'));
+        // Pratinjau nomor agenda hanya relevan untuk yang bisa menginput surat
+        $nomorAgendaBerikutnya = ($user->isAdmin() || $user->isTu())
+            ? $numbering->nomorBerikutnya()
+            : null;
+
+        return view('surat-masuk.index', compact('suratMasuk', 'statusCounts', 'nomorAgendaBerikutnya'));
     }
 
     /**
      * Form tambah Surat Masuk (TU & Admin).
      * TU: penerima otomatis dari unitnya. Admin: pilih unit tujuan.
      */
-    public function create(): View
+    public function create(SuratMasukNumberService $numbering): View
     {
         $this->authorizeAdminOrTu();
 
@@ -60,14 +84,21 @@ class SuratMasukController extends Controller
             $units = Unit::orderBy('id')->get();
         }
 
-        return view('surat-masuk.create', compact('target', 'unitNama', 'units'));
+        $nomorAgendaBerikutnya = $numbering->nomorBerikutnya();
+
+        return view('surat-masuk.create', compact(
+            'target',
+            'unitNama',
+            'units',
+            'nomorAgendaBerikutnya'
+        ));
     }
 
     /**
      * Simpan Surat Masuk & buat disposisi awal ke pejabat (Eselon 1/2) di unit yang sama.
      * Jalur & nomor agenda ditentukan server, bukan dari input form.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SuratMasukNumberService $numbering): RedirectResponse
     {
         $this->authorizeAdminOrTu();
 
@@ -81,7 +112,7 @@ class SuratMasukController extends Controller
             'unit_id' => ['nullable', 'exists:units,id'], // hanya dipakai admin
         ]);
 
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated, $numbering) {
             $user = Auth::user();
 
             // TU selalu pakai unitnya sendiri (input unit_id dari TU diabaikan)
@@ -103,9 +134,9 @@ class SuratMasukController extends Controller
 
             $jalur = $targetUser->role === 'eselon1' ? 'deputi' : 'eselon2';
 
-            // Nomor sementara supaya unik, lalu diganti nomor final berbasis id (anti bentrok)
+            // Nomor agenda diambil dari counter (dikunci di dalam transaksi, anti bentrok)
             $surat = SuratMasuk::create([
-                'nomor_agenda' => 'TMP-' . uniqid(),
+                'nomor_agenda' => $numbering->ambil(),
                 'nomor_surat' => $validated['nomor_surat'] ?? '-',
                 'asal_surat' => $validated['asal_surat'],
                 'perihal' => $validated['perihal'],
@@ -117,8 +148,6 @@ class SuratMasukController extends Controller
                 'created_by_id' => $user->id,
                 'status' => 'baru',
             ]);
-
-            $surat->update(['nomor_agenda' => $this->buatNomorAgenda($surat->id)]);
 
             Disposisi::create([
                 'surat_masuk_id' => $surat->id,
@@ -257,29 +286,6 @@ class SuratMasukController extends Controller
             ->whereIn('role', ['eselon1', 'eselon2'])
             ->orderBy('id')
             ->first();
-    }
-
-    /**
-     * Format: AG-007/D2/X/2026
-     */
-    private function buatNomorAgenda(int $id): string
-    {
-        $romawi = [
-            1 => 'I',
-            2 => 'II',
-            3 => 'III',
-            4 => 'IV',
-            5 => 'V',
-            6 => 'VI',
-            7 => 'VII',
-            8 => 'VIII',
-            9 => 'IX',
-            10 => 'X',
-            11 => 'XI',
-            12 => 'XII'
-        ];
-
-        return sprintf('AG-%03d/D2/%s/%d', $id, $romawi[now()->month], now()->year);
     }
 
     /**

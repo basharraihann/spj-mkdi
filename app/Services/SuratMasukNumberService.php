@@ -7,17 +7,27 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Nomor agenda otomatis, format: AG-001/MKDI/X/2026
- * (urut 3 digit / kode biro / bulan romawi / tahun). Nomor urut reset tiap tahun.
+ * Nomor agenda otomatis, format: AG-007/D2/X/2026
+ * (urut 3 digit / kode unit / bulan romawi / tahun). Nomor urut reset tiap tahun.
  */
 class SuratMasukNumberService
 {
     private const PREFIX = 'AG';
-    private const KODE = 'MKDI';
+    private const KODE = 'D2';
 
     private const ROMAWI = [
-        1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
-        7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII',
+        1 => 'I',
+        2 => 'II',
+        3 => 'III',
+        4 => 'IV',
+        5 => 'V',
+        6 => 'VI',
+        7 => 'VII',
+        8 => 'VIII',
+        9 => 'IX',
+        10 => 'X',
+        11 => 'XI',
+        12 => 'XII',
     ];
 
     /** Pratinjau nomor berikutnya (tidak mengubah counter). */
