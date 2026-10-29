@@ -88,6 +88,20 @@
                     ? \App\Models\Disposisi::where('penerima_id', Auth::id())->where('status', 'baru')->count()
                     : 0;
 
+                // Persetujuan ST yang sedang menunggu giliran user ini.
+                // Dihitung hanya bila semua tahap sebelumnya sudah disetujui (sama dengan aturan "Giliran sekarang").
+                // Admin melihat semua tahap yang sedang menunggu, karena admin boleh bertindak di tiap tahap.
+                $kontrolMenunggu = (Auth::check() && class_exists(\App\Models\SuratTugasKontrol::class))
+                    ? \App\Models\SuratTugasKontrol::where('status', 'menunggu')
+                        ->when(!$user->isAdmin(), fn($q) => $q->where('petugas_id', $user->id))
+                        ->get()
+                        ->filter(fn($k) => \App\Models\SuratTugasKontrol::where('surat_tugas_id', $k->surat_tugas_id)
+                            ->where('urutan', '<', $k->urutan)
+                            ->where('status', '!=', 'disetujui')
+                            ->doesntExist())
+                        ->count()
+                    : 0;
+
                 // Semua menu didefinisikan di sini; yang tampil disaring lewat
                 // User::bolehMenu($key) berdasarkan config/menu.php.
                 $allGroups = [
@@ -140,6 +154,7 @@
                                 'route' => 'surat-tugas.index',
                                 'active' => request()->routeIs('surat-tugas.*'),
                                 'label' => __('Surat Tugas'),
+                                'badge' => $kontrolMenunggu,
                                 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'
                             ],
                             [
@@ -283,7 +298,7 @@
                             <a href="{{ Route::has($item['route']) ? route($item['route']) : '#' }}"
                                 :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                                 class="sb-link relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
+                                                    {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}"
                                 :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                                 <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                     stroke-width="2">
@@ -311,7 +326,7 @@
             @foreach ($footer as $item)
                 <a href="{{ route($item['route']) }}" :title="sidebarCollapsed ? '{{ $item['label'] }}' : ''"
                     class="sb-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition
-                            {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
+                                {{ $item['active'] ? 'sb-active' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''">
                     <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                     </svg>

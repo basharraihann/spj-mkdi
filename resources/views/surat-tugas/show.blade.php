@@ -26,82 +26,87 @@
     $adaTtd = filled($st->file_ttd_path ?? null);
     $namaUnit = method_exists($st, 'unit') ? optional($st->unit)->nama : null;
 
-    $card = 'overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm';
-    $cardHead = 'flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5';
+    // Token tampilan (disamakan dengan halaman Disposisi & Lembar Kontrol)
+    $card = 'overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs';
+    $cardHead = 'flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 sm:px-5';
     $cardTitle = 'text-sm font-semibold text-slate-900';
+    $kecil = 'text-[10px] font-semibold uppercase tracking-wide text-slate-400';
     $label = 'text-xs text-slate-500';
-    $input = 'w-full rounded-md border-slate-300 py-1.5 text-[13px] focus:border-blue-600 focus:ring-blue-600';
-    $btnBase = 'inline-flex items-center justify-center rounded-md px-3 py-1.5 text-[13px] font-semibold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
-    $btnPrimary = $btnBase . ' bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-600';
+    $input = 'w-full rounded-lg border-slate-200 py-2 text-[13px] focus:border-blue-500 focus:ring-blue-500';
+    $btnBase = 'inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-[13px] font-semibold shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
+    $btnPrimary = $btnBase . ' bg-blue-700 text-white hover:bg-blue-800 focus-visible:ring-blue-600';
     $btnSuccess = $btnBase . ' bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-600';
-    $btnOutline = $btnBase . ' border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400';
+    $btnOutline = $btnBase . ' border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400';
 
     $jenisWarna = [
         'pns' => ['pill' => 'border-blue-200 bg-blue-50 text-blue-700', 'avatar' => 'bg-blue-100 text-blue-700'],
         'non_pns' => ['pill' => 'border-amber-200 bg-amber-50 text-amber-700', 'avatar' => 'bg-amber-100 text-amber-700'],
     ];
+
+    $tampilTerbitkan = $st->status === 'draf' && $bolehTerbitkan;
 @endphp
 <x-app-layout>
-    <div class="max-w-7xl mx-auto space-y-4 px-4 py-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto space-y-5 px-4 py-5 sm:px-6 lg:px-8">
 
         @if ($errAlur->isNotEmpty())
-            <div class="rounded-md border border-red-200 bg-red-50 p-3 text-[13px] text-red-700" role="alert">
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700" role="alert">
                 @foreach ($errAlur as $msg)
                     <p>{{ $msg }}</p>
                 @endforeach
             </div>
         @endif
 
-        <div class="{{ $card }} px-4 py-3">
-            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <div class="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-                    <h1 class="break-all text-lg font-semibold leading-tight text-slate-900">{{ $st->nomor_tampil }}</h1>
-                    <span
-                        class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {{ $badge['pill'] }}">
-                        <span class="h-1.5 w-1.5 rounded-full {{ $badge['dot'] }}"></span>
-                        {{ $st->status_label }}
-                    </span>
-                </div>
+        {{-- ===== Kartu judul ===== --}}
+        <div class="{{ $card }}">
+            <div class="px-4 pt-4 sm:px-6 sm:pt-5">
+                <a href="{{ route('surat-tugas.index') }}"
+                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-800">
+                    <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                    Kembali ke daftar
+                </a>
 
-                <div class="flex flex-wrap items-center gap-2">
-                    @if ($st->status === 'draf' && $bolehTerbitkan)
-                        <form method="POST" action="{{ route('surat-tugas.terbitkan', $st) }}"
-                            enctype="multipart/form-data" class="flex flex-wrap items-center gap-2"
-                            onsubmit="return confirm('Terbitkan ST ini? Setelah terbit, isi ST dikunci dan tidak bisa diedit, dan peserta yang punya akun akan mendapat tugas laporan.')">
-                            @csrf
-                            <label class="flex flex-col text-[11px] text-slate-500">
-                                <span>PDF hasil TTD @if ($jalurSesdep)<span class="text-red-600">*</span>@else(opsional)@endif</span>
-                                <input type="file" name="file_ttd" accept="application/pdf,.pdf"
-                                    @required($jalurSesdep)
-                                    class="max-w-[16rem] text-xs text-slate-600 file:mr-2 file:rounded-md file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs file:font-medium file:text-slate-700">
-                            </label>
-                            <button class="{{ $btnPrimary }}">Terbitkan</button>
-                        </form>
-                    @endif
+                <div class="mt-2.5 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                    <div class="min-w-0">
+                        <p class="{{ $kecil }}">Surat Tugas</p>
+                        <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                            <h1 class="break-all text-xl font-bold leading-tight tracking-tight text-slate-900">
+                                {{ $st->nomor_tampil }}</h1>
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset {{ $badge['pill'] }}">
+                                <span class="h-1.5 w-1.5 rounded-full {{ $badge['dot'] }}"></span>
+                                {{ $st->status_label }}
+                            </span>
+                        </div>
+                    </div>
 
-                    @if ($adaTtd && Route::has('surat-tugas.ttd'))
-                        <a href="{{ route('surat-tugas.ttd', $st) }}" target="_blank" class="{{ $btnOutline }}">Unduh ST (TTD)</a>
-                    @endif
+                    <div class="flex flex-wrap items-center gap-2">
+                        @if ($adaTtd && Route::has('surat-tugas.ttd'))
+                            <a href="{{ route('surat-tugas.ttd', $st) }}" target="_blank" rel="noopener"
+                                class="{{ $btnOutline }}">Unduh ST (TTD)</a>
+                        @endif
 
-                    @if ($st->status === 'terbit' && \Illuminate\Support\Facades\Route::has('surat-tugas.selesai'))
-                        <form method="POST" action="{{ route('surat-tugas.selesai', $st) }}">
-                            @csrf
-                            <button class="{{ $btnSuccess }}">Tandai selesai</button>
-                        </form>
-                    @endif
-
-                    <a href="{{ route('surat-tugas.index') }}" class="{{ $btnOutline }}">Kembali ke daftar</a>
+                        @if ($st->status === 'terbit' && \Illuminate\Support\Facades\Route::has('surat-tugas.selesai'))
+                            <form method="POST" action="{{ route('surat-tugas.selesai', $st) }}">
+                                @csrf
+                                <button class="{{ $btnSuccess }}">Tandai selesai</button>
+                            </form>
+                        @endif
+                    </div>
                 </div>
             </div>
 
-            <dl class="mt-3 grid gap-x-6 gap-y-2 border-t border-slate-100 pt-3 text-[13px] sm:grid-cols-3">
-                <div>
-                    <dt class="{{ $label }}">Tempat, tanggal</dt>
-                    <dd class="font-medium text-slate-900">{{ $st->tempat }}, {{ $st->tanggal_indo }}</dd>
+            <dl
+                class="mt-4 grid gap-x-6 gap-y-4 border-t border-slate-100 px-4 py-4 text-[13px] sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+                <div class="min-w-0">
+                    <dt class="{{ $kecil }}">Tempat, tanggal</dt>
+                    <dd class="mt-1 font-medium text-slate-900">{{ $st->tempat }}, {{ $st->tanggal_indo }}</dd>
                 </div>
-                <div>
-                    <dt class="{{ $label }}">Pelaksanaan</dt>
-                    <dd class="font-medium text-slate-900">
+                <div class="min-w-0">
+                    <dt class="{{ $kecil }}">Pelaksanaan</dt>
+                    <dd class="mt-1 font-medium text-slate-900">
                         @if ($st->tanggal_mulai)
                             {{ $st->tanggal_mulai->locale('id')->translatedFormat('j F Y') }}
                             @if ($st->tanggal_selesai && !$st->tanggal_selesai->isSameDay($st->tanggal_mulai))
@@ -109,7 +114,7 @@
                                 {{ $st->tanggal_selesai->locale('id')->translatedFormat('j F Y') }}
                             @endif
                             @if ($st->kota || $st->provinsi)
-                                <span class="font-normal text-slate-500">&middot;
+                                <span class="block text-xs font-normal text-slate-500">
                                     {{ collect([$st->kota, $st->provinsi])->filter()->implode(', ') }}</span>
                             @endif
                         @else
@@ -117,22 +122,21 @@
                         @endif
                     </dd>
                 </div>
-                <div>
-                    <dt class="{{ $label }}">Penandatangan</dt>
-                    <dd class="font-medium text-slate-900">{{ $st->nama_penandatangan }}
-                        <span class="font-normal text-slate-500">&middot; {{ $st->jabatan_penandatangan }}</span>
+                <div class="min-w-0">
+                    <dt class="{{ $kecil }}">Penandatangan</dt>
+                    <dd class="mt-1 font-medium text-slate-900">{{ $st->nama_penandatangan }}
+                        <span class="block text-xs font-normal text-slate-500">{{ $st->jabatan_penandatangan }}</span>
                     </dd>
                 </div>
-                @if ($namaUnit)
-                    <div>
-                        <dt class="{{ $label }}">Unit pembuat</dt>
-                        <dd class="font-medium text-slate-900">{{ $namaUnit }}</dd>
-                    </div>
-                @endif
+                <div class="min-w-0">
+                    <dt class="{{ $kecil }}">Unit pembuat</dt>
+                    <dd class="mt-1 font-medium text-slate-900">{{ $namaUnit ?: '-' }}</dd>
+                </div>
+
                 @if ($adaTtd)
-                    <div class="sm:col-span-2">
-                        <dt class="{{ $label }}">Ditandatangani dan diterbitkan</dt>
-                        <dd class="font-medium text-slate-900">
+                    <div class="min-w-0 sm:col-span-2 lg:col-span-4">
+                        <dt class="{{ $kecil }}">Ditandatangani dan diterbitkan</dt>
+                        <dd class="mt-1 font-medium text-slate-900">
                             {{ optional($st->penandatanganiOleh ?? null)->name ?? '-' }}
                             <span class="font-normal text-slate-500">&middot;
                                 {{ optional($st->ditandatangani_at)->format('d/m/Y H:i') ?? '-' }}</span>
@@ -140,26 +144,54 @@
                     </div>
                 @endif
             </dl>
+
+            {{-- Strip penerbitan --}}
+            @if ($tampilTerbitkan)
+                <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-3.5 sm:px-6">
+                    <form method="POST" action="{{ route('surat-tugas.terbitkan', $st) }}"
+                        enctype="multipart/form-data"
+                        class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+                        onsubmit="return confirm('Terbitkan ST ini? Setelah terbit, isi ST dikunci dan tidak bisa diedit, dan peserta yang punya akun akan mendapat tugas laporan.')">
+                        @csrf
+                        <label class="flex min-w-0 flex-col gap-1">
+                            <span class="{{ $kecil }}">
+                                Penerbitan &middot; PDF hasil TTD
+                                @if ($jalurSesdep)
+                                    <span class="text-red-600">*</span>
+                                @else
+                                    <span class="font-normal normal-case tracking-normal">(opsional)</span>
+                                @endif
+                            </span>
+                            <input type="file" name="file_ttd" accept="application/pdf,.pdf" @required($jalurSesdep)
+                                class="max-w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700 file:ring-1 file:ring-inset file:ring-slate-200">
+                        </label>
+                        <button class="{{ $btnPrimary }} shrink-0">Terbitkan</button>
+                    </form>
+                </div>
+            @endif
         </div>
 
-        <div class="grid items-start gap-4 lg:grid-cols-3">
+        {{-- ===== Konten utama + samping ===== --}}
+        <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
 
-            <div class="space-y-4 lg:col-span-2">
+            {{-- ---------- Kolom utama ---------- --}}
+            <div class="min-w-0 space-y-5">
 
                 @include('surat-tugas._kontrol', ['st' => $st])
 
+                {{-- Isi surat --}}
                 <section class="{{ $card }}">
                     <div class="{{ $cardHead }}">
                         <h3 class="{{ $cardTitle }}">Isi surat</h3>
                     </div>
-                    <div class="divide-y divide-slate-100 px-4 text-[13px] leading-6 text-slate-700">
-                        <div class="grid gap-0.5 py-3 sm:grid-cols-[6rem_1fr] sm:gap-4">
-                            <h4 class="font-medium text-slate-500">Menimbang</h4>
+                    <div class="divide-y divide-slate-100 px-4 text-[13px] leading-6 text-slate-700 sm:px-5">
+                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+                            <h4 class="{{ $kecil }} pt-1">Menimbang</h4>
                             <p>{{ $st->menimbang ?: '-' }}</p>
                         </div>
 
-                        <div class="grid gap-0.5 py-3 sm:grid-cols-[6rem_1fr] sm:gap-4">
-                            <h4 class="font-medium text-slate-500">Dasar</h4>
+                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+                            <h4 class="{{ $kecil }} pt-1">Dasar</h4>
                             <ol class="list-decimal space-y-1 pl-5 marker:text-slate-400">
                                 @forelse ($st->dasar ?? [] as $d)
                                     <li>{{ $d }}</li>
@@ -169,68 +201,19 @@
                             </ol>
                         </div>
 
-                        <div class="grid gap-0.5 py-3 sm:grid-cols-[6rem_1fr] sm:gap-4">
-                            <h4 class="font-medium text-slate-500">Kepada</h4>
+                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+                            <h4 class="{{ $kecil }} pt-1">Kepada</h4>
                             <p>{{ $st->kepada }}</p>
                         </div>
 
-                        <div class="grid gap-0.5 py-3 sm:grid-cols-[6rem_1fr] sm:gap-4">
-                            <h4 class="font-medium text-slate-500">Untuk</h4>
+                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+                            <h4 class="{{ $kecil }} pt-1">Untuk</h4>
                             <ol class="list-decimal space-y-1 pl-5 marker:text-slate-400">
                                 @foreach ($st->untuk ?? [] as $u)
                                     <li>{{ $u }}</li>
                                 @endforeach
                             </ol>
                         </div>
-                    </div>
-                </section>
-
-                <section class="{{ $card }}">
-                    <div class="{{ $cardHead }}">
-                        <h3 class="{{ $cardTitle }}">Pengelompokan (Tusi)</h3>
-                        @if ($st->tusi)
-                            <span
-                                class="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200">{{ $st->tusi->nama }}</span>
-                        @else
-                            <span
-                                class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">Belum
-                                dikelompokkan</span>
-                        @endif
-                    </div>
-
-                    <div class="px-4 py-3 text-[13px]">
-                        @if ($bolehUbahTusi)
-                            <form method="POST" action="{{ route('surat-tugas.tusi', $st) }}"
-                                class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                @csrf
-                                @method('PATCH')
-
-                                <select name="tusi_id" aria-label="Pengelompokan (Tusi)"
-                                    class="{{ $input }} sm:max-w-sm">
-                                    <option value="">— Belum dikelompokkan —</option>
-                                    @if ($tusiNonaktifDipakai)
-                                        <option value="{{ $st->tusi_id }}" selected>{{ $st->tusi->nama }}
-                                            (nonaktif)</option>
-                                    @endif
-                                    @foreach ($tusiOptions as $t)
-                                        <option value="{{ $t->id }}" @selected((int) old('tusi_id', $st->tusi_id) === (int) $t->id)>
-                                            {{ $t->nama }}</option>
-                                    @endforeach
-                                </select>
-
-                                <button class="{{ $btnPrimary }}">Simpan</button>
-                            </form>
-
-                            @error('tusi_id')
-                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
-                            @enderror
-
-                            <p class="mt-1.5 text-xs text-slate-500">Bisa diubah setelah ST terbit dan tidak
-                                memengaruhi isi surat.</p>
-                        @else
-                            <p class="text-xs text-slate-500">Hanya admin atau pembuat ST yang dapat mengubah
-                                pengelompokan.</p>
-                        @endif
                     </div>
                 </section>
 
@@ -263,19 +246,19 @@
                         <div class="{{ $cardHead }}">
                             <h3 class="{{ $cardTitle }}">Laporan hasil ST</h3>
                             <span
-                                class="rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {{ $warnaLaporan }}">
+                                class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset {{ $warnaLaporan }}">
                                 {{ $statusLaporan }}
                             </span>
                         </div>
 
-                        <div class="space-y-4 px-4 py-4 text-[13px]">
+                        <div class="space-y-4 px-4 py-4 text-[13px] sm:px-5 sm:py-5">
 
                             <div>
-                                <div class="{{ $label }} mb-1">Penugasan laporan</div>
+                                <div class="{{ $kecil }} mb-1.5">Penugasan laporan</div>
                                 @forelse ($tugasLapor as $tg)
                                     @php $nm = $tg->user->name ?? '—'; @endphp
                                     <div
-                                        class="flex items-center justify-between gap-3 border-b border-slate-100 py-1.5 last:border-0">
+                                        class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-0">
                                         <div class="flex min-w-0 items-center gap-2.5">
                                             <span
                                                 class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">{{ mb_strtoupper(mb_substr($nm, 0, 1)) }}</span>
@@ -285,18 +268,18 @@
                                             class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset {{ $warnaTugas[$tg->status] ?? 'bg-slate-100 text-slate-700 ring-slate-200' }}">{{ ucfirst($tg->status) }}</span>
                                     </div>
                                 @empty
-                                    <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Tidak ada peserta
-                                        yang akunnya dipetakan ke pegawai, jadi tidak ada tugas lapor otomatis. Admin
-                                        masih bisa mengisi laporan.</p>
+                                    <p class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">Tidak ada
+                                        peserta yang akunnya dipetakan ke pegawai, jadi tidak ada tugas lapor otomatis.
+                                        Admin masih bisa mengisi laporan.</p>
                                 @endforelse
                                 @if ($tugasLapor->isNotEmpty())
-                                    <p class="mt-1.5 text-xs text-slate-500">Cukup satu peserta yang mengirim laporan;
+                                    <p class="mt-2 text-xs text-slate-500">Cukup satu peserta yang mengirim laporan;
                                         tugas peserta lain otomatis ditutup.</p>
                                 @endif
                             </div>
 
                             @if ($errLaporan)
-                                <div class="rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-700"
+                                <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700"
                                     role="alert">
                                     {{ $errLaporan }}</div>
                             @endif
@@ -372,11 +355,11 @@
                                     }">
                                     @csrf
 
-                                    <p class="rounded-md px-3 py-2 text-xs text-red-700 border border-red-200 bg-red-50"
+                                    <p class="rounded-lg px-3 py-2 text-xs text-red-700 border border-red-200 bg-red-50"
                                         x-show="err" x-cloak x-text="err" role="alert"></p>
 
                                     <div>
-                                        <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
+                                        <label class="mb-1.5 block text-xs font-semibold text-slate-700">
                                             Notulensi <span class="text-slate-400 font-normal">(1 file PDF, maks. 5 MB)</span> <span class="text-red-600">*</span>
                                         </label>
 
@@ -420,7 +403,7 @@
                                     </div>
 
                                     <div>
-                                        <label class="{{ $label }} mb-1.5 block font-medium text-slate-700">
+                                        <label class="mb-1.5 block text-xs font-semibold text-slate-700">
                                             Materi <span class="text-slate-400 font-normal">(bisa upload banyak file; PDF, PPT, PPTX; maks. 10 MB per file)</span>
                                         </label>
 
@@ -506,10 +489,10 @@
                             @elseif ($laporan)
                                 <div class="divide-y divide-slate-100 border-t border-slate-100 leading-6 text-slate-700">
 
-                                    <div class="py-3">
-                                        <h4 class="font-medium text-slate-500 mb-1.5">Notulensi / Berkas Laporan Hasil (PDF)</h4>
+                                    <div class="py-3.5">
+                                        <h4 class="{{ $kecil }} mb-2">Notulensi / Berkas Laporan Hasil (PDF)</h4>
                                         @if ($bolehBukaBerkas)
-                                            <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
+                                            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
                                                 <div class="flex min-w-0 items-center gap-2.5">
                                                     <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                                                         <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -549,12 +532,12 @@
                                         @php
                                             $daftarMateri = array_map('trim', explode(',', $laporan->materi));
                                         @endphp
-                                        <div class="py-3">
-                                            <h4 class="font-medium text-slate-500 mb-2">Materi ({{ count($daftarMateri) }} file)</h4>
+                                        <div class="py-3.5">
+                                            <h4 class="{{ $kecil }} mb-2">Materi ({{ count($daftarMateri) }} file)</h4>
                                             <div class="space-y-2">
                                                 @foreach ($daftarMateri as $fileMateri)
                                                     @if (filled($fileMateri))
-                                                        <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
+                                                        <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 transition hover:border-slate-300">
                                                             <div class="flex min-w-0 items-center gap-2.5">
                                                                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
                                                                     <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -590,24 +573,24 @@
                                     @endif
 
                                     @if (filled($laporan->notulensi) && !str_starts_with($laporan->notulensi, 'Berkas Notulensi:'))
-                                        <div class="py-3">
-                                            <h4 class="font-medium text-slate-500">Hasil Rapat / Ringkasan</h4>
-                                            <p class="mt-0.5 whitespace-pre-line">{{ $laporan->notulensi }}</p>
+                                        <div class="py-3.5">
+                                            <h4 class="{{ $kecil }}">Hasil Rapat / Ringkasan</h4>
+                                            <p class="mt-1 whitespace-pre-line">{{ $laporan->notulensi }}</p>
                                         </div>
                                     @endif
 
                                     @if (filled($laporan->keputusan))
-                                        <div class="py-3">
-                                            <h4 class="font-medium text-slate-500">Keputusan</h4>
-                                            <p class="mt-0.5 whitespace-pre-line">{{ $laporan->keputusan }}</p>
+                                        <div class="py-3.5">
+                                            <h4 class="{{ $kecil }}">Keputusan</h4>
+                                            <p class="mt-1 whitespace-pre-line">{{ $laporan->keputusan }}</p>
                                         </div>
                                     @endif
 
                                     @if ($laporan->tindakLanjut->isNotEmpty())
-                                        <div class="py-3">
-                                            <h4 class="mb-1 font-medium text-slate-500">Tindak lanjut</h4>
+                                        <div class="py-3.5">
+                                            <h4 class="{{ $kecil }} mb-1.5">Tindak lanjut</h4>
                                             @foreach ($laporan->tindakLanjut as $t)
-                                                <div class="flex gap-2.5 border-b border-slate-100 py-1.5 last:border-0">
+                                                <div class="flex gap-2.5 border-b border-slate-100 py-2 last:border-0">
                                                     <span
                                                         class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">{{ $loop->iteration }}</span>
                                                     <div class="min-w-0">
@@ -623,22 +606,25 @@
                                     @endif
 
                                     @if ($laporan->isDikirim())
-                                        <div class="pt-3">
-                                            <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                                        <div class="pt-3.5">
+                                            <p class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
                                                 Dikirim oleh <strong>{{ $laporan->dikirimOleh->name ?? '-' }}</strong> pada {{ optional($laporan->dikirim_at)->format('d/m/Y H:i') }}.
                                             </p>
                                         </div>
                                     @endif
                                 </div>
                             @else
-                                <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">Laporan belum diisi.</p>
+                                <p class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">Laporan belum diisi.</p>
                             @endif
                         </div>
                     </section>
                 @endif
             </div>
 
-            <aside class="lg:sticky lg:top-4">
+            {{-- ---------- Kolom samping ---------- --}}
+            <aside class="min-w-0 space-y-5 lg:sticky lg:top-4">
+
+                {{-- Peserta --}}
                 <section class="{{ $card }}">
                     <div class="{{ $cardHead }}">
                         <h3 class="{{ $cardTitle }}">Peserta
@@ -656,12 +642,12 @@
                         </div>
                     </div>
 
-                    <ul class="divide-y divide-slate-100 px-4">
+                    <ul class="divide-y divide-slate-100 px-4 sm:px-5">
                         @forelse ($st->peserta as $p)
                             @php $w = $jenisWarna[$p->jenis] ?? $jenisWarna['non_pns']; @endphp
-                            <li class="flex items-start gap-2.5 py-2.5">
+                            <li class="flex items-start gap-2.5 py-3">
                                 <span
-                                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold {{ $w['avatar'] }}">{{ mb_strtoupper(mb_substr($p->nama, 0, 1)) }}</span>
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold {{ $w['avatar'] }}">{{ mb_strtoupper(mb_substr($p->nama, 0, 1)) }}</span>
                                 <div class="min-w-0 flex-1 text-xs">
                                     <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                                         <span class="text-[13px] font-semibold text-slate-900">{{ $p->nama }}</span>
@@ -689,9 +675,58 @@
                                 </div>
                             </li>
                         @empty
-                            <li class="py-5 text-center text-[13px] text-slate-500">Belum ada peserta.</li>
+                            <li class="py-6 text-center text-[13px] text-slate-500">Belum ada peserta.</li>
                         @endforelse
                     </ul>
+                </section>
+
+                {{-- Pengelompokan (Tusi) --}}
+                <section class="{{ $card }}">
+                    <div class="{{ $cardHead }}">
+                        <h3 class="{{ $cardTitle }}">Pengelompokan (Tusi)</h3>
+                        @if ($st->tusi)
+                            <span
+                                class="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200">{{ $st->tusi->nama }}</span>
+                        @else
+                            <span
+                                class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">Belum
+                                dikelompokkan</span>
+                        @endif
+                    </div>
+
+                    <div class="px-4 py-4 text-[13px] sm:px-5">
+                        @if ($bolehUbahTusi)
+                            <form method="POST" action="{{ route('surat-tugas.tusi', $st) }}" class="space-y-2.5">
+                                @csrf
+                                @method('PATCH')
+
+                                <select name="tusi_id" aria-label="Pengelompokan (Tusi)" class="{{ $input }}">
+                                    <option value="">— Belum dikelompokkan —</option>
+                                    @if ($tusiNonaktifDipakai)
+                                        <option value="{{ $st->tusi_id }}" selected>{{ $st->tusi->nama }}
+                                            (nonaktif)</option>
+                                    @endif
+                                    @foreach ($tusiOptions as $t)
+                                        <option value="{{ $t->id }}" @selected((int) old('tusi_id', $st->tusi_id) === (int) $t->id)>
+                                            {{ $t->nama }}</option>
+                                    @endforeach
+                                </select>
+
+                                @error('tusi_id')
+                                    <p class="text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+
+                                <div class="flex items-center justify-between gap-3">
+                                    <p class="text-xs leading-relaxed text-slate-500">Bisa diubah setelah ST terbit dan
+                                        tidak memengaruhi isi surat.</p>
+                                    <button class="{{ $btnPrimary }} shrink-0">Simpan</button>
+                                </div>
+                            </form>
+                        @else
+                            <p class="text-xs leading-relaxed text-slate-500">Hanya admin atau pembuat ST yang dapat
+                                mengubah pengelompokan.</p>
+                        @endif
+                    </div>
                 </section>
             </aside>
         </div>

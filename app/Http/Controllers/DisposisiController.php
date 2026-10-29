@@ -138,7 +138,6 @@ class DisposisiController extends Controller
             'khusus.*.petunjuk.*.in' => 'Petunjuk khusus yang dipilih tidak valid.',
         ]);
 
-        // Penerima harus termasuk daftar yang diizinkan untuk role pengirim (validasi sisi server)
         $ids = array_map('intval', $validated['penerima_ids']);
         $penerimaList = $this->queryPenerima($user)->whereIn('id', $ids)->get()->keyBy('id');
 
@@ -148,7 +147,6 @@ class DisposisiController extends Controller
             ]);
         }
 
-        // Susun isi disposisi per penerima: umum, atau khusus bila diaktifkan.
         $umumPetunjuk = array_values($validated['petunjuk'] ?? []);
         $umumCatatan = trim($validated['instruksi'] ?? '');
         $rencana = [];
@@ -174,7 +172,6 @@ class DisposisiController extends Controller
             ];
         }
 
-        // Kunci baris induk supaya klik ganda / dua tab tidak membuat disposisi dobel
         $berhasil = DB::transaction(function () use ($parentDispo, $user, $penerimaList, $rencana) {
             $induk = Disposisi::whereKey($parentDispo->id)->lockForUpdate()->first();
 
@@ -206,21 +203,12 @@ class DisposisiController extends Controller
         });
 
         if (!$berhasil) {
-            return redirect()->route('disposisi.show', $id)
-                ->with('error', 'Disposisi ini sudah diteruskan atau diselesaikan.');
+            return back()->with('error', 'Disposisi ini sudah diteruskan sebelumnya.');
         }
 
-        return redirect()->route('disposisi.show', $id)->with(
-            'success',
-            'Disposisi diteruskan ke ' . $penerimaList->count() . ' penerima.'
-        );
+        return back()->with('success', 'Disposisi berhasil diteruskan.');
     }
 
-    /**
-     * Kirim laporan pekerjaan (Pegawai, atau Asdep yang mengerjakan sendiri).
-     * Laporan otomatis terlihat oleh atasan di rantai disposisi.
-     * Setelah semua bawahan selesai, status atasan ikut menjadi selesai.
-     */
     public function laporan(Request $request, $id): RedirectResponse
     {
         $user = Auth::user();
@@ -249,7 +237,7 @@ class DisposisiController extends Controller
             $this->selesaikanInduk($disposisi);
         });
 
-        return redirect()->route('disposisi.show', $id)->with('success', 'Laporan berhasil dikirim.');
+        return back()->with('success', 'Laporan berhasil dikirim.');
     }
 
     /**
