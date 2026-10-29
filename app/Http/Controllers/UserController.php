@@ -16,39 +16,20 @@ class UserController extends Controller
     /**
      * Tampilkan daftar user (Manajemen User).
      */
-    public function index(Request $request): View
+    public function index()
     {
-        $query = User::query()->with('unit');
+        // Ambil semua user beserta unit-nya (tanpa paginate dan tanpa filter)
+        $users = User::with('unit')
+            ->orderBy('name')
+            ->get();
 
-        if ($request->filled('q')) {
-            $search = $request->q;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('username', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhereHas('unit', function ($u) use ($search) {
-                        $u->where('nama', 'like', "%{$search}%")
-                            ->orWhere('kode', 'like', "%{$search}%");
-                    });
-            });
-        }
+        $units = Unit::orderBy('kode')->get();
 
-        if ($request->filled('role')) {
-            $query->where('role', $request->role);
-        }
-
-        if ($request->filled('unit_id')) {
-            $query->where('unit_id', $request->unit_id);
-        }
-
-        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
-
-        $units = Unit::orderBy('nama')->get();
-
-        $totalUsers = User::count();
-        $totalAdmin = User::where('role', User::ROLE_ADMIN)->count();
-        $totalPimpinan = User::whereIn('role', [User::ROLE_ESELON1, User::ROLE_ESELON2])->count();
-        $totalStaf = User::whereIn('role', [User::ROLE_USER, User::ROLE_TU])->count();
+        // Ringkasan dihitung dari koleksi yang sama supaya angkanya selalu cocok
+        $totalUsers = $users->count();
+        $totalAdmin = $users->filter(fn($u) => $u->isAdmin())->count();
+        $totalPimpinan = $users->filter(fn($u) => $u->isPimpinan())->count();
+        $totalStaf = $totalUsers - $totalAdmin - $totalPimpinan;
 
         return view('users.index', compact(
             'users',
@@ -59,7 +40,6 @@ class UserController extends Controller
             'totalStaf'
         ));
     }
-
     /**
      * Form tambah user baru.
      */

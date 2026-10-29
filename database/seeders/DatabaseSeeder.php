@@ -31,10 +31,7 @@ class DatabaseSeeder extends Seeder
                 // 3. Pengguna 5 Role Baku (tu, eselon1, eselon2, user, admin)
             UserSeeder::class,
 
-                // 4. Dummy Modul Surat Masuk, Disposisi, & Surat Tugas
-            PersuratanDummySeeder::class,
-            DummyPerUnitSeeder::class,
-            SuratTugasContohSeeder::class,
+
         ]);
     }
 }
