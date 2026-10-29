@@ -433,21 +433,19 @@ class SuratTugasController extends Controller
     {
         abort_unless($this->bolehLihat($suratTugas), 403);
 
-        $suratTugas->load('peserta');
+        $suratTugas->load('peserta.pegawai');
 
         $nama = 'Surat Tugas ' . str_replace('/', '-', $suratTugas->nomor ?? 'Draf ' . $suratTugas->id) . '.pdf';
 
-        // Format template 2026 (opsional). Tanpa parameter = tampilan lama (standar).
-        $format = request('format');
-        if (in_array($format, ['lampiran', 'tanpa_lampiran', 'an_sesdep'], true)) {
-            $suratTugas->load('peserta.pegawai');
+        // Versi ditentukan otomatis: 1 peserta = tanpa lampiran, lebih dari 1 = lampiran.
+        $format = $suratTugas->peserta->count() > 1 ? 'lampiran' : 'tanpa_lampiran';
 
-            return Pdf::loadView('pdf.surat-tugas-template', ['st' => $suratTugas, 'format' => $format])
-                ->setPaper('a4', 'portrait')
-                ->stream($nama);
+        // Format lain (an_sesdep) tetap bisa dipanggil manual lewat ?format=an_sesdep, tidak ditampilkan di UI.
+        if (request('format') === 'an_sesdep') {
+            $format = 'an_sesdep';
         }
 
-        return Pdf::loadView('pdf.surat-tugas', ['st' => $suratTugas])
+        return Pdf::loadView('pdf.surat-tugas-template', ['st' => $suratTugas, 'format' => $format])
             ->setPaper('a4', 'portrait')
             ->stream($nama);
     }

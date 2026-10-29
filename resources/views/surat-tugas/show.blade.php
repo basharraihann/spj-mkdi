@@ -180,44 +180,148 @@
                 @include('surat-tugas._kontrol', ['st' => $st])
 
                 {{-- Isi surat --}}
-                <section class="{{ $card }}">
-                    <div class="{{ $cardHead }}">
-                        <h3 class="{{ $cardTitle }}">Isi surat</h3>
+@php
+    $jmlPeserta = $st->peserta->count();
+    $versiPdf = $jmlPeserta > 1 ? 'Dengan lampiran' : 'Tanpa lampiran';
+    $namaBerkasPdf = 'Surat Tugas ' . str_replace('/', '-', $st->nomor_tampil) . '.pdf';
+    $urlPdf = route('surat-tugas.pdf', $st);
+@endphp
+
+<section x-data="{ tab: 'pdf', muat: true }" class="{{ $card }}">
+
+    {{-- Header --}}
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+        <div class="min-w-0">
+            <h3 class="{{ $cardTitle }}">Isi surat</h3>
+            <p class="mt-0.5 text-xs text-slate-500">Tampilan sama dengan hasil cetak resmi.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="inline-grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1" role="tablist">
+                <button type="button" role="tab" :aria-selected="tab === 'pdf'"
+                    @click="if (tab !== 'pdf') { muat = true; tab = 'pdf'; }"
+                    :class="tab === 'pdf' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
+                    class="rounded-lg px-3.5 py-1.5 text-xs font-semibold transition">
+                    Pratinjau PDF
+                </button>
+                <button type="button" role="tab" :aria-selected="tab === 'teks'" @click="tab = 'teks'"
+                    :class="tab === 'teks' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-700'"
+                    class="rounded-lg px-3.5 py-1.5 text-xs font-semibold transition">
+                    Rincian teks
+                </button>
+            </div>
+
+            @if ($jmlPeserta > 0)
+                <a href="{{ $urlPdf }}" target="_blank" rel="noopener"
+                    class="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">
+                    <svg class="h-4 w-4 text-blue-100" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    Buka PDF
+                </a>
+            @endif
+        </div>
+    </div>
+
+    {{-- Tab: Pratinjau PDF --}}
+    <div x-show="tab === 'pdf'" class="bg-slate-50/80 p-3 sm:p-4">
+        @if ($jmlPeserta > 0)
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+
+                {{-- Bilah info berkas --}}
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-white px-3.5 py-2.5">
+                    <div class="flex min-w-0 items-center gap-2.5">
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[10px] font-bold text-red-600 ring-1 ring-inset ring-red-100">PDF</span>
+                        <span class="truncate text-xs font-semibold text-slate-700">{{ $namaBerkasPdf }}</span>
                     </div>
-                    <div class="divide-y divide-slate-100 px-4 text-[13px] leading-6 text-slate-700 sm:px-5">
-                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
-                            <h4 class="{{ $kecil }} pt-1">Menimbang</h4>
-                            <p>{{ $st->menimbang ?: '-' }}</p>
-                        </div>
-
-                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
-                            <h4 class="{{ $kecil }} pt-1">Dasar</h4>
-                            <ol class="list-decimal space-y-1 pl-5 marker:text-slate-400">
-                                @forelse ($st->dasar ?? [] as $d)
-                                    <li>{{ $d }}</li>
-                                @empty
-                                    <li class="-ml-5 list-none">-</li>
-                                @endforelse
-                            </ol>
-                        </div>
-
-                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
-                            <h4 class="{{ $kecil }} pt-1">Kepada</h4>
-                            <p>{{ $st->kepada }}</p>
-                        </div>
-
-                        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
-                            <h4 class="{{ $kecil }} pt-1">Untuk</h4>
-                            <ol class="list-decimal space-y-1 pl-5 marker:text-slate-400">
-                                @foreach ($st->untuk ?? [] as $u)
-                                    <li>{{ $u }}</li>
-                                @endforeach
-                            </ol>
-                        </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
+                            {{ $versiPdf }}
+                        </span>
+                        <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
+                            {{ $jmlPeserta }} peserta
+                        </span>
                     </div>
-                </section>
+                </div>
 
-                @include('surat-tugas._format-pdf', ['st' => $st])
+                {{-- Area pratinjau --}}
+                <div class="relative bg-slate-200/60">
+                    {{-- Placeholder saat memuat --}}
+                    <div x-show="muat" x-cloak
+                        class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-slate-50">
+                        <svg class="h-5 w-5 animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" aria-hidden="true">
+                            <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                            <path class="opacity-90" fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        <p class="text-xs font-medium text-slate-500">Menyiapkan pratinjau…</p>
+                    </div>
+
+                    <template x-if="tab === 'pdf'">
+                        <iframe
+                            src="{{ route('surat-tugas.pdf', [$st, 'v' => optional($st->updated_at)->timestamp]) }}#toolbar=0&navpanes=0&view=FitH"
+                            title="Pratinjau surat tugas" @load="muat = false"
+                            class="block h-[78vh] w-full bg-transparent"></iframe>
+                    </template>
+                </div>
+
+                {{-- Catatan untuk perangkat yang tidak menampilkan PDF di dalam halaman --}}
+                <div class="border-t border-slate-100 bg-white px-3.5 py-2 text-[11px] text-slate-400">
+                    Pratinjau tidak tampil di perangkat Anda?
+                    <a href="{{ $urlPdf }}" target="_blank" rel="noopener"
+                        class="font-semibold text-blue-600 hover:underline">Buka PDF</a>
+                </div>
+            </div>
+        @else
+            <div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-4 py-12 text-center">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                </span>
+                <p class="mt-3 text-sm font-semibold text-slate-700">Pratinjau belum tersedia</p>
+                <p class="mt-0.5 text-xs text-slate-500">Tambahkan peserta dulu, lalu PDF akan tampil di sini.</p>
+            </div>
+        @endif
+    </div>
+
+    {{-- Tab: Rincian teks --}}
+    <div x-show="tab === 'teks'" x-cloak
+        class="divide-y divide-slate-100 px-4 text-[13px] leading-6 text-slate-700 sm:px-5">
+        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+            <h4 class="{{ $kecil }} pt-1">Menimbang</h4>
+            <p>{{ $st->menimbang ?: '-' }}</p>
+        </div>
+        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+            <h4 class="{{ $kecil }} pt-1">Dasar</h4>
+            <ol class="list-decimal space-y-1 pl-5 marker:text-slate-400">
+                @forelse ($st->dasar ?? [] as $d)
+                    <li>{{ $d }}</li>
+                @empty
+                    <li class="-ml-5 list-none">-</li>
+                @endforelse
+            </ol>
+        </div>
+        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+            <h4 class="{{ $kecil }} pt-1">Kepada</h4>
+            <p>{{ $st->kepada }}</p>
+        </div>
+        <div class="grid gap-1 py-3.5 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-4">
+            <h4 class="{{ $kecil }} pt-1">Untuk</h4>
+            <ol class="list-decimal space-y-1 pl-5 marker:text-slate-400">
+                @foreach ($st->untuk ?? [] as $u)
+                    <li>{{ $u }}</li>
+                @endforeach
+            </ol>
+        </div>
+    </div>
+</section>
+
 
                 @if (in_array($st->status, ['terbit', 'selesai']))
                     @php
