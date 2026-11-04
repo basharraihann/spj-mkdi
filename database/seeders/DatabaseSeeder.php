@@ -30,7 +30,6 @@ class DatabaseSeeder extends Seeder
             UnitSeeder::class,          // taruh paling atas kalau Pegawai butuh unit
             PegawaiSeeder::class,
             KabupatenKotaSeeder::class,
-            MakOptionSeeder::class,
             SbmRateSeeder::class,
             SbmFlatRateSeeder::class,
             PengRiilRateSeeder::class,

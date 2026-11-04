@@ -6,6 +6,7 @@ use App\Models\AnggaranItem;
 use App\Models\AnggaranUpload;
 use App\Services\AnggaranImportService;
 use App\Services\AnggaranUnitResolver;
+use App\Services\MakSyncService;
 use App\Support\AnggaranExcel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -113,6 +114,7 @@ class AnggaranController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:20480'],
+            'per_tanggal' => ['nullable', 'date'],
         ], [
             'file.required' => 'Pilih file Excel terlebih dahulu.',
             'file.mimes' => 'File harus berformat .xlsx atau .xls.',
@@ -130,7 +132,24 @@ class AnggaranController extends Controller
             return back()->with('error', 'Gagal memproses file. Pastikan file asli dari SAKTI dan belum diubah.');
         }
 
-        return redirect()->route('anggaran.index')
-            ->with('success', "Data anggaran diperbarui: {$upload->jumlah_item} item ({$upload->periode}).");
+        // Tanggal laporan: input manual, kalau kosong ditebak dari nama file (ddmmyy).
+        $tgl = $request->filled('per_tanggal')
+            ? $request->input('per_tanggal')
+            : MakSyncService::tanggalDariNamaFile($file->getClientOriginalName())?->toDateString();
+        $upload->update(['per_tanggal' => $tgl]);
+
+        $pesan = "Data anggaran diperbarui: {$upload->jumlah_item} item ({$upload->periode}).";
+        try {
+            $r = app(MakSyncService::class)->sync($upload);
+            $pesan .= " MAK ikut diperbarui: {$r['baru']} baru, {$r['diperbarui']} diperbarui, {$r['nonaktif']} nonaktif.";
+            if (!$r['pagu_cocok']) {
+                $pesan .= ' Peringatan: total pagu MAK tidak sama dengan total upload.';
+            }
+        } catch (Throwable $e) {
+            Log::error('Sinkronisasi MAK gagal: ' . $e->getMessage());
+            $pesan .= ' Tapi sinkronisasi MAK gagal: ' . $e->getMessage() . ' (jalankan php artisan mak:sync setelah diperbaiki).';
+        }
+
+        return redirect()->route('anggaran.index')->with('success', $pesan);
     }
 }

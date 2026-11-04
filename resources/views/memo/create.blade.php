@@ -341,7 +341,12 @@
                                                 data-uraian-giat="{{ $opt->uraian_giat }}"
                                                 data-uraian-komponen="{{ $opt->uraian_komponen }}"
                                                 data-uraian-akun-ap="{{ $opt->uraian_akun_ap }}"
-                                                data-uraian-belanja="{{ $opt->uraian_belanja }}" @selected($currentMak === $opt->mak)>
+                                                data-uraian-belanja="{{ $opt->uraian_belanja }}" data-pagu="{{ (int) $opt->pagu }}"
+                                                data-realisasi="{{ (int) $opt->realisasi }}" data-sisa="{{ (int) $opt->sisa }}"
+                                                data-outstanding="{{ (int) ($makOutstanding[$opt->mak] ?? 0) }}"
+                                                data-periode="{{ $opt->periode }}"
+                                                data-per-tanggal="{{ $opt->per_tanggal ? \Carbon\Carbon::parse($opt->per_tanggal)->format('d/m/Y') : '' }}"
+                                                @selected($currentMak === $opt->mak)>
                                                 {{ $opt->mak }}
                                             </option>
                                         @endforeach
@@ -388,12 +393,17 @@
                                                 {{-- Item dijorok + garis vertikal tipis supaya kelihatan anak dari header --}}
                                                 <div class="ml-4 my-1 border-l border-gray-200">
                                                     @foreach ($items as $opt)
+                                                        @php $efektif = (int) $opt->sisa - (int) ($makOutstanding[$opt->mak] ?? 0); @endphp
                                                         <button type="button" data-mak="{{ $opt->mak }}"
                                                             data-search="{{ mb_strtolower($opt->mak . ' ' . $opt->uraian_belanja . ' ' . $opt->uraian_giat . ' ' . $opt->uraian_komponen) }}"
                                                             class="mak-item w-full text-left flex items-baseline gap-3 -ml-px pl-4 pr-3.5 py-1.5 text-xs text-gray-700 border-l-2 border-transparent hover:bg-blue-50 transition">
                                                             <span
                                                                 class="font-mono text-[11px] text-gray-500 w-14 flex-shrink-0">{{ \Illuminate\Support\Str::afterLast($opt->mak, '.') }}</span>
                                                             <span class="flex-1">{{ $opt->uraian_belanja }}</span>
+                                                            <span
+                                                                class="tabular-nums text-[11px] flex-shrink-0 {{ $efektif <= 0 ? 'text-red-600 font-semibold' : 'text-gray-500' }}">
+                                                                Sisa Rp {{ number_format($efektif, 0, ',', '.') }}
+                                                            </span>
                                                             <svg xmlns="http://www.w3.org/2000/svg"
                                                                 class="mak-check hidden h-4 w-4 text-blue-600 flex-shrink-0 self-center"
                                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -462,6 +472,8 @@
                                     </p>
                                 </div>
                             </div>
+
+                            @include('memo._sisa-mak')
 
                             @error('mak')
                                 <p class="text-xs text-red-500 mt-1">{{ $message }}</p>

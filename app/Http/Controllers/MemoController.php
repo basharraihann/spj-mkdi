@@ -154,8 +154,9 @@ class MemoController extends Controller
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $nomorBerikutnya = NomorMemoService::dataBerikutnya();
         $makOptions = MakOption::orderBy('mak')->get();
+        $makOutstanding = $this->makOutstanding();
 
-        return view('memo.create', compact('pegawaiList', 'nomorBerikutnya', 'makOptions'));
+        return view('memo.create', compact('pegawaiList', 'nomorBerikutnya', 'makOptions', 'makOutstanding'));
     }
 
     public function store(Request $request)
@@ -178,8 +179,9 @@ class MemoController extends Controller
     {
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $makOptions = MakOption::orderBy('mak')->get();
+        $makOutstanding = $this->makOutstanding($memo->id); // nominal memo ini sendiri tidak ikut dihitung
 
-        return view('memo.edit', compact('memo', 'pegawaiList', 'makOptions'));
+        return view('memo.edit', compact('memo', 'pegawaiList', 'makOptions', 'makOutstanding'));
     }
 
     public function update(Request $request, MemoEntry $memo)
@@ -306,5 +308,53 @@ class MemoController extends Controller
             'nominal' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string',
         ];
+    }
+
+    /**
+     * Total nominal per MAK dari memo yang dibuat SETELAH tanggal laporan FA (mak_options.per_tanggal).
+     * Memo sebelum tanggal itu dianggap sudah tercermin di realisasi FA, jadi tidak dihitung lagi.
+     * Sumber: memo mandiri (memo_entries.nominal) dan agenda perdin (biaya_asn + biaya_non_asn).
+     * $kecualiEntryId = memo yang sedang diedit, supaya nominalnya sendiri tidak ikut mengurangi sisa.
+     *
+     * @return array<string,int> [nomor MAK => total nominal]
+     */
+    private function makOutstanding(?int $kecualiEntryId = null): array
+    {
+        $cut = MakOption::query()->max('per_tanggal');
+        if (!$cut) {
+            return [];
+        }
+
+        $entry = MemoEntry::query()
+            ->whereDate('tanggal_memo', '>', $cut)
+            ->when($kecualiEntryId, fn($q) => $q->where('id', '!=', $kecualiEntryId))
+            ->selectRaw('mak, SUM(nominal) as total')
+            ->groupBy('mak')
+            ->pluck('total', 'mak');
+
+        // biaya_asn / biaya_non_asn BUKAN kolom tabel (dihitung di model Agenda),
+        // jadi dijumlahkan lewat model, bukan lewat SQL.
+        try {
+            $agenda = Agenda::query()
+                ->whereDate('created_at', '>', $cut)
+                ->whereNotNull('mak')
+                ->get()
+                ->groupBy('mak')
+                ->map(fn($rows) => (int) $rows->sum(
+                    fn($a) => (float) ($a->biaya_asn ?? 0) + (float) ($a->biaya_non_asn ?? 0)
+                ));
+        } catch (\Throwable $e) {
+            report($e);          // tercatat di log, halaman memo tetap jalan
+            $agenda = collect();
+        }
+
+        $hasil = [];
+        foreach ([$entry, $agenda] as $sumber) {
+            foreach ($sumber as $mak => $total) {
+                $hasil[$mak] = ($hasil[$mak] ?? 0) + (int) $total;
+            }
+        }
+
+        return $hasil;
     }
 }
