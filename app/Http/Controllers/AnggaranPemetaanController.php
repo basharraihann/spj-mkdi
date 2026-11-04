@@ -17,6 +17,7 @@ class AnggaranPemetaanController extends Controller
     {
         $q = trim((string) $request->query('q', ''));
 
+        // Semua aturan ditampilkan (tanpa paginasi); pengelompokan per unit dilakukan di view.
         $rules = AnggaranPemetaan::query()
             ->when($q !== '', fn($x) => $x->where(function ($w) use ($q) {
                 $w->where('ro_kode', 'like', "%$q%")
@@ -32,7 +33,7 @@ class AnggaranPemetaanController extends Controller
             ->orderByRaw("COALESCE(NULLIF(induk, ''), unit)")
             ->orderByRaw("CASE WHEN unit = COALESCE(NULLIF(induk, ''), unit) THEN 1 ELSE 0 END")
             ->orderBy('unit')->orderBy('keg_kode')->orderBy('ro_kode')->orderBy('komp_kode')->orderBy('sub_kode')
-            ->paginate(50)->withQueryString();
+            ->get();
 
         $units = AnggaranPemetaan::query()->distinct()->orderBy('unit')->pluck('unit');
         $induks = AnggaranPemetaan::query()->whereNotNull('induk')->where('induk', '!=', '')->distinct()->orderBy('induk')->pluck('induk');
@@ -51,11 +52,28 @@ class AnggaranPemetaanController extends Controller
             return null;
         };
 
-        // Kode di upload aktif yang belum punya pemetaan
+        // Kode di upload aktif: yang belum punya pemetaan ($unmapped) dan
+        // seluruh kode per unit untuk ditampilkan (Program, RO, Komponen, SubKomponen) ($coverage)
         $unmapped = collect();
+        $coverage = collect();
         $upload = AnggaranUpload::where('is_active', true)->first();
         if ($upload) {
             $resolver = new AnggaranUnitResolver(); // baca pemetaan terbaru
+
+            // Kode unik di upload aktif, masing-masing di-resolve ke unitnya
+            $coverage = AnggaranItem::where('anggaran_upload_id', $upload->id)
+                ->select('keg_kode', 'ro_kode', 'komp_kode', 'sub_kode')
+                ->distinct()
+                ->get()
+                ->map(function ($row) use ($resolver) {
+                    $u = $resolver->resolve($row);
+                    $row->unit = $u['unit'];
+                    $row->induk = $u['induk'];
+                    return $row;
+                })
+                ->reject(fn($row) => $row->unit === AnggaranUnitResolver::BELUM)
+                ->values();
+
             $unmapped = AnggaranItem::where('anggaran_upload_id', $upload->id)
                 ->selectRaw('keg_kode, ro_kode, ro_uraian, komp_kode, sub_kode, SUM(pagu) as pagu')
                 ->groupBy('keg_kode', 'ro_kode', 'ro_uraian', 'komp_kode', 'sub_kode')
@@ -86,7 +104,7 @@ class AnggaranPemetaanController extends Controller
                 ->values();
         }
 
-        return view('anggaran.pemetaan', compact('rules', 'units', 'induks', 'unmapped', 'q', 'upload'));
+        return view('anggaran.pemetaan', compact('rules', 'units', 'induks', 'unmapped', 'coverage', 'q', 'upload'));
     }
 
     public function store(Request $request)

@@ -486,7 +486,9 @@
                             c = {
                                 id: node.id + '|' + raw, lv, depth, kode, uraian,
                                 rawF: String(it[lv.kode] ?? ''),
-                                hay: (kode + ' ' + raw + ' ' + uraian).toLowerCase(),
+                                // Kode dicocokkan dari awal, uraian dicocokkan "mengandung"
+                                kodes: [kode.toLowerCase(), raw.toLowerCase()],
+                                ur: uraian.toLowerCase(),
                                 v: zero(), children: [], map: new Map(), parent: node,
                                 us: new Set(), ss: new Set(),
                             };
@@ -503,7 +505,8 @@
                     const uraian = it.item_uraian || '';
                     const leaf = {
                         id: node.id + '|#' + idx, lv: ITEM, depth: LEVELS.length, kode, uraian,
-                        hay: (kode + ' ' + uraian).toLowerCase(), v, children: [], parent: node,
+                        kodes: [kode.toLowerCase()], ur: uraian.toLowerCase(),
+                        v, children: [], parent: node,
                         us: new Set([it.unit]), ss: it.sub_unit ? new Set([it.sub_unit]) : new Set(),
                     };
                     node.children.push(leaf);
@@ -514,7 +517,7 @@
 
             // Tandai: self = cocok kata kunci, under = dirinya/induknya cocok (turunan), vis = ditampilkan
             function mark(n, terms, under) {
-                n.self = !!terms && terms.some((t) => n.hay.includes(t));
+                n.self = !!terms && terms.some((t) => n.ur.includes(t) || n.kodes.some((k) => k && k.startsWith(t)));
                 n.under = under || n.self;
                 let desc = false;
                 n.children.forEach((c) => { if (mark(c, terms, n.under)) desc = true; });
@@ -561,14 +564,18 @@
                 const q = $('ang-q').value.trim();
                 return q ? q.toLowerCase().split(/[,;\n]+/).map((t) => t.trim()).filter(Boolean) : [];
             };
-            // Item dianggap cocok bila dirinya atau salah satu induknya (program..akun) memuat kata kunci
+            // Kode dicocokkan dari awal; uraian tetap "mengandung".
+            // Item dianggap cocok bila dirinya atau salah satu induknya (program..akun) cocok.
             const matchQ = (it, terms) => {
                 if (!terms.length) return true;
-                const parts = [];
-                LEVELS.forEach((lv) => { const raw = lvKode(it, lv); parts.push(padKode(lv.key, raw), raw, lvUraian(it, lv)); });
-                parts.push(String(it.item_kode ?? ''), String(it.item_uraian ?? ''));
-                const hay = parts.join(' | ').toLowerCase();
-                return terms.some((t) => hay.includes(t));
+                const hit = (kodes, ur) => terms.some((t) =>
+                    String(ur ?? '').toLowerCase().includes(t) ||
+                    kodes.some((k) => String(k ?? '').toLowerCase().startsWith(t)));
+                for (const lv of LEVELS) {
+                    const raw = lvKode(it, lv);
+                    if (hit([padKode(lv.key, raw), raw], lvUraian(it, lv))) return true;
+                }
+                return hit([String(it.item_kode ?? '').trim()], it.item_uraian);
             };
 
             const isD = (u) => /^D\d+$/.test(u);
@@ -643,7 +650,7 @@
                     </svg>`;
                 };
                 const chevron = (o) => `<svg class="chev w-3.5 h-3.5 ${o ? 'is-open' : ''}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>`;
-                const subLabel = (unit, name) => /\(langsung\)/.test(name) ? 'Langsung ke ' + unit : name.replace(/\s+D\d+$/i, '');
+                const subLabel = (unit, name) => /\(langsung\)/.test(name) ? 'Tata Usaha dan Sakip ' + unit : name.replace(/\s+D\d+$/i, '');
                 const sortedSubs = (a) => [...a.subs.entries()].sort((x, y) => cmpUnit(x[0], y[0]));
 
                 // Baris berlabel (kiri: label, kanan: angka) supaya angka penuh tidak saling menimpa
@@ -746,7 +753,7 @@
                     : `<div class="unit-grid">${list.map(compactCard).join('')}</div>`;
             }
 
-            // highlight kata kunci pada teks
+            // highlight kata kunci pada teks (dipakai untuk uraian: "mengandung")
             function hl(text, re) {
                 text = String(text ?? '');
                 if (!re) return esc(text);
@@ -758,6 +765,14 @@
                     last = m.index + m[0].length;
                 }
                 return out + esc(text.slice(last));
+            }
+
+            // highlight kata kunci pada KODE: hanya bagian awal yang cocok (sesuai aturan cocok-dari-awal)
+            function hlKode(text, terms) {
+                text = String(text ?? '');
+                const t = (terms || []).filter((x) => x && text.toLowerCase().startsWith(x)).sort((a, b) => b.length - a.length)[0];
+                if (!t) return esc(text);
+                return '<mark class="bg-yellow-200 text-slate-900 rounded px-0.5">' + esc(text.slice(0, t.length)) + '</mark>' + esc(text.slice(t.length));
             }
 
             const ancestorsOf = (n) => { const a = []; let p = n.parent; while (p && p.depth >= 0) { a.unshift(p); p = p.parent; } return a; };
@@ -918,7 +933,7 @@
                     return `<tr class="tree-row group cursor-pointer ${bg} ${ring}" data-id="${esc(r.id)}"${hint ? ` title="${esc(hint)}"` : ''}>
                         <td class="py-1.5 pr-1 align-middle">
                             <div class="flex flex-wrap items-center" style="padding-left:${indent}px">
-                                ${chev}<span class="tabular-nums text-slate-800 ${bold}">${hl(r.kode || '—', re)}</span>${relChip ? `<span class="ml-1">${relChip}</span>` : ''}
+                                ${chev}<span class="tabular-nums text-slate-800 ${bold}">${hlKode(r.kode || '—', qActive ? terms : null)}</span>${relChip ? `<span class="ml-1">${relChip}</span>` : ''}
                             </div>
                         </td>
                         <td class="py-1.5 px-2 align-middle">

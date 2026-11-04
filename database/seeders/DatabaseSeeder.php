@@ -27,12 +27,14 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
+            UnitSeeder::class,          // taruh paling atas kalau Pegawai butuh unit
             PegawaiSeeder::class,
             KabupatenKotaSeeder::class,
             MakOptionSeeder::class,
             SbmRateSeeder::class,
             SbmFlatRateSeeder::class,
             PengRiilRateSeeder::class,
+            AnggaranPemetaanSeeder::class,
         ]);
     }
 }
