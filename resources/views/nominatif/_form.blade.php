@@ -136,7 +136,8 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                                 <option value="" disabled {{ old('provinsi', $nominatif->provinsi ?? '') ? '' : 'selected' }}>— Pilih Provinsi —</option>
                                 @foreach ($provinsiList as $p)
                                     <option value="{{ $p }}" @selected(old('provinsi', $nominatif->provinsi ?? '') === $p)>
-                                        {{ $p }}</option>
+                                        {{ $p }}
+                                    </option>
                                 @endforeach
                             </select>
                             {!! $chevron !!}
@@ -208,6 +209,21 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                                 @empty
                                     <option value="" disabled>Belum ada pegawai berlabel Bendahara</option>
                                 @endforelse
+                            </select>
+                            {!! $chevron !!}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="{{ $subLabel }}">PIC <span class="text-red-400">*</span></label>
+                        <div class="relative">
+                            <select name="pic_id" required data-placeholder="Cari PIC..."
+                                class="js-searchable {{ $selectClass }}">
+                                <option value="" disabled {{ old('pic_id', $nominatif->pic_id ?? '') ? '' : 'selected' }}>— Pilih —</option>
+                                @foreach ($pegawaiList as $p)
+                                    <option value="{{ $p->id }}" @selected(old('pic_id', $nominatif->pic_id ?? null) == $p->id)>
+                                        {{ $p->nama_gelar ?? $p->nama }}
+                                    </option>
+                                @endforeach
                             </select>
                             {!! $chevron !!}
                         </div>

@@ -129,7 +129,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="{{ $subLabel }}">PPK <span class="text-red-400">*</span></label>
                             <div class="relative">
@@ -182,12 +182,29 @@
                                 {!! $chevron !!}
                             </div>
                         </div>
+                        <div>
+                            <label class="{{ $subLabel }}">PIC <span class="text-red-400">*</span></label>
+                            <div class="relative">
+                                <select name="pic_id" required data-placeholder="Cari PIC..."
+                                    class="js-searchable {{ $selectClass }}">
+                                    <option value="" disabled
+                                        {{ old('pic_id', $nominatif->pic_id ?? '') ? '' : 'selected' }}>
+                                        — Pilih —</option>
+                                    @foreach ($pegawaiList as $p)
+                                        <option value="{{ $p->id }}" @selected(old('pic_id', $nominatif->pic_id ?? null) == $p->id)>
+                                            {{ $p->nama_gelar ?? $p->nama }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                {!! $chevron !!}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {{-- ===== Section: Item (satu kolom + preset pajak) ===== --}}
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-7">
-                                       <div class="flex items-center justify-between gap-3 mb-5">
+                    <div class="flex items-center justify-between gap-3 mb-5">
                         <div class="flex items-center gap-2.5">
                             <div class="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-600" fill="none"
@@ -316,9 +333,8 @@
                         class="mt-4 w-full inline-flex items-center justify-center gap-1.5 border border-dashed border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold px-3.5 py-3 rounded-xl text-xs transition">
                         + Tambah Item
                     </button>
-                </div>
 
- {{-- Ringkasan total --}}
+                    {{-- Ringkasan total --}}
                     <div class="mt-8 rounded-2xl bg-gray-50/80 border border-gray-100 p-5 sm:p-6">
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Ringkasan Total</p>
 
