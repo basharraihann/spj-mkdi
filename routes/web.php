@@ -125,6 +125,7 @@ Route::middleware('auth')->group(function () {
             Route::middleware('admin')->group(function () {
                 Route::get('upload', 'uploadForm')->name('upload');
                 Route::post('upload', 'uploadStore')->name('upload.store');
+                Route::get('upload/{upload}/file', 'download')->name('upload.file');
 
                 // Pemetaan RO -> Unit (Deputi/Biro -> Asdep)
                 Route::get('pemetaan', [AnggaranPemetaanController::class, 'index'])->name('pemetaan');

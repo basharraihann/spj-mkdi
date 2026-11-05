@@ -10,6 +10,7 @@ use App\Services\MakSyncService;
 use App\Support\AnggaranExcel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
 
@@ -110,6 +111,16 @@ class AnggaranController extends Controller
         return view('anggaran.upload', compact('uploads'));
     }
 
+    public function download(AnggaranUpload $upload)
+    {
+        $disk = Storage::disk('local');
+        if (!$upload->file_path || !$disk->exists($upload->file_path)) {
+            return back()->with('error', 'File asli untuk upload ini tidak tersimpan.');
+        }
+
+        return $disk->download($upload->file_path, $upload->nama_file);
+    }
+
     public function uploadStore(Request $request, AnggaranImportService $importer)
     {
         $request->validate([
@@ -130,6 +141,14 @@ class AnggaranController extends Controller
         } catch (Throwable $e) {
             Log::error('Import anggaran gagal: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Gagal memproses file. Pastikan file asli dari SAKTI dan belum diubah.');
+        }
+
+        // Simpan file asli di storage privat (bukan public). Gagal simpan tidak membatalkan import.
+        try {
+            $path = $file->storeAs('anggaran', $upload->id . '.' . strtolower($file->getClientOriginalExtension()), 'local');
+            $upload->update(['file_path' => $path]);
+        } catch (Throwable $e) {
+            Log::warning('File asli anggaran gagal disimpan: ' . $e->getMessage());
         }
 
         // Tanggal laporan: input manual, kalau kosong ditebak dari nama file (ddmmyy).

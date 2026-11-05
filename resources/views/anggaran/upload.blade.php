@@ -70,10 +70,12 @@
         </div>
 
         @if (session('success'))
-            <div class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <div
+                class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 <svg class="mt-0.5 h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                     stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
                 <span>{{ session('success') }}</span>
             </div>
@@ -82,9 +84,10 @@
             <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <svg class="mt-0.5 h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                     stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
                 </svg>
-                <span>{{ session('error') }} Data aktif sebelumnya tidak berubah.</span>
+                <span>{{ session('error') }}</span>
             </div>
         @endif
 
@@ -93,10 +96,12 @@
             {{-- ===== Form upload ===== --}}
             <div class="card p-5 sm:p-6 lg:col-span-3">
                 <div class="flex items-start gap-3">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+                    <span
+                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
                         <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                             stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                         </svg>
                     </span>
                     <div>
@@ -113,19 +118,24 @@
                         class="dz flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center hover:border-blue-400 hover:bg-blue-50/40">
                         <svg class="h-9 w-9 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke-width="1.3" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
-                        <span class="text-sm font-medium text-slate-700">Tarik file ke sini, atau <span class="text-blue-600 underline underline-offset-2">pilih dari komputer</span></span>
+                        <span class="text-sm font-medium text-slate-700">Tarik file ke sini, atau <span
+                                class="text-blue-600 underline underline-offset-2">pilih dari komputer</span></span>
                         <span class="text-xs text-slate-400">Format .xlsx atau .xls, maksimal 20 MB</span>
                         <input id="up-file" type="file" name="file" accept=".xlsx,.xls" required class="sr-only">
                     </label>
 
                     {{-- File terpilih --}}
-                    <div id="up-chosen" class="mt-3 hidden items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <div id="up-chosen"
+                        class="mt-3 hidden items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <span
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                 stroke-width="1.8" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m0 0h7.5" />
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m0 0h7.5" />
                             </svg>
                         </span>
                         <div class="min-w-0 flex-1">
@@ -141,12 +151,29 @@
                         <p class="mt-2 text-sm text-red-600" role="alert">{{ $message }}</p>
                     @enderror
 
+                    {{-- Tanggal laporan (opsional) --}}
+                    <div class="mt-4">
+                        <label for="up-tgl" class="block text-sm font-medium text-slate-700">
+                            Tanggal laporan <span class="font-normal text-slate-400">(opsional)</span>
+                        </label>
+                        <input id="up-tgl" type="date" name="per_tanggal" value="{{ old('per_tanggal') }}"
+                            class="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <p class="mt-1 text-xs text-slate-400">Kosongkan untuk diambil dari nama file, misalnya 021126
+                            jadi 2 Nov 2026. Tanggal ini dipakai untuk menghitung sisa anggaran MAK.</p>
+                        @error('per_tanggal')
+                            <p class="mt-1 text-sm text-red-600" role="alert">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <div class="mt-5 flex flex-wrap items-center gap-3">
                         <button id="up-submit" type="submit"
                             class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-                            <svg id="up-spin" class="spin hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"></path>
+                            <svg id="up-spin" class="spin hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z">
+                                </path>
                             </svg>
                             <span id="up-label">Upload dan proses</span>
                         </button>
@@ -160,7 +187,8 @@
                 <div class="flex items-center justify-between gap-3">
                     <h3 class="text-base font-semibold text-slate-800">Data aktif</h3>
                     @if ($active)
-                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Dipakai di Monitor
                         </span>
                     @endif
@@ -173,14 +201,27 @@
                             <dd class="text-right font-medium text-slate-800">{{ $active->periode ?: '-' }}</dd>
                         </div>
                         <div class="flex items-start justify-between gap-4 py-2.5">
+                            <dt class="shrink-0 text-slate-500">Tanggal laporan</dt>
+                            <dd class="text-right font-medium text-slate-800">
+                                {{ $active->per_tanggal ? \Illuminate\Support\Carbon::parse($active->per_tanggal)->locale('id')->translatedFormat('j F Y') : '-' }}
+                            </dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-4 py-2.5">
                             <dt class="shrink-0 text-slate-500">File</dt>
-                            <dd class="min-w-0 break-all text-right text-slate-800">{{ $active->nama_file }}</dd>
+                            <dd class="min-w-0 break-all text-right text-slate-800">
+                                {{ $active->nama_file }}
+                                @if ($active->file_path)
+                                    <a href="{{ route('anggaran.upload.file', $active) }}"
+                                        class="ml-1 whitespace-nowrap text-xs font-medium text-blue-600 hover:underline">Unduh</a>
+                                @endif
+                            </dd>
                         </div>
                         <div class="flex items-start justify-between gap-4 py-2.5">
                             <dt class="text-slate-500">Diunggah</dt>
                             <dd class="text-right text-slate-800">
                                 <span class="block font-medium">{{ $activeAt->translatedFormat('l, j F Y') }}</span>
-                                <span class="block tabular-nums text-xs text-slate-500">{{ $activeAt->format('H:i:s') }} WIB · {{ $activeAt->diffForHumans() }}</span>
+                                <span class="block tabular-nums text-xs text-slate-500">{{ $activeAt->format('H:i:s') }} WIB
+                                    · {{ $activeAt->diffForHumans() }}</span>
                             </dd>
                         </div>
                         <div class="flex items-start justify-between gap-4 py-2.5">
@@ -189,17 +230,20 @@
                         </div>
                         <div class="flex items-start justify-between gap-4 py-2.5">
                             <dt class="text-slate-500">Jumlah item</dt>
-                            <dd class="text-right tabular-nums text-slate-800">{{ number_format($active->jumlah_item, 0, ',', '.') }}</dd>
+                            <dd class="text-right tabular-nums text-slate-800">
+                                {{ number_format($active->jumlah_item, 0, ',', '.') }}</dd>
                         </div>
                         <div class="flex items-start justify-between gap-4 py-2.5">
                             <dt class="text-slate-500">Total pagu</dt>
-                            <dd class="text-right font-semibold tabular-nums text-slate-900">Rp {{ number_format($active->total_pagu, 0, ',', '.') }}</dd>
+                            <dd class="text-right font-semibold tabular-nums text-slate-900">Rp
+                                {{ number_format($active->total_pagu, 0, ',', '.') }}</dd>
                         </div>
                     </dl>
                 @else
                     <div class="mt-4 rounded-xl bg-slate-50 px-4 py-8 text-center">
                         <p class="text-sm font-medium text-slate-700">Belum ada data aktif</p>
-                        <p class="mt-1 text-xs text-slate-400">Upload file pertama dari SAKTI untuk mulai memakai Monitor Anggaran.</p>
+                        <p class="mt-1 text-xs text-slate-400">Upload file pertama dari SAKTI untuk mulai memakai Monitor
+                            Anggaran.</p>
                     </div>
                 @endif
             </div>
@@ -210,12 +254,13 @@
             <div class="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div>
                     <h3 class="text-base font-semibold text-slate-800">Riwayat upload</h3>
-                    <p class="text-sm text-slate-500">Waktu dalam WIB (Asia/Jakarta). Sistem menyimpan 5 upload terakhir, yang lebih lama dihapus otomatis.</p>
+                    <p class="text-sm text-slate-500">Waktu dalam WIB (Asia/Jakarta). Sistem menyimpan 5 upload
+                        terakhir, yang lebih lama dihapus otomatis beserta file aslinya.</p>
                 </div>
             </div>
 
             <div class="overflow-x-auto border-t border-slate-100">
-                <table class="w-full min-w-[860px] text-sm">
+                <table class="w-full min-w-[960px] text-sm">
                     <thead class="bg-slate-50 text-xs text-slate-500">
                         <tr>
                             <th class="px-5 py-2.5 text-left font-medium">Waktu upload</th>
@@ -225,6 +270,7 @@
                             <th class="px-4 py-2.5 text-right font-medium">Item</th>
                             <th class="px-4 py-2.5 text-right font-medium">Total pagu</th>
                             <th class="px-5 py-2.5 text-left font-medium">Status</th>
+                            <th class="px-5 py-2.5 text-left font-medium">File asli</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -232,29 +278,45 @@
                             @php $t = $wib($u->created_at); @endphp
                             <tr class="{{ $u->is_active ? 'bg-blue-50/40' : '' }}">
                                 <td class="whitespace-nowrap px-5 py-3 align-top">
-                                    <span class="block font-medium text-slate-800">{{ $t->translatedFormat('l, j F Y') }}</span>
-                                    <span class="block tabular-nums text-xs text-slate-500">{{ $t->format('H:i:s') }} WIB · {{ $t->diffForHumans() }}</span>
+                                    <span
+                                        class="block font-medium text-slate-800">{{ $t->translatedFormat('l, j F Y') }}</span>
+                                    <span class="block tabular-nums text-xs text-slate-500">{{ $t->format('H:i:s') }} WIB ·
+                                        {{ $t->diffForHumans() }}</span>
                                 </td>
                                 <td class="px-4 py-3 align-top text-slate-700">{{ $u->periode ?: '-' }}</td>
-                                <td class="max-w-[320px] break-all px-4 py-3 align-top text-slate-700">{{ $u->nama_file }}</td>
+                                <td class="max-w-[320px] break-all px-4 py-3 align-top text-slate-700">{{ $u->nama_file }}
+                                </td>
                                 <td class="px-4 py-3 align-top text-slate-700">{{ $u->uploader->name ?? '-' }}</td>
-                                <td class="px-4 py-3 text-right align-top tabular-nums text-slate-700">{{ number_format($u->jumlah_item, 0, ',', '.') }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right align-top tabular-nums text-slate-700">Rp {{ number_format($u->total_pagu, 0, ',', '.') }}</td>
+                                <td class="px-4 py-3 text-right align-top tabular-nums text-slate-700">
+                                    {{ number_format($u->jumlah_item, 0, ',', '.') }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-right align-top tabular-nums text-slate-700">Rp
+                                    {{ number_format($u->total_pagu, 0, ',', '.') }}</td>
                                 <td class="px-5 py-3 align-top">
                                     @if ($u->is_active)
-                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
+                                        <span
+                                            class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
                                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Aktif
                                         </span>
                                     @else
-                                        <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Arsip</span>
+                                        <span
+                                            class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Arsip</span>
+                                    @endif
+                                </td>
+                                <td class="px-5 py-3 align-top">
+                                    @if ($u->file_path)
+                                        <a href="{{ route('anggaran.upload.file', $u) }}"
+                                            class="text-sm font-medium text-blue-600 hover:underline">Unduh</a>
+                                    @else
+                                        <span class="text-xs text-slate-400">Tidak tersimpan</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-5 py-12 text-center">
+                                <td colspan="8" class="px-5 py-12 text-center">
                                     <p class="text-sm font-medium text-slate-600">Belum ada upload</p>
-                                    <p class="mt-1 text-xs text-slate-400">Riwayat akan muncul di sini setelah file pertama diproses.</p>
+                                    <p class="mt-1 text-xs text-slate-400">Riwayat akan muncul di sini setelah file pertama
+                                        diproses.</p>
                                 </td>
                             </tr>
                         @endforelse
