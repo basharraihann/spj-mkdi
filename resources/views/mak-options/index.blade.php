@@ -31,7 +31,8 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-900">Daftar Nomor MAK</h2>
-                    <p class="text-sm text-gray-500">Referensi kode anggaran untuk dipilih di Agenda, lengkap dengan sisa anggarannya.</p>
+                    <p class="text-sm text-gray-500">Referensi kode anggaran untuk dipilih di Agenda, lengkap dengan
+                        sisa anggarannya.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
@@ -45,8 +46,10 @@
 
             @if ($periode !== '')
                 <div class="mb-5 flex items-start gap-2 rounded-xl bg-blue-50 px-4 py-2.5 text-xs text-blue-700">
-                    <svg class="h-4 w-4 shrink-0 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg class="h-4 w-4 shrink-0 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>Angka pagu, realisasi, dan sisa bersumber dari FA Detail periode <b>{{ $periode }}</b>.
                         Sisa = pagu dikurangi realisasi; memorandum yang masih berjalan belum ikut mengurangi.</span>
@@ -56,16 +59,18 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
                     <div class="relative flex-1 w-full sm:max-w-sm">
-                        <svg class="h-4 w-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <svg class="h-4 w-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        <input type="text" id="mak-search-input"
-                            placeholder="Cari MAK atau uraian..."
+                        <input type="text" id="mak-search-input" placeholder="Cari MAK atau uraian..."
                             autocomplete="off"
                             class="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2.5 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <label class="inline-flex items-center gap-2 text-sm text-gray-600 select-none">
-                        <input type="checkbox" id="mak-only-sisa" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <input type="checkbox" id="mak-only-sisa"
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                         Hanya yang masih ada sisa
                     </label>
                 </div>
@@ -112,18 +117,22 @@
                             $groupSisa = $items->sum('sisa');
                         @endphp
 
-                        <div class="js-mak-group border-b border-gray-100 last:border-b-0" data-search="{{ $headerSearch }}">
+                        <div class="js-mak-group border-b border-gray-100 last:border-b-0"
+                            data-search="{{ $headerSearch }}">
                             <div class="bg-indigo-50/50 px-4 py-3">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="font-mono text-xs font-semibold text-indigo-700 bg-white px-2 py-1 rounded-lg border border-indigo-100">
+                                    <span
+                                        class="font-mono text-xs font-semibold text-indigo-700 bg-white px-2 py-1 rounded-lg border border-indigo-100">
                                         {{ $prefix }}
                                     </span>
                                     <span class="text-xs text-gray-400">({{ $items->count() }} akun belanja)</span>
                                     <span class="ml-auto text-xs text-gray-500">Sisa kelompok
-                                        <b class="{{ $groupSisa < 0 ? 'text-red-600' : 'text-gray-800' }} tabular-nums">Rp {{ $rp($groupSisa) }}</b></span>
+                                        <b class="{{ $groupSisa < 0 ? 'text-red-600' : 'text-gray-800' }} tabular-nums">Rp
+                                            {{ $rp($groupSisa) }}</b></span>
                                 </div>
                                 <p class="text-sm text-gray-700 mt-1 font-medium">{{ $first->uraian_giat ?: '-' }}</p>
-                                <p class="text-xs text-gray-500">{{ $first->uraian_komponen ?: '-' }} — {{ $first->uraian_akun_ap ?: '-' }}</p>
+                                <p class="text-xs text-gray-500">{{ $first->uraian_komponen ?: '-' }} —
+                                    {{ $first->uraian_akun_ap ?: '-' }}</p>
                             </div>
 
                             <div class="overflow-x-auto">
@@ -139,7 +148,8 @@
                                     <tbody class="divide-y divide-gray-50">
                                         @foreach ($items as $item)
                                             @php $rowSearch = strtolower($item->mak . ' ' . $item->uraian_belanja); @endphp
-                                            <tr class="js-mak-row hover:bg-gray-50/60 transition" data-search="{{ $rowSearch }}" data-sisa="{{ (int) $item->sisa }}">
+                                            <tr class="js-mak-row hover:bg-gray-50/60 transition" data-search="{{ $rowSearch }}"
+                                                data-sisa="{{ (int) $item->sisa }}">
                                                 <td class="py-2.5 pl-4 sm:pl-10 pr-4">
                                                     <span class="font-mono text-xs text-gray-500">
                                                         {{ \Illuminate\Support\Str::afterLast($item->mak, '.') }}
@@ -148,10 +158,12 @@
                                                 <td class="py-2.5 px-4 text-gray-600">
                                                     {{ $item->uraian_belanja ?: '-' }}
                                                 </td>
-                                                <td class="hidden md:table-cell py-2.5 px-4 text-right tabular-nums text-gray-500">
+                                                <td
+                                                    class="hidden md:table-cell py-2.5 px-4 text-right tabular-nums text-gray-500">
                                                     {{ $rp($item->pagu) }}
                                                 </td>
-                                                <td class="hidden lg:table-cell py-2.5 px-4 text-right tabular-nums text-gray-500">
+                                                <td
+                                                    class="hidden lg:table-cell py-2.5 px-4 text-right tabular-nums text-gray-500">
                                                     {{ $rp($item->realisasi) }}
                                                 </td>
                                                 <td class="py-2.5 px-4 text-right tabular-nums {{ $sisaClass($item) }}">
@@ -161,8 +173,7 @@
                                                     <button type="button"
                                                         class="js-edit text-indigo-600 hover:text-indigo-800 font-medium text-xs mr-3"
                                                         data-action="{{ route('mak-options.update', $item) }}"
-                                                        data-mak="{{ $item->mak }}"
-                                                        data-uraian_giat="{{ $item->uraian_giat }}"
+                                                        data-mak="{{ $item->mak }}" data-uraian_giat="{{ $item->uraian_giat }}"
                                                         data-uraian_komponen="{{ $item->uraian_komponen }}"
                                                         data-uraian_akun_ap="{{ $item->uraian_akun_ap }}"
                                                         data-uraian_belanja="{{ $item->uraian_belanja }}"
@@ -170,10 +181,8 @@
                                                         data-realisasi="{{ $rp($item->realisasi) }}"
                                                         data-sisa="{{ $rp($item->sisa) }}"
                                                         data-periode="{{ $item->periode }}">Edit</button>
-                                                    <x-delete-button
-                                                        :action="route('mak-options.destroy', $item)"
-                                                        :label="'nomor MAK ' . $item->mak"
-                                                        :id="'mak-option-' . $item->id"
+                                                    <x-delete-button :action="route('mak-options.destroy', $item)"
+                                                        :label="'nomor MAK ' . $item->mak" :id="'mak-option-' . $item->id"
                                                         class="text-red-500 hover:text-red-700 font-medium text-xs" />
                                                 </td>
                                             </tr>
@@ -205,7 +214,8 @@
                     <div class="flex justify-end gap-2 mt-2">
                         <button type="button" onclick="document.getElementById('modal-edit').classList.add('hidden')"
                             class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-50">Batal</button>
-                        <button type="submit" class="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700">Simpan</button>
+                        <button type="submit"
+                            class="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700">Simpan</button>
                     </div>
                 </form>
             </div>
@@ -222,7 +232,8 @@
                     <div class="flex justify-end gap-2 mt-2">
                         <button type="button" onclick="document.getElementById('modal-create').classList.add('hidden')"
                             class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-50">Batal</button>
-                        <button type="submit" class="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700">Simpan</button>
+                        <button type="submit"
+                            class="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700">Simpan</button>
                     </div>
                 </form>
             </div>
