@@ -6,6 +6,28 @@
     </x-slot>
 
     @php
+        // ---- Status anggaran: outstanding -> sakti -> sp2d (+ batal) ----
+        $statusLabel = ['outstanding' => 'Outstanding', 'sakti' => 'SAKTI', 'sp2d' => 'SP2D', 'batal' => 'Batal'];
+        $urutStatus = ['outstanding' => 0, 'sakti' => 1, 'sp2d' => 2];
+        $maju = ['outstanding' => 'sakti', 'sakti' => 'sp2d']; // perpindahan normal (tanpa alasan)
+        $bolehKe = [ // harus sama dengan MemoStatusController::BOLEH
+            'outstanding' => ['sakti', 'batal'],
+            'sakti' => ['sp2d', 'outstanding', 'batal'],
+            'sp2d' => ['sakti', 'batal'],
+            'batal' => ['outstanding'],
+        ];
+        $statusBadge = fn($s) => match ($s) {
+            'sakti' => 'bg-blue-50 text-blue-700 border-blue-200',
+            'sp2d' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'batal' => 'bg-gray-100 text-gray-500 border-gray-200',
+            default => 'bg-amber-50 text-amber-700 border-amber-200',
+        };
+        $statusBar = fn($s) => match ($s) {
+            'sakti' => 'bg-blue-500',
+            'sp2d' => 'bg-emerald-500',
+            default => 'bg-amber-400',
+        };
+
         // Hitung data tampilan sekali saja
         $groups = $groups->map(function ($g) {
             $tanggal = $g['tanggal_memo'] ?? null;
@@ -40,6 +62,8 @@
                 ? 'agenda ini beserta seluruh nomor memonya (PNS dan Non PNS)'
                 : 'nomor memo ini';
 
+            $statuses = collect($g['items'])->map(fn($i) => $i['status_anggaran'] ?? 'outstanding');
+
             return $g + [
                 'tanggal_iso' => $tanggalIso,
                 'tanggal_tampil' => $tanggalTampil,
@@ -47,6 +71,9 @@
                 'jenis_class' => $jenisClass,
                 'delete_label' => $deleteLabel,
                 'delete_text' => $g['agenda_id'] ? 'Hapus agenda' : 'Hapus memo',
+                'status_blob' => $statuses->unique()->implode(' '),
+                // Hapus hanya boleh kalau semua memo di grup ini masih outstanding / batal
+                'bisa_hapus' => $statuses->every(fn($s) => in_array($s, ['outstanding', 'batal'], true)),
             ];
         });
 
@@ -60,6 +87,18 @@
         @if (session('error'))
             <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
                 {{ session('error') }}
+            </div>
+        @endif
+
+        @if (session('success'))
+            <div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if ($errors->has('status'))
+            <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+                {{ $errors->first('status') }}
             </div>
         @endif
 
@@ -121,6 +160,17 @@
                 </div>
 
                 <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="memo-filter-status" class="text-xs font-semibold text-gray-600">Status</label>
+                    <select id="memo-filter-status"
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-40 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        <option value="">Semua Status</option>
+                        @foreach ($statusLabel as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
                     <label for="memo-filter-pic" class="text-xs font-semibold text-gray-600">PIC</label>
                     <select id="memo-filter-pic"
                         class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
@@ -158,7 +208,7 @@
                 class="hidden xl:grid grid-cols-[minmax(0,1fr)_36rem] gap-6 px-5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                 <div>Kegiatan</div>
                 <div class="grid grid-cols-[minmax(0,1fr)_8rem_9.5rem] gap-3 px-3">
-                    <div>Nomor Memo</div>
+                    <div>Nomor Memo &amp; Status</div>
                     <div class="text-right">Nominal</div>
                     <div class="text-right">Aksi</div>
                 </div>
@@ -169,7 +219,7 @@
                     <article
                         class="js-memo-item bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_36rem] xl:gap-6"
                         data-search="{{ $g['search_blob'] }}" data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}"
-                        data-tanggal="{{ $g['tanggal_iso'] }}">
+                        data-status="{{ $g['status_blob'] }}" data-tanggal="{{ $g['tanggal_iso'] }}">
 
                         {{-- Info kegiatan --}}
                         <div class="flex gap-3 min-w-0">
@@ -201,48 +251,114 @@
                                     </div>
                                 </dl>
 
-                                <form action="{{ route('memo.destroy', $g['delete_id']) }}" method="POST"
-                                    class="delete-memo-form inline-flex mt-3 m-0" data-label="{{ $g['delete_label'] }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" title="Hapus {{ $g['delete_label'] }}"
-                                        class="inline-flex items-center justify-center px-3 py-2 xl:py-1 text-[11px] font-semibold text-red-500 bg-white hover:bg-red-50 border border-red-400 rounded-md transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
-                                        {{ $g['delete_text'] }}
-                                    </button>
-                                </form>
+                                @if ($g['bisa_hapus'])
+                                    <form action="{{ route('memo.destroy', $g['delete_id']) }}" method="POST"
+                                        class="delete-memo-form inline-flex mt-3 m-0" data-label="{{ $g['delete_label'] }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" title="Hapus {{ $g['delete_label'] }}"
+                                            class="inline-flex items-center justify-center px-3 py-2 xl:py-1 text-[11px] font-semibold text-red-500 bg-white hover:bg-red-50 border border-red-400 rounded-md transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
+                                            {{ $g['delete_text'] }}
+                                        </button>
+                                    </form>
+                                @else
+                                    <p class="mt-3 text-[11px] text-gray-400">
+                                        Tidak bisa dihapus karena sudah SAKTI/SP2D. Gunakan status Batal.
+                                    </p>
+                                @endif
                             </div>
                         </div>
 
                         {{-- Nomor memo per status (PNS / Non PNS) --}}
                         <div class="space-y-2 min-w-0 xl:pt-0">
                             @foreach ($g['items'] as $memo)
+                                @php
+                                    $st = $memo['status_anggaran'] ?? 'outstanding';
+                                    $idx = $urutStatus[$st] ?? null;
+                                    $tglSt = $st === 'sakti'
+                                        ? ($memo['tgl_sakti'] ?? null)
+                                        : ($st === 'sp2d' ? ($memo['tgl_sp2d'] ?? null) : null);
+                                @endphp
                                 <div
                                     class="rounded-xl bg-gray-50 border border-gray-200 p-3 flex flex-wrap items-center gap-x-3 gap-y-3 xl:grid xl:grid-cols-[minmax(0,1fr)_8rem_9.5rem]">
 
                                     {{-- Nomor memo + status --}}
                                     <div class="min-w-0 flex flex-col items-start gap-1.5">
-                                        @if ($memo['agenda_id'])
-                                            <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
-                                                class="font-semibold text-xs text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
-                                                {{ $memo['nomor_memo'] }}
-                                            </a>
-                                        @else
-                                            <span class="font-semibold text-xs text-gray-800 tabular-nums break-all">
-                                                {{ $memo['nomor_memo'] }}
-                                            </span>
-                                        @endif
+                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                            @if ($memo['agenda_id'])
+                                                <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
+                                                    class="font-semibold text-xs text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
+                                                    {{ $memo['nomor_memo'] }}
+                                                </a>
+                                            @else
+                                                <span class="font-semibold text-xs text-gray-800 tabular-nums break-all">
+                                                    {{ $memo['nomor_memo'] }}
+                                                </span>
+                                            @endif
 
-                                        @if ($memo['status'])
+                                            @if ($memo['status'])
+                                                <span
+                                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusClass($memo['status']) }}">
+                                                    {{ $memo['status'] }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        {{-- Status anggaran + progres 3 segmen --}}
+                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                             <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusClass($memo['status']) }}">
-                                                {{ $memo['status'] }}
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusBadge($st) }}">
+                                                {{ $statusLabel[$st] ?? $st }}
                                             </span>
-                                        @endif
+
+                                            @if ($idx !== null)
+                                                <span class="flex items-center gap-0.5"
+                                                    role="img"
+                                                    aria-label="Progres: {{ $statusLabel[$st] }}, tahap {{ $idx + 1 }} dari 3">
+                                                    @foreach ([0, 1, 2] as $i)
+                                                        <span
+                                                            class="h-1 w-5 rounded-full {{ $i <= $idx ? $statusBar($st) : 'bg-gray-200' }}"></span>
+                                                    @endforeach
+                                                </span>
+                                            @endif
+
+                                            @if ($tglSt)
+                                                <span class="text-[10px] text-gray-400">
+                                                    {{ \Illuminate\Support\Carbon::parse($tglSt)->translatedFormat('d M Y') }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        {{-- Ubah status (hanya yang berwenang) --}}
+                                        @can('kelola-anggaran')
+                                            <form method="POST" action="{{ route('memo.status', $memo['id']) }}"
+                                                class="js-status-form m-0" data-maju="{{ $maju[$st] ?? '' }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="alasan" value="">
+                                                <select name="status"
+                                                    aria-label="Ubah status {{ $memo['nomor_memo'] }}"
+                                                    class="js-status-select border border-gray-200 bg-white rounded-md px-2 py-1 text-[11px] text-gray-600 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none cursor-pointer">
+                                                    <option value="">Ubah status…</option>
+                                                    @foreach ($bolehKe[$st] ?? [] as $opsi)
+                                                        <option value="{{ $opsi }}">
+                                                            @if (($maju[$st] ?? null) === $opsi)
+                                                                Lanjut ke {{ $statusLabel[$opsi] }}
+                                                            @elseif ($opsi === 'batal')
+                                                                Batalkan memo
+                                                            @else
+                                                                Kembali ke {{ $statusLabel[$opsi] }}
+                                                            @endif
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </form>
+                                        @endcan
                                     </div>
 
                                     {{-- Nominal --}}
                                     <span
-                                        class="text-xs font-medium text-gray-700 text-right tabular-nums whitespace-nowrap ml-auto xl:ml-0">
+                                        class="text-xs font-medium text-gray-700 text-right tabular-nums whitespace-nowrap ml-auto xl:ml-0 {{ $st === 'batal' ? 'line-through text-gray-400' : '' }}">
                                         Rp {{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
                                     </span>
 
@@ -299,6 +415,28 @@
                     confirmDelete(form.id, label);
                 });
             });
+
+            // Ubah status memo. Perpindahan normal (maju satu tahap) langsung dikirim;
+            // mundur / batal wajib isi alasan (divalidasi juga di server).
+            document.querySelectorAll('.js-status-select').forEach(function (sel) {
+                sel.addEventListener('change', function () {
+                    const form = sel.closest('form');
+                    const ke = sel.value;
+                    if (!ke) return;
+
+                    let alasan = '';
+                    if (form.dataset.maju !== ke) {
+                        alasan = (window.prompt('Alasan perubahan status (wajib diisi):') || '').trim();
+                        if (!alasan) {
+                            sel.value = '';
+                            return;
+                        }
+                    }
+
+                    form.querySelector('input[name="alasan"]').value = alasan;
+                    form.submit();
+                });
+            });
         });
     </script>
 
@@ -307,6 +445,7 @@
         (function () {
             const cariInput = document.getElementById('memo-filter-cari');
             const jenisSelect = document.getElementById('memo-filter-jenis');
+            const statusSelect = document.getElementById('memo-filter-status');
             const picSelect = document.getElementById('memo-filter-pic');
             const dariInput = document.getElementById('memo-filter-dari');
             const sampaiInput = document.getElementById('memo-filter-sampai');
@@ -321,6 +460,7 @@
             function applyFilter() {
                 const cari = cariInput.value.trim().toLowerCase();
                 const jenis = jenisSelect.value;
+                const status = statusSelect.value;
                 const pic = picSelect.value;
                 const dari = dariInput.value; // YYYY-MM-DD, bisa dibandingkan sebagai string
                 const sampai = sampaiInput.value;
@@ -330,13 +470,14 @@
                 items.forEach(function (el) {
                     const matchCari = cari === '' || el.dataset.search.includes(cari);
                     const matchJenis = jenis === 'semua' || el.dataset.jenis === jenis;
+                    const matchStatus = status === '' || (el.dataset.status || '').split(' ').includes(status);
                     const matchPic = pic === '' || el.dataset.pic === pic;
 
                     const tgl = el.dataset.tanggal || '';
                     const matchDari = dari === '' || (tgl !== '' && tgl >= dari);
                     const matchSampai = sampai === '' || (tgl !== '' && tgl <= sampai);
 
-                    const ok = matchCari && matchJenis && matchPic && matchDari && matchSampai;
+                    const ok = matchCari && matchJenis && matchStatus && matchPic && matchDari && matchSampai;
                     el.style.display = ok ? '' : 'none';
 
                     if (ok) {
@@ -351,6 +492,7 @@
 
             cariInput.addEventListener('input', applyFilter);
             jenisSelect.addEventListener('change', applyFilter);
+            statusSelect.addEventListener('change', applyFilter);
             picSelect.addEventListener('change', applyFilter);
             dariInput.addEventListener('change', applyFilter);
             sampaiInput.addEventListener('change', applyFilter);
@@ -358,6 +500,7 @@
             resetBtn.addEventListener('click', function () {
                 cariInput.value = '';
                 jenisSelect.value = 'semua';
+                statusSelect.value = '';
                 picSelect.value = '';
                 dariInput.value = '';
                 sampaiInput.value = '';

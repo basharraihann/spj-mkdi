@@ -52,8 +52,11 @@ class MemoController extends Controller
                     'uraian_kegiatan' => $agenda->uraian_kegiatan,
                     'pic' => $pic,
                     'mak' => $agenda->mak,
-                    'nominal' => $agenda->biaya_asn,
+                    'nominal' => $agenda->nominal_memo_pns ?? $agenda->biaya_asn,
                     'status' => 'PNS',
+                    'status_anggaran' => $agenda->status_pns ?? 'outstanding',
+                    'tgl_sakti' => $agenda->tgl_sakti_pns,
+                    'tgl_sp2d' => $agenda->tgl_sp2d_pns,
                     'jenis' => 'perdin',
                     'jenis_label' => 'Perjalanan Dinas',
                     'editable' => false,
@@ -73,8 +76,11 @@ class MemoController extends Controller
                     'uraian_kegiatan' => $agenda->uraian_kegiatan,
                     'pic' => $pic,
                     'mak' => $agenda->mak,
-                    'nominal' => $agenda->biaya_non_asn,
+                    'nominal' => $agenda->nominal_memo_non_pns ?? $agenda->biaya_non_asn,
                     'status' => 'Non PNS',
+                    'status_anggaran' => $agenda->status_non_pns ?? 'outstanding',
+                    'tgl_sakti' => $agenda->tgl_sakti_non_pns,
+                    'tgl_sp2d' => $agenda->tgl_sp2d_non_pns,
                     'jenis' => 'perdin',
                     'jenis_label' => 'Perjalanan Dinas',
                     'editable' => false,
@@ -97,10 +103,13 @@ class MemoController extends Controller
                 'mak' => $entry->mak,
                 'nominal' => $entry->nominal,
                 'status' => null,
+                'status_anggaran' => $entry->status_anggaran ?? 'outstanding',
+                'tgl_sakti' => $entry->tgl_sakti,
+                'tgl_sp2d' => $entry->tgl_sp2d,
                 'mandiri' => true,
                 'jenis' => $entry->jenis_memo,
                 'jenis_label' => $entry->jenis_label, // accessor di model MemoEntry
-                'editable' => true,
+                'editable' => ($entry->status_anggaran ?? 'outstanding') === 'outstanding',
                 'edit_url' => route('memo.edit', $entry->id),
                 'pdf_url' => route('memo.pdf', $entry->id),
             ]);
@@ -113,7 +122,6 @@ class MemoController extends Controller
         $memos = $memos->sortByDesc('nomor_urut')->values();
 
         // Satu grup = satu agenda (atau satu memo mandiri).
-        // groupBy mempertahankan urutan kemunculan pertama, jadi urutan nomor tetap.
         $groups = $memos
             ->groupBy('group_key')
             ->map(function ($items) {
@@ -124,7 +132,7 @@ class MemoController extends Controller
 
                 return [
                     'agenda_id' => $first['agenda_id'],
-                    'delete_id' => $first['id'], // untuk agenda, destroy() menghapus agenda + kedua memonya
+                    'delete_id' => $first['id'],
                     'jenis' => $first['jenis'],
                     'jenis_label' => $first['jenis_label'],
                     'tanggal_memo' => $first['tanggal_memo'],
@@ -140,7 +148,6 @@ class MemoController extends Controller
 
         return view('memo.index', compact('groups', 'nomorBerikutnya', 'picOptions'));
     }
-
     /**
      * Endpoint AJAX buat tombol "Ambil Nomor Memo".
      */
@@ -179,6 +186,11 @@ class MemoController extends Controller
      */
     public function edit(MemoEntry $memo)
     {
+        abort_if(
+            ($memo->status_anggaran ?? 'outstanding') !== 'outstanding',
+            403,
+            'Memo sudah SAKTI/SP2D/batal, tidak bisa diubah.'
+        );
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $makOptions = MakOption::orderBy('mak')->get();
         $makOutstanding = MakSisaService::outstanding($memo->id); // nominal memo ini sendiri tidak ikut dihitung
@@ -187,6 +199,11 @@ class MemoController extends Controller
 
     public function update(Request $request, MemoEntry $memo)
     {
+        abort_if(
+            ($memo->status_anggaran ?? 'outstanding') !== 'outstanding',
+            403,
+            'Memo sudah SAKTI/SP2D/batal, tidak bisa diubah.'
+        );
         $validated = $request->validate($this->rules());
 
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;

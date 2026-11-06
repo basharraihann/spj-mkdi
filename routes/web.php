@@ -13,6 +13,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\NominatifCustomController;
+use App\Http\Controllers\MemoStatusController;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -88,6 +89,13 @@ Route::middleware('auth')->group(function () {
             Route::delete('{memo}', 'destroy')->name('destroy');
             Route::get('{memo}/pdf', 'pdf')->name('pdf');
         });
+
+    // Ubah status anggaran memo (outstanding -> sakti -> sp2d / batal).
+    // {memo} memakai id yang sama dengan di daftar memo: entry-12, agenda-3-pns, agenda-3-non_pns
+    Route::patch('nomor-memo/{memo}/status', [MemoStatusController::class, 'update'])
+        ->middleware('can:kelola-anggaran')
+        ->where('memo', 'entry-\d+|agenda-\d+-(?:pns|non_pns)')
+        ->name('memo.status');
 
     // Rekap nominatif (dari agenda + nominatif mandiri tanpa agenda)
     Route::prefix('nominatif')
