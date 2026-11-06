@@ -58,6 +58,13 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
+            {{-- TARUH DI SINI --}}
+            @if (session('warning'))
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+                    {{ session('warning') }}
+                </div>
+            @endif
+
             {{-- Header info card --}}
             <div class="bg-white shadow-sm rounded-2xl border border-gray-100 p-4 sm:p-6">
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500 mb-5">
@@ -90,6 +97,10 @@
                     <a href="{{ route('agendas.peserta', $agenda) }}"
                         class="flex-1 sm:flex-none justify-center text-center inline-flex items-center px-3.5 py-2 rounded-lg text-sm font-semibold border border-blue-500 text-blue-600 bg-white hover:bg-blue-50 transition">
                         Edit Biaya
+                    </a>
+                    <a href="{{ route('agendas.anggaran', $agenda) }}"
+                        class="flex-1 sm:flex-none justify-center text-center inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border {{ $agenda->mak ? 'border-blue-500 text-blue-600 bg-white hover:bg-blue-50' : 'border-amber-400 text-amber-700 bg-amber-50 hover:bg-amber-100' }} transition">
+                        {{ $agenda->mak ? 'Edit Anggaran & Memo' : 'Pilih Anggaran & Memo' }}
                     </a>
                 </div>
             </div>
@@ -209,10 +220,10 @@
 
                                         <input type="file" name="files[{{ $key }}]"
                                             class="w-full text-sm text-gray-500 border border-gray-200 rounded-lg
-                                                                                                                                       file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
-                                                                                                                                       file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
-                                                                                                                                       hover:file:bg-gray-200 file:transition cursor-pointer
-                                                                                                                                       focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                                                                                                                                                               file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0
+                                                                                                                                                               file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600
+                                                                                                                                                               hover:file:bg-gray-200 file:transition cursor-pointer
+                                                                                                                                                               focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                                         <p class="text-xs text-gray-400 mt-1.5">
                                             {{ $existing ? 'Pilih file baru untuk mengganti.' : 'PDF, JPG, atau PNG.' }}
                                         </p>
@@ -258,6 +269,7 @@
                         'nominatif_label' => 'Nominatif PNS',
                         'memorandum_route' => 'pns',
                         'memorandum_label' => 'Memorandum PNS',
+                        'memo_siap' => !empty($agenda->mak) && !empty($agenda->nomor_memo_pns),
                         'dot' => 'bg-blue-500',
                     ],
                     [
@@ -268,6 +280,7 @@
                         'nominatif_label' => 'Nominatif Non PNS',
                         'memorandum_route' => 'non-pns',
                         'memorandum_label' => 'Memorandum Non PNS',
+                        'memo_siap' => !empty($agenda->mak) && !empty($agenda->nomor_memo_non_pns),
                         'dot' => 'bg-amber-500',
                     ],
                 ];
@@ -296,10 +309,19 @@
                                     class="{{ $pillBtnPurple }} w-full justify-center text-center">
                                     {{ $group['nominatif_label'] }}
                                 </a>
-                                <a href="{{ route('agendas.memorandum.pdf', [$agenda, $group['memorandum_route']]) }}"
-                                    target="_blank" class="{{ $pillBtn }} w-full justify-center text-center">
-                                    {{ $group['memorandum_label'] }}
-                                </a>
+                                {{-- GANTI link memorandum yang lama dengan ini --}}
+                                @if ($group['memo_siap'])
+                                    <a href="{{ route('agendas.memorandum.pdf', [$agenda, $group['memorandum_route']]) }}"
+                                        target="_blank" class="{{ $pillBtn }} w-full justify-center text-center">
+                                        {{ $group['memorandum_label'] }}
+                                    </a>
+                                @else
+                                    <a href="{{ route('agendas.anggaran', $agenda) }}"
+                                        class="inline-flex items-center px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100 transition w-full justify-center text-center"
+                                        title="MAK / nomor memo belum diisi">
+                                        Lengkapi Anggaran
+                                    </a>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -376,22 +398,30 @@
                                             Merge Dokumen
                                         </a>
                                     </td>
-                                    @if ($loop->first)
-                                        <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
-                                            rowspan="{{ $group['list']->count() }}">
-                                            <a href="{{ route('agendas.nominatif', [$agenda, $group['nominatif_route']]) }}"
-                                                target="_blank" class="{{ $pillBtnPurple }} w-full justify-center">
-                                                {{ $group['nominatif_label'] }}
-                                            </a>
-                                        </td>
-                                        <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
-                                            rowspan="{{ $group['list']->count() }}">
-                                            <a href="{{ route('agendas.memorandum.pdf', [$agenda, $group['memorandum_route']]) }}"
-                                                target="_blank" class="{{ $pillBtn }} w-full justify-center">
-                                                {{ $group['memorandum_label'] }}
-                                            </a>
-                                        </td>
-                                    @endif
+                                                    @if ($loop->first)
+                    <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
+                        rowspan="{{ $group['list']->count() }}">
+                        <a href="{{ route('agendas.nominatif', [$agenda, $group['nominatif_route']]) }}"
+                            target="_blank" class="{{ $pillBtnPurple }} w-full justify-center">
+                            {{ $group['nominatif_label'] }}
+                        </a>
+                    </td>
+                    <td class="cell-group px-4 py-4 align-middle text-center border-l border-gray-100 w-28"
+                        rowspan="{{ $group['list']->count() }}">
+                        @if ($group['memo_siap'])
+                            <a href="{{ route('agendas.memorandum.pdf', [$agenda, $group['memorandum_route']]) }}"
+                                target="_blank" class="{{ $pillBtn }} w-full justify-center">
+                                {{ $group['memorandum_label'] }}
+                            </a>
+                        @else
+                            <a href="{{ route('agendas.anggaran', $agenda) }}"
+                                class="inline-flex items-center px-3 py-2 lg:py-1.5 rounded-md text-xs font-semibold border border-gray-300 text-gray-500 bg-gray-50 hover:bg-gray-100 transition w-full justify-center text-center"
+                                title="MAK / nomor memo belum diisi">
+                                Lengkapi Anggaran
+                            </a>
+                        @endif
+                    </td>
+                @endif
                                 </tr>
                             @empty
                                 <tr>

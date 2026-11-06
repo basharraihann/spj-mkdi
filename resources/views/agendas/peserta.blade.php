@@ -235,259 +235,264 @@
                         ['key' => 'pns', 'label' => 'Pegawai PNS', 'list' => $pnsList, 'accent' => 'blue'],
                         ['key' => 'nonpns', 'label' => 'Pegawai Non PNS', 'list' => $nonPnsList, 'accent' => 'amber'],
                     ] as $group)
-                            <div class="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden mb-6 mt-6">
-                                {{-- Header grup --}}
-                                <div
-                                    class="px-4 sm:px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-{{ $group['accent'] }}-50/60">
-                                    <div class="flex items-center gap-2.5">
-                                        <span
-                                            class="flex items-center justify-center h-7 w-7 rounded-full bg-{{ $group['accent'] }}-100 text-{{ $group['accent'] }}-600">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                                stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                        </span>
-                                        <div>
-                                            <h3 class="font-semibold text-gray-800 leading-tight">{{ $group['label'] }}</h3>
-                                            <span class="text-xs text-gray-400">{{ $group['list']->count() }} orang</span>
-                                        </div>
-                                    </div>
-                                    {{-- Petunjuk geser: hanya di HP/tablet --}}
-                                    <span class="lg:hidden text-[11px] text-gray-400">Geser tabel ke samping →</span>
-                                </div>
-
-                                {{-- Pembungkus scroll horizontal (HP/tablet). Di desktop tidak ada efek. --}}
-                                <div class="peserta-scroll overflow-x-auto">
-                                    <table class="w-full table-auto text-sm">
-                                        <thead>
-                                            <tr class="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500">
-                                                <th class="px-3 py-2.5 text-left font-medium">Nama</th>
-                                                <th class="px-2 py-2.5 text-center font-medium" data-col="tanggal">Tanggal Dinas
-                                                </th>
-                                                @foreach ($simpleKomponen as $key => $label)
-                                                    <th class="px-2 py-2.5 text-center font-medium {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
-                                                        data-col="{{ $key }}">
-                                                        {{ $label }}
-                                                        @if ($key === 'peng_riil')
-                                                            <div class="text-[9px] font-normal normal-case text-gray-400">SBM / Manual</div>
-                                                        @endif
-                                                    </th>
-                                                @endforeach
-                                                <th class="px-2 py-2.5 text-center font-medium {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
-                                                    data-col="lumpsum">Uang Harian (Lumpsum)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-100">
-                                            @forelse ($group['list'] as $p)
-                                                @php
-                                                    $pivot = $p->pivot;
-                                                    $nama = $p->nama_gelar ?? $p->nama;
-                                                    $lumpsumAwal = 0;
-                                                    foreach ($uhFieldMap as $f) {
-                                                        $lumpsumAwal += ($pivot->{$f['hari']} ?? 0) * ($pivot->{$f['rate']} ?? 0);
-                                                    }
-
-                                                    // Tanggal efektif peserta: kolom pivot kalau diisi, kalau tidak ikut agenda
-                                                    $tglMulaiPeserta = old(
-                                                        'tanggal_mulai.' . $p->id,
-                                                        ($pivot->tanggal_mulai ?? null)
-                                                        ? \Carbon\Carbon::parse($pivot->tanggal_mulai)->format('Y-m-d')
-                                                        : $agendaMulai
-                                                    );
-                                                    $tglSelesaiPeserta = old(
-                                                        'tanggal_selesai.' . $p->id,
-                                                        ($pivot->tanggal_selesai ?? null)
-                                                        ? \Carbon\Carbon::parse($pivot->tanggal_selesai)->format('Y-m-d')
-                                                        : $agendaSelesai
-                                                    );
-                                                @endphp
-                                                <tr class="peserta-row hover:bg-gray-50/60 transition" data-group="{{ $group['key'] }}">
-                                                    <td class="px-3 py-2 overflow-hidden">
-                                                        <span class="font-medium text-gray-800 text-sm truncate block"
-                                                            title="{{ $nama }}">{{ $nama }}</span>
-                                                    </td>
-
-                                                    {{-- Tanggal dinas per peserta --}}
-                                                    <td class="px-2 py-2" data-col="tanggal">
-                                                        <div class="tgl-card rounded-xl border border-gray-200 bg-white p-2 space-y-2 shadow-sm">
-                                                            <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
-                                                                <label class="block min-w-0">
-                                                                    <span class="block text-[9px] uppercase tracking-wide text-gray-400 mb-0.5">Mulai</span>
-                                                                    <input type="date" name="tanggal_mulai[{{ $p->id }}]"
-                                                                        class="tgl-mulai" aria-label="Tanggal mulai dinas {{ $nama }}"
-                                                                        min="{{ $agendaMulai }}" max="{{ $agendaSelesai }}"
-                                                                        value="{{ $tglMulaiPeserta }}">
-                                                                </label>
-                                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                                    class="h-3.5 w-3.5 mb-2 text-gray-300 flex-shrink-0" fill="none"
-                                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        d="M5 12h14M13 6l6 6-6 6" />
-                                                                </svg>
-                                                                <label class="block min-w-0">
-                                                                    <span class="block text-[9px] uppercase tracking-wide text-gray-400 mb-0.5">Selesai</span>
-                                                                    <input type="date" name="tanggal_selesai[{{ $p->id }}]"
-                                                                        class="tgl-selesai" aria-label="Tanggal selesai dinas {{ $nama }}"
-                                                                        min="{{ $tglMulaiPeserta }}" max="{{ $agendaSelesai }}"
-                                                                        value="{{ $tglSelesaiPeserta }}">
-                                                                </label>
-                                                            </div>
-
-                                                            <div class="flex items-center justify-between gap-2">
-                                                                <span
-                                                                    class="inline-flex items-center gap-1 rounded-full bg-{{ $group['accent'] }}-100 text-{{ $group['accent'] }}-600 px-2 py-0.5 text-[10px] font-semibold">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
-                                                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                                            d="M8 7V3m8 4V3M5 11h14M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
-                                                                    </svg>
-                                                                    <span class="row-lama">-</span> hari
-                                                                </span>
-                                                                <button type="button"
-                                                                    class="tgl-reset hidden text-[10px] text-gray-400 hover:text-{{ $group['accent'] }}-600 underline underline-offset-2">Semua
-                                                                    hari</button>
-                                                            </div>
-
-                                                            <div class="row-warn hidden rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[10px] text-amber-700 text-center">
-                                                                Total hari UH ≠ lama dinas
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    @foreach ($simpleKomponen as $key => $label)
-                                                        @if ($key === 'peng_riil')
-                                                            @php
-                                                                // ==== Peng. Riil mendukung multi-entry ====
-                                                                // Disimpan sebagai JSON array di kolom pivot `peng_riil_detail`,
-                                                                // tiap entry: {mode, value, rate_id, tujuan, keterangan}.
-                                                                $pengRiilDetailRaw = $pivot->peng_riil_detail ?? null;
-                                                                $pengRiilEntries = [];
-                                                                if ($pengRiilDetailRaw) {
-                                                                    $decoded = is_string($pengRiilDetailRaw)
-                                                                        ? json_decode($pengRiilDetailRaw, true)
-                                                                        : $pengRiilDetailRaw;
-                                                                    if (is_array($decoded)) {
-                                                                        $pengRiilEntries = $decoded;
-                                                                    }
-                                                                }
-                                                                // Fallback: migrasikan data lama (single mode/value) jadi 1 entry
-                                                                if (empty($pengRiilEntries) && ($pivot->peng_riil ?? 0) > 0) {
-                                                                    $oldMode = $pivot->peng_riil_mode ?? 'manual';
-                                                                    $oldRateId = $pivot->peng_riil_rate_id ?? '';
-                                                                    $pengRiilEntries = [
-                                                                        [
-                                                                            'mode' => $oldMode,
-                                                                            'value' => (int) ($pivot->peng_riil ?? 0),
-                                                                            'rate_id' => $oldRateId,
-                                                                            'tujuan' => $pengRiilRateNameById[$oldRateId] ?? '',
-                                                                            'keterangan' => '',
-                                                                        ]
-                                                                    ];
-                                                                }
-                                                                $pengRiilTotal = collect($pengRiilEntries)->sum(fn($e) => (int) ($e['value'] ?? 0));
-                                                                $pengRiilCount = count($pengRiilEntries);
-                                                            @endphp
-                                                            <td class="px-2 py-2 {{ in_array('peng_riil', $selectedKomponen) ? '' : 'hidden' }}"
-                                                                data-col="peng_riil">
-                                                                <button type="button"
-                                                                    class="peng-riil-open-btn w-full border border-dashed border-gray-300 rounded-md px-2 py-1.5 text-[11px] text-gray-600 hover:border-{{ $group['accent'] }}-400 hover:text-{{ $group['accent'] }}-600 transition text-center"
-                                                                    data-pegawai-id="{{ $p->id }}" data-nama="{{ $nama }}"
-                                                                    data-detail='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
-                                                                    <span class="peng-riil-display font-semibold text-gray-700 block">
-                                                                        {{ $pengRiilTotal ? 'Rp ' . number_format($pengRiilTotal) : 'Isi Peng. Riil' }}
-                                                                    </span>
-                                                                    <span class="peng-riil-sub block text-[9px] text-gray-400">
-                                                                        @if ($pengRiilCount > 1)
-                                                                            {{ $pengRiilCount }} item
-                                                                        @elseif ($pengRiilCount === 1)
-                                                                            {{ $pengRiilEntries[0]['mode'] === 'sbm' ? 'SBM' : 'Manual' }}
-                                                                        @endif
-                                                                    </span>
-                                                                </button>
-
-                                                                <input type="hidden" class="col-peng_riil" name="peng_riil[{{ $p->id }}]"
-                                                                    data-group="{{ $group['key'] }}" value="{{ $pengRiilTotal }}">
-                                                                <input type="hidden" class="peng-riil-detail-field"
-                                                                    name="peng_riil_detail[{{ $p->id }}]"
-                                                                    value='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
-                                                            </td>
-                                                        @else
-                                                            <td class="px-2 py-2 {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
-                                                                data-col="{{ $key }}">
-                                                                <input type="text" inputmode="numeric" name="{{ $key }}[{{ $p->id }}]"
-                                                                    placeholder="0"
-                                                                    class="rupiah-input col-{{ $key }} w-full border border-gray-200 rounded-md px-2 py-1.5 text-center text-xs focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
-                                                                    data-group="{{ $group['key'] }}"
-                                                                    value="{{ $cleanNum($pivot->{$key} ?? null) }}">
-                                                            </td>
-                                                        @endif
-                                                    @endforeach
-
-                                                    <td class="px-2 py-2 {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
-                                                        data-col="lumpsum">
-                                                        <div class="space-y-1">
-                                                            <div class="flex items-center justify-between gap-1 text-[9px]">
-                                                                <span class="uh-mode-label text-gray-400">Otomatis dari tanggal</span>
-                                                                <button type="button"
-                                                                    class="uh-auto-btn hidden text-{{ $group['accent'] }}-600 hover:underline">↺
-                                                                    Otomatis</button>
-                                                            </div>
-                                                            @foreach ($uhFieldMap as $uhKey => $f)
-                                                                <div class="{{ in_array($uhKey, $selectedUh) ? '' : 'hidden' }}"
-                                                                    data-uh="{{ $uhKey }}">
-                                                                    <div class="text-[9px] text-gray-400 leading-tight">{{ $f['label'] }}
-                                                                    </div>
-                                                                    <div class="flex items-center gap-1">
-                                                                        <input type="text" inputmode="numeric"
-                                                                            name="{{ $f['hari'] }}[{{ $p->id }}]" placeholder="hr"
-                                                                            class="hari-input col-{{ $f['hari'] }} w-9 flex-shrink-0 border border-gray-200 rounded-md px-1 py-1.5 text-center text-[11px] focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
-                                                                            data-group="{{ $group['key'] }}"
-                                                                            value="{{ $pivot->{$f['hari']} ?? '' }}">
-                                                                        <span class="text-[10px] text-gray-300 flex-shrink-0">x</span>
-                                                                        <input type="text" inputmode="numeric" readonly
-                                                                            name="{{ $f['rate'] }}[{{ $p->id }}]" placeholder="0"
-                                                                            class="rupiah-input col-{{ $f['rate'] }} w-full border border-gray-200 bg-gray-50 rounded-md px-1.5 py-1.5 text-center text-[11px] text-gray-500 cursor-not-allowed outline-none"
-                                                                            data-group="{{ $group['key'] }}"
-                                                                            title="Dipatok dari SBM sesuai tujuan agenda"
-                                                                            value="{{ $uhRates[$uhKey] }}">
-                                                                    </div>
-                                                                </div>
-                                                            @endforeach
-                                                            <div
-                                                                class="text-[10px] text-gray-500 text-center pt-0.5 border-t border-gray-100">
-                                                                Total: <span class="row-lumpsum-total font-semibold">Rp
-                                                                    {{ number_format($lumpsumAwal) }}</span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="100%" class="cell-empty px-4 py-6 text-center text-gray-400">
-                                                        Belum ada peserta di kategori ini. Kembali ke halaman "Buat Agenda" untuk
-                                                        menambahkan.
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                        @if ($group['list']->isNotEmpty())
-                                            <tfoot>
-                                                <tr class="bg-gray-50 border-t border-gray-200 font-semibold text-gray-700 text-xs">
-                                                    <td class="px-3 py-2.5">Subtotal</td>
-                                                    <td data-col="tanggal"></td>
-                                                    @foreach ($simpleKomponen as $key => $label)
-                                                        <td class="px-2 py-2.5 text-center total-{{ $key }} {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
-                                                            data-group="{{ $group['key'] }}" data-col="{{ $key }}">Rp 0</td>
-                                                    @endforeach
-                                                    <td class="px-2 py-2.5 text-center total-lumpsum {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
-                                                        data-group="{{ $group['key'] }}" data-col="lumpsum">Rp 0</td>
-                                                </tr>
-                                            </tfoot>
-                                        @endif
-                                    </table>
+                    <div class="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden mb-6 mt-6">
+                        {{-- Header grup --}}
+                        <div
+                            class="px-4 sm:px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-{{ $group['accent'] }}-50/60">
+                            <div class="flex items-center gap-2.5">
+                                <span
+                                    class="flex items-center justify-center h-7 w-7 rounded-full bg-{{ $group['accent'] }}-100 text-{{ $group['accent'] }}-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <h3 class="font-semibold text-gray-800 leading-tight">{{ $group['label'] }}</h3>
+                                    <span class="text-xs text-gray-400">{{ $group['list']->count() }} orang</span>
                                 </div>
                             </div>
+                            {{-- Petunjuk geser: hanya di HP/tablet --}}
+                            <span class="lg:hidden text-[11px] text-gray-400">Geser tabel ke samping →</span>
+                        </div>
+
+                        {{-- Pembungkus scroll horizontal (HP/tablet). Di desktop tidak ada efek. --}}
+                        <div class="peserta-scroll overflow-x-auto">
+                            <table class="w-full table-auto text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500">
+                                        <th class="px-3 py-2.5 text-left font-medium">Nama</th>
+                                        <th class="px-2 py-2.5 text-center font-medium" data-col="tanggal">Tanggal Dinas
+                                        </th>
+                                        @foreach ($simpleKomponen as $key => $label)
+                                            <th class="px-2 py-2.5 text-center font-medium {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
+                                                data-col="{{ $key }}">
+                                                {{ $label }}
+                                                @if ($key === 'peng_riil')
+                                                    <div class="text-[9px] font-normal normal-case text-gray-400">SBM / Manual</div>
+                                                @endif
+                                            </th>
+                                        @endforeach
+                                        <th class="px-2 py-2.5 text-center font-medium {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
+                                            data-col="lumpsum">Uang Harian (Lumpsum)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @forelse ($group['list'] as $p)
+                                        @php
+                                            $pivot = $p->pivot;
+                                            $nama = $p->nama_gelar ?? $p->nama;
+                                            $lumpsumAwal = 0;
+                                            foreach ($uhFieldMap as $f) {
+                                                $lumpsumAwal += ($pivot->{$f['hari']} ?? 0) * ($pivot->{$f['rate']} ?? 0);
+                                            }
+
+                                            // Tanggal efektif peserta: kolom pivot kalau diisi, kalau tidak ikut agenda
+                                            $tglMulaiPeserta = old(
+                                                'tanggal_mulai.' . $p->id,
+                                                ($pivot->tanggal_mulai ?? null)
+                                                ? \Carbon\Carbon::parse($pivot->tanggal_mulai)->format('Y-m-d')
+                                                : $agendaMulai
+                                            );
+                                            $tglSelesaiPeserta = old(
+                                                'tanggal_selesai.' . $p->id,
+                                                ($pivot->tanggal_selesai ?? null)
+                                                ? \Carbon\Carbon::parse($pivot->tanggal_selesai)->format('Y-m-d')
+                                                : $agendaSelesai
+                                            );
+                                        @endphp
+                                        <tr class="peserta-row hover:bg-gray-50/60 transition" data-group="{{ $group['key'] }}">
+                                            <td class="px-3 py-2 overflow-hidden">
+                                                <span class="font-medium text-gray-800 text-sm truncate block"
+                                                    title="{{ $nama }}">{{ $nama }}</span>
+                                            </td>
+
+                                            {{-- Tanggal dinas per peserta --}}
+                                            <td class="px-2 py-2" data-col="tanggal">
+                                                <div
+                                                    class="tgl-card rounded-xl border border-gray-200 bg-white p-2 space-y-2 shadow-sm">
+                                                    <div class="grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
+                                                        <label class="block min-w-0">
+                                                            <span
+                                                                class="block text-[9px] uppercase tracking-wide text-gray-400 mb-0.5">Mulai</span>
+                                                            <input type="date" name="tanggal_mulai[{{ $p->id }}]"
+                                                                class="tgl-mulai" aria-label="Tanggal mulai dinas {{ $nama }}"
+                                                                min="{{ $agendaMulai }}" max="{{ $agendaSelesai }}"
+                                                                value="{{ $tglMulaiPeserta }}">
+                                                        </label>
+                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                            class="h-3.5 w-3.5 mb-2 text-gray-300 flex-shrink-0" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M5 12h14M13 6l6 6-6 6" />
+                                                        </svg>
+                                                        <label class="block min-w-0">
+                                                            <span
+                                                                class="block text-[9px] uppercase tracking-wide text-gray-400 mb-0.5">Selesai</span>
+                                                            <input type="date" name="tanggal_selesai[{{ $p->id }}]"
+                                                                class="tgl-selesai"
+                                                                aria-label="Tanggal selesai dinas {{ $nama }}"
+                                                                min="{{ $tglMulaiPeserta }}" max="{{ $agendaSelesai }}"
+                                                                value="{{ $tglSelesaiPeserta }}">
+                                                        </label>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between gap-2">
+                                                        <span
+                                                            class="inline-flex items-center gap-1 rounded-full bg-{{ $group['accent'] }}-100 text-{{ $group['accent'] }}-600 px-2 py-0.5 text-[10px] font-semibold">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    d="M8 7V3m8 4V3M5 11h14M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                                                            </svg>
+                                                            <span class="row-lama">-</span> hari
+                                                        </span>
+                                                        <button type="button"
+                                                            class="tgl-reset hidden text-[10px] text-gray-400 hover:text-{{ $group['accent'] }}-600 underline underline-offset-2">Semua
+                                                            hari</button>
+                                                    </div>
+
+                                                    <div
+                                                        class="row-warn hidden rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[10px] text-amber-700 text-center">
+                                                        Total hari UH ≠ lama dinas
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            @foreach ($simpleKomponen as $key => $label)
+                                                @if ($key === 'peng_riil')
+                                                    @php
+                                                        // ==== Peng. Riil mendukung multi-entry ====
+                                                        // Disimpan sebagai JSON array di kolom pivot `peng_riil_detail`,
+                                                        // tiap entry: {mode, value, rate_id, tujuan, keterangan}.
+                                                        $pengRiilDetailRaw = $pivot->peng_riil_detail ?? null;
+                                                        $pengRiilEntries = [];
+                                                        if ($pengRiilDetailRaw) {
+                                                            $decoded = is_string($pengRiilDetailRaw)
+                                                                ? json_decode($pengRiilDetailRaw, true)
+                                                                : $pengRiilDetailRaw;
+                                                            if (is_array($decoded)) {
+                                                                $pengRiilEntries = $decoded;
+                                                            }
+                                                        }
+                                                        // Fallback: migrasikan data lama (single mode/value) jadi 1 entry
+                                                        if (empty($pengRiilEntries) && ($pivot->peng_riil ?? 0) > 0) {
+                                                            $oldMode = $pivot->peng_riil_mode ?? 'manual';
+                                                            $oldRateId = $pivot->peng_riil_rate_id ?? '';
+                                                            $pengRiilEntries = [
+                                                                [
+                                                                    'mode' => $oldMode,
+                                                                    'value' => (int) ($pivot->peng_riil ?? 0),
+                                                                    'rate_id' => $oldRateId,
+                                                                    'tujuan' => $pengRiilRateNameById[$oldRateId] ?? '',
+                                                                    'keterangan' => '',
+                                                                ]
+                                                            ];
+                                                        }
+                                                        $pengRiilTotal = collect($pengRiilEntries)->sum(fn($e) => (int) ($e['value'] ?? 0));
+                                                        $pengRiilCount = count($pengRiilEntries);
+                                                    @endphp
+                                                    <td class="px-2 py-2 {{ in_array('peng_riil', $selectedKomponen) ? '' : 'hidden' }}"
+                                                        data-col="peng_riil">
+                                                        <button type="button"
+                                                            class="peng-riil-open-btn w-full border border-dashed border-gray-300 rounded-md px-2 py-1.5 text-[11px] text-gray-600 hover:border-{{ $group['accent'] }}-400 hover:text-{{ $group['accent'] }}-600 transition text-center"
+                                                            data-pegawai-id="{{ $p->id }}" data-nama="{{ $nama }}"
+                                                            data-detail='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
+                                                            <span class="peng-riil-display font-semibold text-gray-700 block">
+                                                                {{ $pengRiilTotal ? 'Rp ' . number_format($pengRiilTotal) : 'Isi Peng. Riil' }}
+                                                            </span>
+                                                            <span class="peng-riil-sub block text-[9px] text-gray-400">
+                                                                @if ($pengRiilCount > 1)
+                                                                    {{ $pengRiilCount }} item
+                                                                @elseif ($pengRiilCount === 1)
+                                                                    {{ $pengRiilEntries[0]['mode'] === 'sbm' ? 'SBM' : 'Manual' }}
+                                                                @endif
+                                                            </span>
+                                                        </button>
+
+                                                        <input type="hidden" class="col-peng_riil" name="peng_riil[{{ $p->id }}]"
+                                                            data-group="{{ $group['key'] }}" value="{{ $pengRiilTotal }}">
+                                                        <input type="hidden" class="peng-riil-detail-field"
+                                                            name="peng_riil_detail[{{ $p->id }}]"
+                                                            value='{{ json_encode($pengRiilEntries, JSON_UNESCAPED_UNICODE) }}'>
+                                                    </td>
+                                                @else
+                                                    <td class="px-2 py-2 {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
+                                                        data-col="{{ $key }}">
+                                                        <input type="text" inputmode="numeric" name="{{ $key }}[{{ $p->id }}]"
+                                                            placeholder="0"
+                                                            class="rupiah-input col-{{ $key }} w-full border border-gray-200 rounded-md px-2 py-1.5 text-center text-xs focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
+                                                            data-group="{{ $group['key'] }}"
+                                                            value="{{ $cleanNum($pivot->{$key} ?? null) }}">
+                                                    </td>
+                                                @endif
+                                            @endforeach
+
+                                            <td class="px-2 py-2 {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
+                                                data-col="lumpsum">
+                                                <div class="space-y-1">
+                                                    <div class="flex items-center justify-between gap-1 text-[9px]">
+                                                        <span class="uh-mode-label text-gray-400">Otomatis dari tanggal</span>
+                                                        <button type="button"
+                                                            class="uh-auto-btn hidden text-{{ $group['accent'] }}-600 hover:underline">↺
+                                                            Otomatis</button>
+                                                    </div>
+                                                    @foreach ($uhFieldMap as $uhKey => $f)
+                                                        <div class="{{ in_array($uhKey, $selectedUh) ? '' : 'hidden' }}"
+                                                            data-uh="{{ $uhKey }}">
+                                                            <div class="text-[9px] text-gray-400 leading-tight">{{ $f['label'] }}
+                                                            </div>
+                                                            <div class="flex items-center gap-1">
+                                                                <input type="text" inputmode="numeric"
+                                                                    name="{{ $f['hari'] }}[{{ $p->id }}]" placeholder="hr"
+                                                                    class="hari-input col-{{ $f['hari'] }} w-9 flex-shrink-0 border border-gray-200 rounded-md px-1 py-1.5 text-center text-[11px] focus:border-{{ $group['accent'] }}-400 focus:ring-1 focus:ring-{{ $group['accent'] }}-400 outline-none transition"
+                                                                    data-group="{{ $group['key'] }}"
+                                                                    value="{{ $pivot->{$f['hari']} ?? '' }}">
+                                                                <span class="text-[10px] text-gray-300 flex-shrink-0">x</span>
+                                                                <input type="text" inputmode="numeric" readonly
+                                                                    name="{{ $f['rate'] }}[{{ $p->id }}]" placeholder="0"
+                                                                    class="rupiah-input col-{{ $f['rate'] }} w-full border border-gray-200 bg-gray-50 rounded-md px-1.5 py-1.5 text-center text-[11px] text-gray-500 cursor-not-allowed outline-none"
+                                                                    data-group="{{ $group['key'] }}"
+                                                                    title="Dipatok dari SBM sesuai tujuan agenda"
+                                                                    value="{{ $uhRates[$uhKey] }}">
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                    <div
+                                                        class="text-[10px] text-gray-500 text-center pt-0.5 border-t border-gray-100">
+                                                        Total: <span class="row-lumpsum-total font-semibold">Rp
+                                                            {{ number_format($lumpsumAwal) }}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="100%" class="cell-empty px-4 py-6 text-center text-gray-400">
+                                                Belum ada peserta di kategori ini. Kembali ke halaman "Buat Agenda" untuk
+                                                menambahkan.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                                @if ($group['list']->isNotEmpty())
+                                    <tfoot>
+                                        <tr class="bg-gray-50 border-t border-gray-200 font-semibold text-gray-700 text-xs">
+                                            <td class="px-3 py-2.5">Subtotal</td>
+                                            <td data-col="tanggal"></td>
+                                            @foreach ($simpleKomponen as $key => $label)
+                                                <td class="px-2 py-2.5 text-center total-{{ $key }} {{ in_array($key, $selectedKomponen) ? '' : 'hidden' }}"
+                                                    data-group="{{ $group['key'] }}" data-col="{{ $key }}">Rp 0</td>
+                                            @endforeach
+                                            <td class="px-2 py-2.5 text-center total-lumpsum {{ in_array('lumpsum', $selectedKomponen) ? '' : 'hidden' }}"
+                                                data-group="{{ $group['key'] }}" data-col="lumpsum">Rp 0</td>
+                                        </tr>
+                                    </tfoot>
+                                @endif
+                            </table>
+                        </div>
+                    </div>
                 @endforeach
 
                 <div class="sticky bottom-4 flex justify-end">
@@ -497,7 +502,7 @@
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                        Simpan Peserta
+                        {{ empty($agenda->mak) ? 'Simpan & Lanjut ke Anggaran' : 'Simpan Peserta' }}
                     </button>
                 </div>
 

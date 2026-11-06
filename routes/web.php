@@ -35,14 +35,21 @@ Route::middleware('auth')->group(function () {
             Route::delete('/', 'destroy')->name('destroy');
         });
 
-    // Agenda: peserta & dokumen
+    // Agenda: peserta, anggaran & dokumen
+    // (prefix 'agendas/{agenda}' dan name 'agendas.' otomatis ditambahkan ke semua route di grup ini,
+    //  jadi path/nama di dalam grup JANGAN mengulang 'agendas')
     Route::prefix('agendas/{agenda}')
         ->name('agendas.')
         ->group(function () {
 
             Route::controller(AgendaController::class)->group(function () {
+                // Step 2: rincian biaya
                 Route::get('peserta', 'pesertaForm')->name('peserta');
                 Route::post('peserta', 'pesertaStore')->name('peserta.store');
+
+                // Step 3: anggaran (MAK) & nomor memo
+                Route::get('anggaran', 'anggaranForm')->name('anggaran');
+                Route::post('anggaran', 'anggaranStore')->name('anggaran.store');
 
                 Route::get('dokumen', 'dokumenForm')->name('dokumen');
                 Route::post('dokumen', 'dokumenStore')->name('dokumen.store');

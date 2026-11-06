@@ -27,6 +27,7 @@ class Agenda extends Model
         // Komponen biaya & jenis uang harian yang dipilih utk agenda ini (step "Buat Agenda")
         'komponen_biaya' => 'array',
         'jenis_uang_harian' => 'array',
+        'anggaran_at' => 'datetime',
     ];
 
     public function pegawai()

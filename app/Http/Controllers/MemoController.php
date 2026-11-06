@@ -10,6 +10,9 @@ use App\Services\NomorMemoService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Services\MakSisaService;
+
+
 
 class MemoController extends Controller
 {
@@ -154,8 +157,7 @@ class MemoController extends Controller
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $nomorBerikutnya = NomorMemoService::dataBerikutnya();
         $makOptions = MakOption::orderBy('mak')->get();
-        $makOutstanding = $this->makOutstanding();
-
+        $makOutstanding = MakSisaService::outstanding();
         return view('memo.create', compact('pegawaiList', 'nomorBerikutnya', 'makOptions', 'makOutstanding'));
     }
 
@@ -179,8 +181,7 @@ class MemoController extends Controller
     {
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $makOptions = MakOption::orderBy('mak')->get();
-        $makOutstanding = $this->makOutstanding($memo->id); // nominal memo ini sendiri tidak ikut dihitung
-
+        $makOutstanding = MakSisaService::outstanding($memo->id); // nominal memo ini sendiri tidak ikut dihitung
         return view('memo.edit', compact('memo', 'pegawaiList', 'makOptions', 'makOutstanding'));
     }
 
@@ -318,43 +319,5 @@ class MemoController extends Controller
      *
      * @return array<string,int> [nomor MAK => total nominal]
      */
-    private function makOutstanding(?int $kecualiEntryId = null): array
-    {
-        $cut = MakOption::query()->max('per_tanggal');
-        if (!$cut) {
-            return [];
-        }
 
-        $entry = MemoEntry::query()
-            ->whereDate('tanggal_memo', '>', $cut)
-            ->when($kecualiEntryId, fn($q) => $q->where('id', '!=', $kecualiEntryId))
-            ->selectRaw('mak, SUM(nominal) as total')
-            ->groupBy('mak')
-            ->pluck('total', 'mak');
-
-        // biaya_asn / biaya_non_asn BUKAN kolom tabel (dihitung di model Agenda),
-        // jadi dijumlahkan lewat model, bukan lewat SQL.
-        try {
-            $agenda = Agenda::query()
-                ->whereDate('created_at', '>', $cut)
-                ->whereNotNull('mak')
-                ->get()
-                ->groupBy('mak')
-                ->map(fn($rows) => (int) $rows->sum(
-                    fn($a) => (float) ($a->biaya_asn ?? 0) + (float) ($a->biaya_non_asn ?? 0)
-                ));
-        } catch (\Throwable $e) {
-            report($e);          // tercatat di log, halaman memo tetap jalan
-            $agenda = collect();
-        }
-
-        $hasil = [];
-        foreach ([$entry, $agenda] as $sumber) {
-            foreach ($sumber as $mak => $total) {
-                $hasil[$mak] = ($hasil[$mak] ?? 0) + (int) $total;
-            }
-        }
-
-        return $hasil;
-    }
 }
