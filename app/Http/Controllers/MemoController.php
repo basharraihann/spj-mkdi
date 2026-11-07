@@ -148,6 +148,7 @@ class MemoController extends Controller
 
         return view('memo.index', compact('groups', 'nomorBerikutnya', 'picOptions'));
     }
+
     /**
      * Endpoint AJAX buat tombol "Ambil Nomor Memo".
      */
@@ -174,6 +175,7 @@ class MemoController extends Controller
 
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
 
+        // status_anggaran tidak diisi di sini: default kolomnya 'outstanding'.
         MemoEntry::create($validated);
 
         return redirect()->route('memo.index')
@@ -191,6 +193,7 @@ class MemoController extends Controller
             403,
             'Memo sudah SAKTI/SP2D/batal, tidak bisa diubah.'
         );
+
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $makOptions = MakOption::orderBy('mak')->get();
         $makOutstanding = MakSisaService::outstanding($memo->id); // nominal memo ini sendiri tidak ikut dihitung
@@ -204,6 +207,7 @@ class MemoController extends Controller
             403,
             'Memo sudah SAKTI/SP2D/batal, tidak bisa diubah.'
         );
+
         $validated = $request->validate($this->rules());
 
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
@@ -220,12 +224,24 @@ class MemoController extends Controller
      * - "agenda-{agenda_id}-pns" / "agenda-{agenda_id}-non_pns" -> hapus agenda
      *   (memo PNS dan Non PNS yang nempel ikut hilang)
      * - "entry-{memo_entry_id}" -> hapus baris di memo_entries
+     *
+     * Memo yang sudah SAKTI/SP2D tidak boleh dihapus (uangnya sudah tercatat di SAKTI);
+     * ubah statusnya jadi Batal dulu lewat dropdown status.
      */
     public function destroy(string $id)
     {
         if (str_starts_with($id, 'agenda-')) {
             $parts = explode('-', $id, 3);
             $agenda = Agenda::findOrFail($parts[1] ?? null);
+
+            $terkunci = (filled($agenda->nomor_memo_pns) && in_array($agenda->status_pns, ['sakti', 'sp2d'], true))
+                || (filled($agenda->nomor_memo_non_pns) && in_array($agenda->status_non_pns, ['sakti', 'sp2d'], true));
+
+            if ($terkunci) {
+                return redirect()->route('memo.index')
+                    ->with('error', 'Agenda tidak bisa dihapus karena memo sudah SAKTI/SP2D. '
+                        . 'Ubah status memo menjadi Batal terlebih dahulu jika memang dibatalkan.');
+            }
 
             // Agenda dan nomor memonya satu kesatuan: hapus agendanya,
             // memo PNS dan Non-PNS yang nempel ikut hilang.
@@ -239,6 +255,13 @@ class MemoController extends Controller
             $entryId = substr($id, strlen('entry-'));
 
             $entry = MemoEntry::findOrFail($entryId);
+
+            if (!in_array($entry->status_anggaran ?? 'outstanding', ['outstanding', 'batal'], true)) {
+                return redirect()->route('memo.index')
+                    ->with('error', 'Memo tidak bisa dihapus karena sudah SAKTI/SP2D. '
+                        . 'Ubah status memo menjadi Batal terlebih dahulu jika memang dibatalkan.');
+            }
+
             $entry->delete();
 
             return redirect()->route('memo.index')
@@ -327,14 +350,4 @@ class MemoController extends Controller
             'keterangan' => 'nullable|string',
         ];
     }
-
-    /**
-     * Total nominal per MAK dari memo yang dibuat SETELAH tanggal laporan FA (mak_options.per_tanggal).
-     * Memo sebelum tanggal itu dianggap sudah tercermin di realisasi FA, jadi tidak dihitung lagi.
-     * Sumber: memo mandiri (memo_entries.nominal) dan agenda perdin (biaya_asn + biaya_non_asn).
-     * $kecualiEntryId = memo yang sedang diedit, supaya nominalnya sendiri tidak ikut mengurangi sisa.
-     *
-     * @return array<string,int> [nomor MAK => total nominal]
-     */
-
 }

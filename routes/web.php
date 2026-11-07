@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\MemoStatusController;
+use App\Http\Controllers\MonitoringMemoController;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -96,6 +97,12 @@ Route::middleware('auth')->group(function () {
         ->middleware('can:kelola-anggaran')
         ->where('memo', 'entry-\d+|agenda-\d+-(?:pns|non_pns)')
         ->name('memo.status');
+
+    // Monitoring memo & anggaran (lihat: semua user login; aksi massal: Gate kelola-anggaran)
+    Route::get('monitoring-memo', [MonitoringMemoController::class, 'index'])->name('monitoring.index');
+    Route::post('monitoring-memo/status-massal', [MonitoringMemoController::class, 'statusMassal'])
+        ->middleware('can:kelola-anggaran')
+        ->name('monitoring.status-massal');
 
     // Rekap nominatif (dari agenda + nominatif mandiri tanpa agenda)
     Route::prefix('nominatif')

@@ -245,18 +245,30 @@ class AgendaController extends Controller
 
         $this->ensureNomorStKaroFilled($pegawaiIds->all(), $validated['nomor_st_karo'] ?? null);
 
+        // Dihitung sebelum update supaya penolakan di bawah tidak meninggalkan data setengah tersimpan.
+        $currentPegawaiIds = $agenda->pegawai()->pluck('pegawai.id');
+        $toDetach = $currentPegawaiIds->diff($pegawaiIds);
+        $toAttach = $pegawaiIds->diff($currentPegawaiIds);
+
+        // Menambah/mengurangi peserta mengubah total biaya memo. Kalau memo sudah
+        // SAKTI/SP2D, angkanya sudah tercatat di SAKTI, jadi susunan peserta dikunci.
+        if ($this->adaMemoTerkunci($agenda) && ($toDetach->isNotEmpty() || $toAttach->isNotEmpty())) {
+            return redirect()->route('agendas.show', $agenda)
+                ->with('warning', 'Peserta tidak bisa ditambah atau dikurangi karena memo sudah SAKTI/SP2D. '
+                    . 'Mundurkan status memo dulu jika perlu koreksi.');
+        }
+
         $agenda->update($validated);
 
         // Peserta lama yg sudah ter-attach TIDAK disentuh pivot-nya di sini (biar
         // rincian biaya yg udah diisi gak ke-reset) — cuma yg beneran nambah/kurang
         // yg diproses. Ini sengaja gak pakai sync() polos, karena sync() akan nulis
         // ulang kolom pivot yg gak disebutkan jadi default/null.
-        $currentPegawaiIds = $agenda->pegawai()->pluck('pegawai.id');
-        $toDetach = $currentPegawaiIds->diff($pegawaiIds);
-        $toAttach = $pegawaiIds->diff($currentPegawaiIds);
-
         if ($toDetach->isNotEmpty()) {
             $agenda->pegawai()->detach($toDetach);
+
+            // Peserta berkurang -> total biaya berubah -> segarkan snapshot memo yang masih outstanding.
+            $this->segarkanSnapshotMemo($agenda);
         }
 
         foreach ($toAttach as $pegawaiId) {
@@ -304,6 +316,14 @@ class AgendaController extends Controller
 
     public function pesertaStore(Request $request, Agenda $agenda)
     {
+        // Rincian biaya menentukan nominal memo. Kalau salah satu memo sudah SAKTI/SP2D,
+        // angkanya sudah tercatat di SAKTI, jadi rincian tidak boleh berubah.
+        if ($this->adaMemoTerkunci($agenda)) {
+            return redirect()->route('agendas.show', $agenda)
+                ->with('warning', 'Rincian biaya tidak bisa diubah karena memo sudah SAKTI/SP2D. '
+                    . 'Mundurkan status memo dulu jika perlu koreksi.');
+        }
+
         // Rentang surat tugas (batas tanggal peserta)
         $min = $agenda->tanggal_mulai->toDateString();
         $max = $agenda->tanggal_selesai->toDateString();
@@ -488,6 +508,10 @@ class AgendaController extends Controller
 
         $agenda->pegawai()->sync($syncData);
 
+        // Rincian baru saja berubah: perbarui snapshot nominal memo yang masih outstanding
+        // (yang sudah punya nomor memo). Kalau tidak, nominal di daftar memo tertinggal angka lama.
+        $this->segarkanSnapshotMemo($agenda);
+
         // Belum pilih anggaran -> lanjut ke step 3
         if (empty($agenda->mak)) {
             return redirect()->route('agendas.anggaran', $agenda)
@@ -554,18 +578,63 @@ class AgendaController extends Controller
         // Nomor Memo harus unik antar agenda; agenda ini sendiri dikecualikan.
         $this->ensureNomorMemoUnique($adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null, $agenda->id);
 
+        // ---- Kunci: memo yang sudah SAKTI / SP2D tidak boleh ganti MAK atau nomor memo ----
+        // (uangnya sudah tercatat di SAKTI; kalau perlu koreksi, mundurkan status memo dulu)
+        $terkunciPns = filled($agenda->nomor_memo_pns)
+            && in_array($agenda->status_pns, ['sakti', 'sp2d'], true);
+        $terkunciNonPns = filled($agenda->nomor_memo_non_pns)
+            && in_array($agenda->status_non_pns, ['sakti', 'sp2d'], true);
+        $adaTerkunci = $terkunciPns || $terkunciNonPns;
+
+        if ($adaTerkunci) {
+            $berubah = $agenda->mak !== ($adminData['mak'] ?? null)
+                || ($terkunciPns && $agenda->nomor_memo_pns !== ($adminData['nomor_memo_pns'] ?? null))
+                || ($terkunciNonPns && $agenda->nomor_memo_non_pns !== ($adminData['nomor_memo_non_pns'] ?? null));
+
+            if ($berubah) {
+                throw ValidationException::withMessages([
+                    'mak' => 'MAK dan nomor memo tidak bisa diubah karena memo sudah SAKTI/SP2D. '
+                        . 'Mundurkan status memo dulu jika perlu koreksi.',
+                ]);
+            }
+        }
+
         // Hard block kalau total biaya > sisa MAK (MAK manual di luar master tidak bisa dicek).
-        if ($msg = MakSisaService::cek($agenda, $adminData['mak'])) {
+        // Dilewati kalau sudah ada memo SAKTI/SP2D: biayanya sudah masuk realisasi master MAK,
+        // jadi membandingkannya lagi dengan sisa akan menghitung dua kali.
+        if (!$adaTerkunci && ($msg = MakSisaService::cek($agenda, $adminData['mak']))) {
             throw ValidationException::withMessages(['mak' => $msg]);
         }
 
         // anggaran_at hanya diisi kalau MAK baru / berubah, supaya simpan ulang
         // tidak menggeser agenda lama ke "setelah tanggal laporan FA".
+        // (Tidak lagi dipakai MakSisaService, tapi dibiarkan supaya data lama tetap utuh.)
         if ($agenda->mak !== $adminData['mak']) {
             $adminData['anggaran_at'] = now();
         }
 
-        $agenda->update(array_merge($picData, $adminData));
+        // ---- Snapshot nominal memo: angka tetap saat memo disimpan ----
+        // Hanya memo yang masih outstanding yang di-refresh. Memo SAKTI/SP2D dibiarkan,
+        // jadi angkanya tidak ikut bergeser kalau rincian biaya diedit belakangan.
+        $agenda->load('pegawai');
+        $snapshot = [];
+
+        $nomorPns = $adminData['nomor_memo_pns'] ?? null;
+        if (!filled($nomorPns)) {
+            $snapshot['nominal_memo_pns'] = null;
+        } elseif (!$terkunciPns) {
+            $snapshot['nominal_memo_pns'] = (int) $agenda->biaya_asn;
+        }
+
+        $nomorNonPns = $adminData['nomor_memo_non_pns'] ?? null;
+        if (!filled($nomorNonPns)) {
+            $snapshot['nominal_memo_non_pns'] = null;
+        } elseif (!$terkunciNonPns) {
+            $snapshot['nominal_memo_non_pns'] = (int) $agenda->biaya_non_asn;
+        }
+
+        // forceFill: kolom snapshot tidak ada di $fillable; semua isi sudah divalidasi di atas.
+        $agenda->forceFill(array_merge($picData, $adminData, $snapshot))->save();
 
         return redirect()->route('agendas.show', $agenda)
             ->with('success', 'Anggaran & nomor memo berhasil disimpan.');
@@ -669,6 +738,39 @@ class AgendaController extends Controller
 
     // generateSpd(), generateNominatif(), validateMemoStatus() DIPINDAH ke
     // AgendaPdfController — jangan ditambahin lagi di sini, biar gak dobel.
+
+    /**
+     * True kalau salah satu memo agenda (yang sudah bernomor) berstatus SAKTI atau SP2D.
+     * Memo seperti itu sudah tercatat di SAKTI, jadi nominal, MAK, nomor memo, susunan
+     * peserta, dan penghapusan agenda dikunci. Status batal TIDAK ikut mengunci.
+     */
+    private function adaMemoTerkunci(Agenda $agenda): bool
+    {
+        return (filled($agenda->nomor_memo_pns) && in_array($agenda->status_pns, ['sakti', 'sp2d'], true))
+            || (filled($agenda->nomor_memo_non_pns) && in_array($agenda->status_non_pns, ['sakti', 'sp2d'], true));
+    }
+
+    /**
+     * Perbarui snapshot nominal untuk memo yang masih outstanding dan sudah bernomor,
+     * dihitung dari rincian peserta saat ini. Memo SAKTI/SP2D/batal tidak disentuh.
+     */
+    private function segarkanSnapshotMemo(Agenda $agenda): void
+    {
+        $agenda->load('pegawai');
+        $snapshot = [];
+
+        if (filled($agenda->nomor_memo_pns) && ($agenda->status_pns ?? 'outstanding') === 'outstanding') {
+            $snapshot['nominal_memo_pns'] = (int) $agenda->biaya_asn;
+        }
+
+        if (filled($agenda->nomor_memo_non_pns) && ($agenda->status_non_pns ?? 'outstanding') === 'outstanding') {
+            $snapshot['nominal_memo_non_pns'] = (int) $agenda->biaya_non_asn;
+        }
+
+        if ($snapshot) {
+            $agenda->forceFill($snapshot)->save();
+        }
+    }
 
     /**
      * Pecah string MAK "7458.ABR.006.075.EE.524119" jadi 4 komponen:
@@ -853,6 +955,14 @@ class AgendaController extends Controller
 
     public function destroy(Agenda $agenda)
     {
+        // Memo yang sudah SAKTI/SP2D sudah tercatat di SAKTI, jadi agendanya tidak boleh dihapus.
+        // Kalau memang harus dibatalkan, ubah status memo jadi Batal (dengan alasan) dulu.
+        if ($this->adaMemoTerkunci($agenda)) {
+            return redirect()->route('agendas.show', $agenda)
+                ->with('warning', 'Agenda tidak bisa dihapus karena memo sudah SAKTI/SP2D. '
+                    . 'Ubah status memo menjadi Batal terlebih dahulu jika memang dibatalkan.');
+        }
+
         // Hapus dokumen fisik yang terkait biar tidak jadi file sampah
         foreach ($agenda->dokumenUploads as $dokumen) {
             Storage::disk('public')->delete($dokumen->file_path);
