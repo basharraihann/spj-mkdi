@@ -19,7 +19,7 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{-- Harus setelah Vite CSS supaya bisa menimpa. File CSS biasa, tanpa build. --}}
-    <link rel="stylesheet" href="{{ asset('css/spj-ui.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('css/spj-ui.css') }}?v=5">
 
     <!-- SweetAlert2 (dipakai untuk konfirmasi hapus yang seragam di semua halaman) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

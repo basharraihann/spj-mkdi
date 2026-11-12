@@ -1382,7 +1382,7 @@ html.spj-dlg-lock body {
 @media (min-width: 1280px) {
     .mm-head {
         display: grid;
-        grid-template-columns: minmax(15rem, .85fr) minmax(0, 2.15fr);
+        grid-template-columns: minmax(0, 1fr) 41rem;
         gap: 24px;
         padding: 0 21px;
         font-size: .6875rem;
@@ -1394,7 +1394,7 @@ html.spj-dlg-lock body {
 
     .mm-head-cols {
         display: grid;
-        grid-template-columns: 12rem minmax(0, 1fr) 7rem 8.5rem;
+        grid-template-columns: 10rem minmax(0, 1fr) 6.5rem 8rem;
         gap: 12px;
         padding: 0 15px;
     }
@@ -1428,7 +1428,7 @@ html.spj-dlg-lock body {
 
 @media (min-width: 1280px) {
     .mm-card {
-        grid-template-columns: minmax(15rem, .85fr) minmax(0, 2.15fr);
+        grid-template-columns: minmax(0, 1fr) 41rem;
         gap: 24px;
     }
 }
@@ -1503,7 +1503,7 @@ html.spj-dlg-lock body {
 
 @media (min-width: 1280px) {
     .mm-item {
-        grid-template-columns: 12rem minmax(0, 1fr) 7rem 8.5rem;
+        grid-template-columns: 10rem minmax(0, 1fr) 6.5rem 8rem;
         grid-template-areas: "no st nom ak";
         padding: 14px;
     }
@@ -1587,4 +1587,23 @@ a.mm-nomor:hover {
     background: #fff;
     border: 1px solid var(--ui-line);
     border-radius: 20px;
+}
+
+
+/* Filter desktop: lebar ringkas supaya semua (termasuk Reset) muat satu baris */
+@media (min-width: 1024px) {
+
+    .mm-filter-row select,
+    .mm-filter-row input[type="date"] {
+        width: 9rem;
+    }
+
+    .mm-filter-search input {
+        width: 14.5rem;
+    }
+
+    .mm-filter-row #memo-filter-reset {
+        padding-bottom: 10px;
+        white-space: nowrap;
+    }
 }
