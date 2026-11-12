@@ -121,7 +121,7 @@
         $bisaBuat = auth()->user()->can('buat-memo');
     @endphp
 
-    <div class="mm-wrap">
+    <div class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5">
 
         @if (session('error') || $errors->any())
             <div class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm space-y-1">
@@ -170,100 +170,90 @@
                 </a>
             </div>
 
-            {{-- Filter instan, tanpa reload. Di HP: kolom cari + tombol Filter (sisanya dilipat). --}}
-            <div class="mm-filter-row">
-                <div class="flex flex-col gap-1 mm-filter-search">
+            {{-- Filter instan, tanpa reload --}}
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
                     <label for="memo-filter-cari" class="text-xs font-semibold text-gray-600">Cari</label>
                     <input type="text" id="memo-filter-cari" autocomplete="off"
                         placeholder="Nomor memo, uraian, atau PIC..."
                         class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-64 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                 </div>
 
-                <button type="button" id="memo-filter-toggle" class="mm-filter-toggle" aria-expanded="false"
-                    aria-controls="memo-filter-extra">
-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18l-7 8v6l-4-2v-4L3 5z" />
-                    </svg>
-                    Filter
-                    <span id="memo-filter-badge" class="mm-filter-badge" hidden>0</span>
-                </button>
-
-                <div id="memo-filter-extra" class="mm-filter-extra">
-                    <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto">
-                        <label for="memo-filter-jenis" class="text-xs font-semibold text-gray-600">Jenis</label>
-                        <select id="memo-filter-jenis"
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                            <option value="semua" selected>Semua Jenis</option>
-                            <option value="perdin">Perjalanan Dinas</option>
-                            @foreach (\App\Models\MemoEntry::JENIS as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto">
-                        <label for="memo-filter-status" class="text-xs font-semibold text-gray-600">Status</label>
-                        <select id="memo-filter-status"
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-40 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                            <option value="">Semua Status</option>
-                            @foreach ($statusLabel as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="flex flex-col gap-1 w-full sm:w-auto">
-                        <label for="memo-filter-pic" class="text-xs font-semibold text-gray-600">PIC</label>
-                        <select id="memo-filter-pic"
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                            <option value="">Semua PIC</option>
-                            @foreach ($picOptions as $namaPic)
-                                <option value="{{ $namaPic }}">{{ $namaPic }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
-                        <label for="memo-filter-dari" class="text-xs font-semibold text-gray-600">Dari tanggal</label>
-                        <input type="date" id="memo-filter-dari"
-                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                    </div>
-
-                    <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
-                        <label for="memo-filter-sampai" class="text-xs font-semibold text-gray-600">Sampai tanggal</label>
-                        <input type="date" id="memo-filter-sampai"
-                            class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
-                    </div>
-
-                    <button type="button" id="memo-filter-reset"
-                        class="text-sm text-gray-500 hover:text-gray-700 transition px-1 py-2 cursor-pointer">
-                        Reset
-                    </button>
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="memo-filter-jenis" class="text-xs font-semibold text-gray-600">Jenis</label>
+                    <select id="memo-filter-jenis"
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        <option value="semua" selected>Semua Jenis</option>
+                        <option value="perdin">Perjalanan Dinas</option>
+                        @foreach (\App\Models\MemoEntry::JENIS as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
                 </div>
+
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="memo-filter-status" class="text-xs font-semibold text-gray-600">Status</label>
+                    <select id="memo-filter-status"
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-40 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        <option value="">Semua Status</option>
+                        @foreach ($statusLabel as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <label for="memo-filter-pic" class="text-xs font-semibold text-gray-600">PIC</label>
+                    <select id="memo-filter-pic"
+                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        <option value="">Semua PIC</option>
+                        @foreach ($picOptions as $namaPic)
+                            <option value="{{ $namaPic }}">{{ $namaPic }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
+                    <label for="memo-filter-dari" class="text-xs font-semibold text-gray-600">Dari tanggal</label>
+                    <input type="date" id="memo-filter-dari"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                </div>
+
+                <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
+                    <label for="memo-filter-sampai" class="text-xs font-semibold text-gray-600">Sampai tanggal</label>
+                    <input type="date" id="memo-filter-sampai"
+                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                </div>
+
+                <button type="button" id="memo-filter-reset"
+                    class="text-sm text-gray-500 hover:text-gray-700 transition px-1 py-2 cursor-pointer">
+                    Reset
+                </button>
             </div>
         </div>
 
         {{-- ============ DAFTAR: satu kartu per kegiatan ============ --}}
         <div class="space-y-3">
 
-            {{-- Judul 5 kolom (layar lebar, sejajar dengan isi kartu) --}}
-            <div class="mm-head" aria-hidden="true">
+            {{-- Judul kolom (hanya layar lebar, sejajar dengan isi kartu) --}}
+            <div
+                class="hidden xl:grid grid-cols-[minmax(0,1fr)_36rem] gap-6 px-5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                 <div>Kegiatan</div>
-                <div class="mm-head-cols">
-                    <div>Nomor Memo</div>
-                    <div>Progres &amp; Status</div>
-                    <div>Nominal</div>
-                    <div>Aksi</div>
+                <div class="grid grid-cols-[minmax(0,1fr)_8rem_9.5rem] gap-3 px-3">
+                    <div>Nomor Memo &amp; Status</div>
+                    <div class="text-right">Nominal</div>
+                    <div class="text-right">Aksi</div>
                 </div>
             </div>
 
             <div id="memo-list" class="space-y-3">
                 @forelse ($groups as $g)
-                    <article class="js-memo-item mm-card" data-search="{{ $g['search_blob'] }}"
-                        data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}" data-status="{{ $g['status_blob'] }}"
-                        data-tanggal="{{ $g['tanggal_iso'] }}">
+                    <article
+                        class="js-memo-item bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_36rem] xl:gap-6"
+                        data-search="{{ $g['search_blob'] }}" data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}"
+                        data-status="{{ $g['status_blob'] }}" data-tanggal="{{ $g['tanggal_iso'] }}">
 
-                        {{-- Kolom 1: Kegiatan --}}
+                        {{-- Info kegiatan --}}
                         <div class="flex gap-3 min-w-0">
                             <span
                                 class="js-memo-number inline-flex h-7 min-w-7 px-2 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-500 tabular-nums shrink-0">{{ $loop->iteration }}</span>
@@ -304,7 +294,7 @@
                                         </button>
                                     </form>
                                 @else
-                                    <p class="mm-note">
+                                    <p class="mt-3 text-[11px] text-gray-400">
                                         Tidak bisa dihapus karena sudah dikirim ke Keuangan, SAKTI, atau SP2D.
                                         Ajukan pengembalian atau gunakan status Batal.
                                     </p>
@@ -312,8 +302,8 @@
                             </div>
                         </div>
 
-                        {{-- Kolom 2-5: satu baris per nomor memo (PNS / Non PNS) --}}
-                        <div class="mm-items">
+                        {{-- Nomor memo per status (PNS / Non PNS) --}}
+                        <div class="space-y-2 min-w-0 xl:pt-0">
                             @foreach ($g['items'] as $memo)
                                 @php
                                     $st = $memo['status_anggaran'] ?? 'outstanding';
@@ -324,36 +314,41 @@
                                         : ($st === 'sp2d' ? ($memo['tgl_sp2d'] ?? null) : null);
                                     $opsi = $opsiManual($st, $tahap);
                                 @endphp
-                                <div class="mm-item">
+                                <div
+                                    class="rounded-xl bg-gray-50 border border-gray-200 p-3 flex flex-wrap items-center gap-x-3 gap-y-3 xl:grid xl:grid-cols-[minmax(0,1fr)_8rem_9.5rem]">
 
-                                    {{-- Kolom 2: Nomor memo --}}
-                                    <div class="mm-no">
-                                        @if ($memo['agenda_id'])
-                                            <a href="{{ route('agendas.show', $memo['agenda_id']) }}" class="mm-nomor">
-                                                {{ $memo['nomor_memo'] }}
-                                            </a>
-                                        @else
-                                            <span class="mm-nomor">{{ $memo['nomor_memo'] }}</span>
-                                        @endif
+                                    {{-- Nomor memo + status --}}
+                                    <div class="min-w-0 flex flex-col items-start gap-1.5">
+                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                            @if ($memo['agenda_id'])
+                                                <a href="{{ route('agendas.show', $memo['agenda_id']) }}"
+                                                    class="font-semibold text-xs text-gray-800 tabular-nums hover:text-blue-600 hover:underline break-all">
+                                                    {{ $memo['nomor_memo'] }}
+                                                </a>
+                                            @else
+                                                <span class="font-semibold text-xs text-gray-800 tabular-nums break-all">
+                                                    {{ $memo['nomor_memo'] }}
+                                                </span>
+                                            @endif
 
-                                        @if ($memo['status'])
-                                            <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusClass($memo['status']) }}">
-                                                {{ $memo['status'] }}
-                                            </span>
-                                        @endif
-                                    </div>
+                                            @if ($memo['status'])
+                                                <span
+                                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusClass($memo['status']) }}">
+                                                    {{ $memo['status'] }}
+                                                </span>
+                                            @endif
+                                        </div>
 
-                                    {{-- Kolom 3: Progres & status + aksi alur --}}
-                                    <div class="mm-st">
-                                        <div class="mm-row">
+                                        {{-- Status anggaran + progres 3 segmen + tahap alur --}}
+                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                             <span
                                                 class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusBadge($st) }}">
                                                 {{ $statusLabel[$st] ?? $st }}
                                             </span>
 
                                             @if ($idx !== null)
-                                                <span class="flex items-center gap-0.5" role="img"
+                                                <span class="flex items-center gap-0.5"
+                                                    role="img"
                                                     aria-label="Progres: {{ $statusLabel[$st] }}, tahap {{ $idx + 1 }} dari 3">
                                                     @foreach ([0, 1, 2] as $i)
                                                         <span
@@ -383,11 +378,10 @@
 
                                         {{-- Aksi alur: unit kerja --}}
                                         @if (!empty($memo['bisa_kirim']) || (!empty($memo['bisa_ajukan'])))
-                                            <div class="mm-actions">
+                                            <div class="flex flex-wrap gap-1.5">
                                                 @if (!empty($memo['bisa_kirim']))
                                                     <button type="button" class="js-aksi {{ $btnBiru }}"
                                                         data-url="{{ route('memo.kirim', $memo['id']) }}"
-                                                        data-title="Kirim ke Keuangan"
                                                         data-konfirmasi="Kirim memo {{ $memo['nomor_memo'] }} ke Keuangan? Setelah dikirim, memo tidak bisa diedit.">
                                                         Kirim ke Keuangan
                                                     </button>
@@ -395,7 +389,6 @@
                                                 @if (!empty($memo['bisa_ajukan']))
                                                     <button type="button" class="js-aksi {{ $btnAbu }}"
                                                         data-url="{{ route('memo.ajukan', $memo['id']) }}"
-                                                        data-title="Ajukan pengembalian"
                                                         data-prompt="alasan" data-prompt-wajib="1"
                                                         data-prompt-label="Alasan pengajuan pengembalian (wajib diisi):">
                                                         Ajukan pengembalian
@@ -411,19 +404,17 @@
                                                     || in_array($tahap, ['dikirim', 'lolos_spk', 'sakti', 'otp_ppk'], true);
                                             @endphp
                                             @if ($adaAksiKeuangan)
-                                                <div class="mm-actions">
+                                                <div class="flex flex-wrap gap-1.5">
                                                     @if (!empty($memo['pengajuan_id']))
                                                         <button type="button" class="js-aksi {{ $btnHijau }}"
                                                             data-url="{{ route('memo.pengajuan.putusan', $memo['pengajuan_id']) }}"
                                                             data-fields="{{ json_encode(['setuju' => 1]) }}"
-                                                            data-title="Setujui pengajuan" data-tone="success"
                                                             data-konfirmasi="Setujui pengajuan? Memo akan dikembalikan ke unit kerja{{ in_array($tahap, ['sakti', 'otp_ppk'], true) ? ' dan SAKTI dilepas' : '' }}.">
                                                             Setujui pengajuan
                                                         </button>
                                                         <button type="button" class="js-aksi {{ $btnMerah }}"
                                                             data-url="{{ route('memo.pengajuan.putusan', $memo['pengajuan_id']) }}"
                                                             data-fields="{{ json_encode(['setuju' => 0]) }}"
-                                                            data-title="Tolak pengajuan" data-tone="danger"
                                                             data-prompt="catatan" data-prompt-wajib="1"
                                                             data-prompt-label="Catatan penolakan pengajuan (wajib diisi):">
                                                             Tolak pengajuan
@@ -435,14 +426,12 @@
                                                         <button type="button" class="js-aksi {{ $btnHijau }}"
                                                             data-url="{{ route('memo.verifikasi', $memo['id']) }}"
                                                             data-fields="{{ json_encode(['gerbang' => $gerbang, 'lolos' => 1]) }}"
-                                                            data-title="Verifikasi {{ $gerbang }}" data-tone="success"
                                                             data-konfirmasi="Verifikasi {{ $gerbang }}: lengkap dan sesuai?">
                                                             {{ $gerbang }} lolos
                                                         </button>
                                                         <button type="button" class="js-aksi {{ $btnMerah }}"
                                                             data-url="{{ route('memo.verifikasi', $memo['id']) }}"
                                                             data-fields="{{ json_encode(['gerbang' => $gerbang, 'lolos' => 0]) }}"
-                                                            data-title="{{ $gerbang }} tidak lolos" data-tone="danger"
                                                             data-prompt="alasan" data-prompt-wajib="1"
                                                             data-prompt-label="Alasan tidak lolos {{ $gerbang }} (wajib diisi). Memo akan dikembalikan ke unit kerja:">
                                                             {{ $gerbang }} tidak lolos
@@ -452,7 +441,6 @@
                                                     @if ($tahap === 'lolos_spk')
                                                         <button type="button" class="js-aksi {{ $btnBiru }}"
                                                             data-url="{{ route('memo.input-sakti', $memo['id']) }}"
-                                                            data-title="Input SAKTI"
                                                             data-konfirmasi="Catat memo {{ $memo['nomor_memo'] }} sudah diinput di SAKTI?">
                                                             Input SAKTI
                                                         </button>
@@ -461,7 +449,6 @@
                                                     @if ($tahap === 'otp_ppk')
                                                         <button type="button" class="js-aksi {{ $btnBiru }}"
                                                             data-url="{{ route('memo.selesai-otp', $memo['id']) }}"
-                                                            data-title="Selesai OTP"
                                                             data-konfirmasi="OTP PPK selesai? Setelah ini memo tidak bisa dikembalikan lagi.">
                                                             Selesai OTP
                                                         </button>
@@ -499,16 +486,17 @@
                                         @endcan
                                     </div>
 
-                                    {{-- Kolom 4: Nominal --}}
-                                    <div class="mm-nom {{ $st === 'batal' ? 'is-batal' : '' }}">
+                                    {{-- Nominal --}}
+                                    <span
+                                        class="text-xs font-medium text-gray-700 text-right tabular-nums whitespace-nowrap ml-auto xl:ml-0 {{ $st === 'batal' ? 'line-through text-gray-400' : '' }}">
                                         Rp {{ number_format($memo['nominal'] ?? 0, 0, ',', '.') }}
-                                    </div>
+                                    </span>
 
-                                    {{-- Kolom 5: Aksi (PDF / Edit) --}}
-                                    <div class="mm-ak">
+                                    {{-- PDF / Edit --}}
+                                    <div class="w-full sm:w-auto xl:w-full flex items-center gap-1.5 xl:justify-end">
                                         <a href="{{ $memo['pdf_url'] }}" target="_blank" rel="noopener"
                                             title="Buka PDF {{ $memo['status'] ?? '' }}"
-                                            class="inline-flex items-center justify-center gap-1 px-2.5 py-2 xl:py-1 text-[11px] font-semibold text-blue-600 bg-white hover:bg-blue-50 border border-blue-500 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                            class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-2.5 py-2 xl:py-1 text-[11px] font-semibold text-blue-600 bg-white hover:bg-blue-50 border border-blue-500 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                                 aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -519,7 +507,7 @@
 
                                         @if ($memo['editable'])
                                             <a href="{{ $memo['edit_url'] }}"
-                                                class="inline-flex items-center justify-center px-3 py-2 xl:py-1 text-[11px] font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                                                class="inline-flex flex-1 sm:flex-none items-center justify-center px-3 py-2 xl:py-1 text-[11px] font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                                 Edit
                                             </a>
                                         @endif
@@ -529,14 +517,14 @@
                         </div>
                     </article>
                 @empty
-                    <div class="mm-empty">
+                    <div class="bg-white rounded-2xl border border-gray-200 px-4 py-14 text-center">
                         <p class="text-sm font-semibold text-gray-800">Belum ada nomor memo</p>
                         <p class="text-xs text-gray-500 mt-1">Klik "Buat Memorandum" untuk membuat yang pertama.</p>
                     </div>
                 @endforelse
             </div>
 
-            <div id="memo-no-result" class="hidden mm-empty">
+            <div id="memo-no-result" class="hidden bg-white rounded-2xl border border-gray-200 px-4 py-14 text-center">
                 <p class="text-sm font-semibold text-gray-800">Tidak ada nomor memo yang cocok</p>
                 <p class="text-xs text-gray-500 mt-1">Ubah filter atau klik Reset untuk menampilkan semua.</p>
             </div>
@@ -563,34 +551,21 @@
                 });
             });
 
-            // Dialog rapi (lihat layouts/partials/dialog). Cadangan ke bawaan browser kalau belum termuat.
-            const tanya = (msg, o) => window.spjConfirm ? window.spjConfirm(msg, o) : Promise.resolve(window.confirm(msg));
-            const isi = (label, o) => window.spjPrompt
-                ? window.spjPrompt(label, o)
-                : Promise.resolve((function () { const v = window.prompt(label); return v === null ? null : v.trim(); })());
-
             // Ubah status manual. Hanya sakti -> sp2d yang tanpa alasan;
             // selain itu wajib isi alasan (divalidasi juga di server).
             document.querySelectorAll('.js-status-select').forEach(function (sel) {
-                sel.addEventListener('change', async function () {
+                sel.addEventListener('change', function () {
                     const form = sel.closest('form');
                     const ke = sel.value;
                     if (!ke) return;
 
                     let alasan = '';
                     if (form.dataset.maju !== ke) {
-                        const teks = sel.options[sel.selectedIndex].textContent.trim();
-                        const hasil = await isi('Alasan perubahan status (wajib diisi):', {
-                            title: teks,
-                            required: true,
-                            okText: 'Simpan',
-                            tone: ke === 'batal' ? 'danger' : 'primary',
-                        });
-                        if (hasil === null || hasil === '') {
+                        alasan = (window.prompt('Alasan perubahan status (wajib diisi):') || '').trim();
+                        if (!alasan) {
                             sel.value = '';
                             return;
                         }
-                        alasan = hasil;
                     }
 
                     form.querySelector('input[name="alasan"]').value = alasan;
@@ -600,55 +575,34 @@
 
             // Aksi alur (kirim, ajukan, verifikasi, input SAKTI, selesai OTP, putusan pengajuan).
             // data-url: tujuan POST. data-fields: JSON field tetap.
-            // data-prompt: nama field yang diisi dari dialog; data-prompt-wajib="1" kalau wajib.
-            // data-title / data-tone: judul dan warna dialog (opsional).
+            // data-prompt: nama field yang diisi dari prompt; data-prompt-wajib="1" kalau wajib.
             const formAksi = document.getElementById('form-aksi');
-            let sedangProses = false;
 
             document.querySelectorAll('.js-aksi').forEach(function (btn) {
-                btn.addEventListener('click', async function () {
-                    if (sedangProses) return;
-                    sedangProses = true;
+                btn.addEventListener('click', function () {
+                    if (btn.dataset.konfirmasi && !window.confirm(btn.dataset.konfirmasi)) return;
 
-                    try {
-                        const judul = btn.dataset.title || btn.textContent.trim();
-                        const nada = btn.dataset.tone || 'primary';
-                        const fields = JSON.parse(btn.dataset.fields || '{}');
+                    const fields = JSON.parse(btn.dataset.fields || '{}');
 
-                        if (btn.dataset.konfirmasi) {
-                            const ya = await tanya(btn.dataset.konfirmasi, { title: judul, okText: judul, tone: nada });
-                            if (!ya) { sedangProses = false; return; }
-                        }
-
-                        if (btn.dataset.prompt) {
-                            const nilai = await isi(btn.dataset.promptLabel || 'Keterangan:', {
-                                title: judul,
-                                required: btn.dataset.promptWajib === '1',
-                                okText: 'Kirim',
-                                tone: nada,
-                            });
-                            if (nilai === null) { sedangProses = false; return; }
-                            if (nilai === '' && btn.dataset.promptWajib === '1') { sedangProses = false; return; }
-                            fields[btn.dataset.prompt] = nilai;
-                        }
-
-                        formAksi.querySelectorAll('input[data-dinamis]').forEach(function (el) { el.remove(); });
-                        Object.keys(fields).forEach(function (nama) {
-                            const input = document.createElement('input');
-                            input.type = 'hidden';
-                            input.name = nama;
-                            input.value = fields[nama];
-                            input.setAttribute('data-dinamis', '1');
-                            formAksi.appendChild(input);
-                        });
-
-                        formAksi.action = btn.dataset.url;
-                        document.querySelectorAll('.js-aksi').forEach(function (b) { b.disabled = true; });
-                        formAksi.submit();
-                    } catch (e) {
-                        sedangProses = false;
-                        throw e;
+                    if (btn.dataset.prompt) {
+                        const nilai = (window.prompt(btn.dataset.promptLabel || 'Keterangan:') || '').trim();
+                        if (nilai === '' && btn.dataset.promptWajib === '1') return;
+                        fields[btn.dataset.prompt] = nilai;
                     }
+
+                    formAksi.querySelectorAll('input[data-dinamis]').forEach(function (el) { el.remove(); });
+                    Object.keys(fields).forEach(function (nama) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = nama;
+                        input.value = fields[nama];
+                        input.setAttribute('data-dinamis', '1');
+                        formAksi.appendChild(input);
+                    });
+
+                    formAksi.action = btn.dataset.url;
+                    document.querySelectorAll('.js-aksi').forEach(function (b) { b.disabled = true; });
+                    formAksi.submit();
                 });
             });
         });
@@ -664,16 +618,6 @@
             const dariInput = document.getElementById('memo-filter-dari');
             const sampaiInput = document.getElementById('memo-filter-sampai');
             const resetBtn = document.getElementById('memo-filter-reset');
-
-            const toggleBtn = document.getElementById('memo-filter-toggle');
-            const extra = document.getElementById('memo-filter-extra');
-            const badge = document.getElementById('memo-filter-badge');
-
-            toggleBtn.addEventListener('click', function () {
-                const buka = !extra.classList.contains('is-open');
-                extra.classList.toggle('is-open', buka);
-                toggleBtn.setAttribute('aria-expanded', buka ? 'true' : 'false');
-            });
 
             const items = Array.from(document.querySelectorAll('.js-memo-item'));
             const noResult = document.getElementById('memo-no-result');
@@ -709,11 +653,6 @@
                         el.querySelector('.js-memo-number').textContent = visible;
                     }
                 });
-
-                // Jumlah filter aktif (selain kolom cari) tampil di tombol Filter (HP)
-                const aktif = [jenis !== 'semua', status !== '', pic !== '', dari !== '', sampai !== ''].filter(Boolean).length;
-                badge.textContent = aktif;
-                badge.hidden = aktif === 0;
 
                 countEl.textContent = visible;
                 noResult.classList.toggle('hidden', visible > 0);

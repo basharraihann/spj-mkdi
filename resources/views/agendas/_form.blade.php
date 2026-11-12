@@ -400,13 +400,10 @@
                         @endunless
                     </label>
                     <select name="kota_tujuan" id="kota-tujuan-select" data-placeholder="Cari kab/kota..."
-    data-lokasi-provinsi="#tujuan-select"
-    data-lokasi-map="{{ json_encode($kabKotaMap) }}"
-    data-lokasi-current="{{ old('kota_tujuan', $agenda?->kota_tujuan) }}"
-    {{ $isEdit ? '' : 'required' }}
-    class="js-searchable w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition disabled:bg-gray-50 disabled:text-gray-400">
-    <option value="">Pilih provinsi dulu</option>
-</select>
+                        {{ $isEdit ? '' : 'required' }}
+                        class="js-searchable w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition disabled:bg-gray-50 disabled:text-gray-400">
+                        <option value="">Pilih provinsi dulu</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tanggal Mulai <span
@@ -552,8 +549,12 @@
 </form>
 
 <script>
+    // State section "Anggaran & Administrasi" — dideklarasikan paling atas supaya
+    // aman dipakai fungsi mana pun di bawah (tidak bergantung urutan pemanggilan).
+    let anggaranOpen = true;
+
     // Pas render pertama (mis. halaman edit, peserta sudah tercentang dari awal),
-    // highlight "field baru muncul" jangan nyala. Highlight cuma untuk perubahan
+    // highlight "field baru muncul" jangan nyala — highlight cuma untuk perubahan
     // akibat klik user.
     let initialRender = true;
 
@@ -664,11 +665,36 @@
                 ? '(' + khusus.map(function (cb) { return cb.dataset.namaPegawai; }).join(', ') + ')'
                 : '';
         }
-        // required cuma aktif kalau field-nya kelihatan (ada peserta Eselon I/II yg dicentang),
+        // required cuma aktif kalau field-nya kelihatan (ada peserta Eselon I/II yg dicentang) —
         // biar gak nahan submit gara-gara field yg lagi disembunyiin.
         if (input) {
             input.required = adaKhusus;
         }
+        syncAnggaranHeight();
+    }
+
+    // ==== Nomor Memo PNS/Non-PNS cuma diminta sesuai status peserta yg dicentang ====
+    function toggleNomorMemoFields(checked) {
+        const pnsWrap = document.getElementById('nomor-memo-pns-wrap');
+        const pnsInput = document.getElementById('nomor-memo-pns-input');
+        const nonPnsWrap = document.getElementById('nomor-memo-non-pns-wrap');
+        const nonPnsInput = document.getElementById('nomor-memo-non-pns-input');
+        if (!pnsWrap || !nonPnsWrap) return;
+
+        function statusOf(cb) {
+            const panel = cb.closest('[data-peserta-panel]');
+            return panel ? panel.dataset.pesertaPanel : null;
+        }
+
+        const adaPns = checked.some(function (cb) { return statusOf(cb) === 'pns'; });
+        const adaNonPns = checked.some(function (cb) { return statusOf(cb) === 'nonpns'; });
+
+        setWrapVisible(pnsWrap, adaPns);
+        setWrapVisible(nonPnsWrap, adaNonPns);
+        if (pnsInput) pnsInput.required = adaPns;
+        if (nonPnsInput) nonPnsInput.required = adaNonPns;
+
+        syncAnggaranHeight();
     }
 
     // ==== Counter "X dipilih" + chip peserta terpilih (nempel di atas list) ====
@@ -676,6 +702,7 @@
         const checked = Array.from(document.querySelectorAll('.peserta-checkbox:checked'));
 
         toggleNomorStKaro(checked);
+        toggleNomorMemoFields(checked);
 
         const counter = document.getElementById('peserta-count');
         if (counter) counter.textContent = checked.length + ' dipilih';
@@ -751,7 +778,7 @@
         });
 
         // Sinkronkan badge angka di tab dengan hasil filter yang sedang tampil,
-        // supaya "PNS 12" ikut berubah jadi "PNS 3" saat difilter, bukan tetap diam.
+        // supaya "PNS 12" ikut berubah jadi "PNS 3" saat difilter — bukan tetap diam.
         document.querySelectorAll('.peserta-tab-btn').forEach(function (btn) {
             const badge = btn.querySelector('.peserta-tab-badge');
             if (!badge) return;
@@ -803,7 +830,7 @@
                 const item = cb.closest('.peserta-item');
                 if (!item || item.classList.contains('hidden')) return;
 
-                // Batalin unchecking otomatis kalau peserta ini udah punya biaya,
+                // Batalin unchecking otomatis kalau peserta ini udah punya biaya —
                 // biar "pilih semua" (nge-uncheck) gak diam-diam ngapus data.
                 if (!selectAllToggle.checked && cb.checked && cb.dataset.hasBiaya === '1') {
                     return;
@@ -818,7 +845,7 @@
     document.querySelectorAll('.peserta-checkbox').forEach(function (cb) {
         cb.addEventListener('change', function () {
             if (!cb.checked && cb.dataset.hasBiaya === '1') {
-                // Balikin checked dulu SEMENTARA nunggu keputusan user, soalnya
+                // Balikin checked dulu SEMENTARA nunggu keputusan user — soalnya
                 // Swal.fire() itu async. Kalau gak dibalikin dulu, checkbox & chip-nya
                 // sempat "kelihatan" ke-uncek duluan sebelum dialognya kejawab.
                 cb.checked = true;
@@ -831,6 +858,78 @@
             updatePesertaCount();
         });
     });
+
+    // ==== Section "Anggaran & Administrasi" bisa dilipat ====
+
+    // Dipanggil tiap kali ada field di dalamnya yang muncul/hilang, biar tinggi
+    // kontainernya ikut nyesuaiin dan isinya gak kepotong.
+    function syncAnggaranHeight() {
+        const body = document.getElementById('anggaran-body');
+        if (body && anggaranOpen) {
+            body.style.maxHeight = 'none';
+            // overflow visible lagi tiap kali dipanggil selagi section kebuka, soalnya
+            // beberapa pemicu (toggleNomorStKaro, dll) bisa nambah tinggi konten setelahnya
+            body.style.overflow = 'visible';
+        }
+    }
+
+    (function () {
+        const btn = document.getElementById('anggaran-toggle');
+        const body = document.getElementById('anggaran-body');
+        const chevron = document.getElementById('anggaran-chevron');
+        if (!btn || !body) return;
+
+        function setOpen(next) {
+            anggaranOpen = next;
+            btn.setAttribute('aria-expanded', next);
+            if (chevron) chevron.style.transform = next ? 'rotate(180deg)' : 'rotate(0deg)';
+
+            if (next) {
+                // overflow-hidden cuma dipakai SELAMA transisi buka, biar animasinya mulus
+                body.style.overflow = 'hidden';
+                body.style.maxHeight = body.scrollHeight + 'px';
+                body.style.opacity = '1';
+                // lepas ke 'none' + overflow visible setelah animasi kelar, supaya dropdown
+                // & field yang muncul belakangan (termasuk dropdown searchable MAK/Petugas
+                // Verifikasi/PIC yang kalau kepotong overflow-hidden jadi kelihatan kosong)
+                // gak ketahan/kepotong tinggi kontainernya.
+                setTimeout(function () {
+                    if (anggaranOpen) {
+                        body.style.maxHeight = 'none';
+                        body.style.overflow = 'visible';
+                    }
+                }, 320);
+            } else {
+                // balik ke hidden dulu sebelum nutup, soalnya pas kebuka overflow-nya
+                // sempat dilepas ke visible — transisi ketutup butuh overflow-hidden lagi
+                body.style.overflow = 'hidden';
+                body.style.maxHeight = body.scrollHeight + 'px';
+                void body.offsetHeight; // paksa reflow biar transisi jalan
+                body.style.maxHeight = '0px';
+                body.style.opacity = '0';
+            }
+        }
+
+        btn.addEventListener('click', function () { setOpen(!anggaranOpen); });
+
+        // default kebuka; ganti ke setOpen(false) kalau mau default terlipat
+        setOpen(true);
+    })();
+
+    // ==== Kalau validasi browser menolak submit gara-gara field di section Anggaran
+    // yang lagi terlipat, buka otomatis lalu arahkan fokus ke field-nya. ====
+    // Pakai capture (true) karena event "invalid" tidak bubble.
+    document.getElementById('agenda-form').addEventListener('invalid', function (e) {
+        const body = document.getElementById('anggaran-body');
+        if (!body || !body.contains(e.target) || anggaranOpen) return;
+
+        document.getElementById('anggaran-toggle').click();
+        const target = e.target;
+        setTimeout(function () {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.focus({ preventScroll: true });
+        }, 350);
+    }, true);
 
     // ==== Badge progres penanggung jawab ====
     (function () {
@@ -885,4 +984,225 @@
     updatePesertaCount();
     initialRender = false;
     applyPesertaFilters();
+
+    // ==== Dropdown Kab/Kota cascading sesuai Provinsi (Tujuan) yang dipilih ====
+    (function () {
+        const KAB_KOTA_MAP = @json($kabKotaMap);
+        const provinsiSelect = document.getElementById('tujuan-select');
+        const kotaSelect = document.getElementById('kota-tujuan-select');
+        if (!provinsiSelect || !kotaSelect) return;
+
+        // Kab/kota yang harus terpilih: old() kalau habis validasi gagal, kalau tidak ya data agenda (edit)
+        const currentKota = @json(old('kota_tujuan', $agenda?->kota_tujuan));
+
+        function renderKotaOptions() {
+            const list = KAB_KOTA_MAP[provinsiSelect.value] || [];
+            kotaSelect.innerHTML = '';
+
+            if (!provinsiSelect.value) {
+                kotaSelect.appendChild(new Option('Pilih provinsi dulu', ''));
+                kotaSelect.disabled = true;
+                return;
+            }
+            if (!list.length) {
+                kotaSelect.appendChild(new Option('Belum ada data kab/kota', ''));
+                kotaSelect.disabled = true;
+                return;
+            }
+
+            kotaSelect.disabled = false;
+            kotaSelect.appendChild(new Option('Pilih kab/kota', ''));
+            list.forEach(function (nama) {
+                const opt = new Option(nama, nama);
+                if (currentKota && currentKota === nama) opt.selected = true;
+                kotaSelect.appendChild(opt);
+            });
+
+            // Data lama yang kab/kota-nya belum tentu ada di master — tetap
+            // muncul biar gak keganti diam-diam pas halaman dibuka.
+            if (currentKota && !list.includes(currentKota)) {
+                const opt = new Option(currentKota + ' (belum ada di master)', currentKota, true, true);
+                kotaSelect.appendChild(opt);
+            }
+        }
+
+        provinsiSelect.addEventListener('change', renderKotaOptions);
+        renderKotaOptions();
+    })();
+
+    // ==== Searchable select: ubah <select class="js-searchable"> jadi kotak yang bisa
+    // diketik buat nyaring opsi. Dibikin baca opsi & status disabled secara live (bukan
+    // di-cache sekali di awal), plus dipantau lewat MutationObserver — supaya select yang
+    // opsinya berubah belakangan (kayak Kab/Kota yang nunggu Provinsi) tetap ikut update. ====
+    (function () {
+        function enhanceSearchable(select) {
+            if (!select || select.dataset.searchEnhanced) return;
+            select.dataset.searchEnhanced = '1';
+
+            const originalParent = select.parentElement;
+            // sembunyikan ikon panah bawaan (kalau markup select ini sudah punya svg sendiri),
+            // biar gak dobel sama ikon yang kita pasang di bawah
+            const existingIcon = originalParent.querySelector('svg');
+            if (existingIcon) existingIcon.style.display = 'none';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'relative';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.autocomplete = 'off';
+            input.className = select.className.replace('js-searchable', '').trim() + ' pr-9';
+            if (select.hasAttribute('required')) input.setAttribute('required', 'required');
+
+            const iconWrap = document.createElement('span');
+            iconWrap.className = 'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400';
+            iconWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>';
+
+            const list = document.createElement('ul');
+            list.className = 'absolute z-20 top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm hidden';
+
+            let highlighted = -1;
+
+            function liveOptions() {
+                return Array.from(select.options).filter(function (o) { return o.value !== ''; });
+            }
+
+            function itemEls() {
+                return Array.from(list.children).filter(function (li) { return li.dataset.value !== undefined; });
+            }
+
+            function renderList(filterText) {
+                const f = (filterText || '').toLowerCase();
+                list.innerHTML = '';
+                highlighted = -1;
+                const filtered = liveOptions().filter(function (o) {
+                    return o.textContent.trim().toLowerCase().includes(f);
+                });
+                if (filtered.length === 0) {
+                    const li = document.createElement('li');
+                    li.className = 'px-3.5 py-2 text-gray-400 text-xs';
+                    li.textContent = 'Tidak ditemukan';
+                    list.appendChild(li);
+                    return;
+                }
+                filtered.forEach(function (o) {
+                    const li = document.createElement('li');
+                    li.textContent = o.textContent.trim();
+                    li.dataset.value = o.value;
+                    li.className = 'px-3.5 py-2 cursor-pointer hover:bg-blue-50 text-gray-700' +
+                        (o.value === select.value ? ' bg-blue-50 font-medium text-blue-700' : '');
+                    li.addEventListener('mousedown', function (e) {
+                        e.preventDefault(); // biar blur gak duluan nutup list sebelum klik kepilih
+                        pick(o);
+                    });
+                    list.appendChild(li);
+                });
+            }
+
+            function pick(o) {
+                select.value = o.value;
+                input.value = o.textContent.trim();
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                closeList();
+            }
+
+            function openList() {
+                if (select.disabled) return;
+                renderList(input.value);
+                list.classList.remove('hidden');
+            }
+
+            function closeList() {
+                list.classList.add('hidden');
+            }
+
+            function updateHighlight() {
+                const items = itemEls();
+                items.forEach(function (li, idx) {
+                    li.classList.toggle('bg-blue-100', idx === highlighted);
+                });
+                if (items[highlighted]) items[highlighted].scrollIntoView({ block: 'nearest' });
+            }
+
+            // Sinkronkan tampilan kotak teks dengan select aslinya — dipanggil pas
+            // inisialisasi dan tiap kali select berubah dari luar (mis. Kab/Kota
+            // yang opsinya diisi ulang ketika Provinsi diganti).
+            function refreshFromSelect() {
+                const current = select.selectedOptions[0];
+                input.value = (current && current.value !== '') ? current.textContent.trim() : '';
+                input.disabled = select.disabled;
+                if (select.disabled) {
+                    input.placeholder = current ? current.textContent.trim() : 'Tidak tersedia';
+                    closeList();
+                } else {
+                    input.placeholder = select.dataset.placeholder || 'Cari & pilih...';
+                }
+            }
+
+            input.addEventListener('focus', function () {
+                if (select.disabled) return;
+                input.select();
+                openList();
+            });
+
+            input.addEventListener('input', openList);
+
+            input.addEventListener('blur', function () {
+                setTimeout(function () {
+                    refreshFromSelect();
+                    closeList();
+                }, 120);
+            });
+
+            input.addEventListener('keydown', function (e) {
+                if (select.disabled) return;
+                if (list.classList.contains('hidden') && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                    e.preventDefault();
+                    openList();
+                    return;
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const items = itemEls();
+                    highlighted = Math.min(highlighted + 1, items.length - 1);
+                    updateHighlight();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    highlighted = Math.max(highlighted - 1, 0);
+                    updateHighlight();
+                } else if (e.key === 'Enter') {
+                    const items = itemEls();
+                    if (!list.classList.contains('hidden') && highlighted >= 0 && items[highlighted]) {
+                        e.preventDefault();
+                        const val = items[highlighted].dataset.value;
+                        const opt = liveOptions().find(function (o) { return o.value === val; });
+                        if (opt) pick(opt);
+                    }
+                } else if (e.key === 'Escape') {
+                    closeList();
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!wrapper.contains(e.target)) closeList();
+            });
+
+            // Pantau perubahan pada select aslinya (opsi diganti / disabled berubah)
+            // yang dipicu skrip lain (mis. cascading Provinsi -> Kab/Kota), biar kotak
+            // teks & dropdown kita selalu nyambung sama kondisi terbaru.
+            const observer = new MutationObserver(refreshFromSelect);
+            observer.observe(select, { attributes: true, attributeFilter: ['disabled'], childList: true });
+
+            refreshFromSelect();
+
+            select.classList.add('hidden');
+            originalParent.insertBefore(wrapper, select);
+            wrapper.appendChild(input);
+            wrapper.appendChild(iconWrap);
+            wrapper.appendChild(list);
+            wrapper.appendChild(select);
+        }
+
+        document.querySelectorAll('select.js-searchable').forEach(enhanceSearchable);
+    })();
 </script>

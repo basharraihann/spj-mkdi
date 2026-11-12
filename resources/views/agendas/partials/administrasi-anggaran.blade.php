@@ -213,13 +213,13 @@
     </div>
 
     <div class="p-5">
-        <div class="ag-klas">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-x-4 gap-y-4">
             <div>
                 <label class="block text-xs font-semibold text-gray-500 mb-1.5">Kode Giat</label>
                 <input type="text" id="preview-kode-giat" readonly tabindex="-1" value="{{ $agenda->kode_giat ?? '' }}"
                     class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm bg-gray-50 text-gray-500">
             </div>
-            <div>
+            <div class="sm:col-span-3">
                 <label class="block text-xs font-semibold text-gray-500 mb-1.5">Uraian Giat <span
                         class="text-red-400">*</span></label>
                 <input type="text" name="uraian_giat" value="{{ old('uraian_giat', $agenda->uraian_giat ?? null) }}"
@@ -237,7 +237,7 @@
                     value="{{ $agenda->kode_komponen ?? '' }}"
                     class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm bg-gray-50 text-gray-500">
             </div>
-            <div>
+            <div class="sm:col-span-3">
                 <label class="block text-xs font-semibold text-gray-500 mb-1.5">Uraian Komponen <span
                         class="text-red-400">*</span></label>
                 <input type="text" name="uraian_komponen"
@@ -255,7 +255,7 @@
                     value="{{ $agenda->kode_akun_ap ?? '' }}"
                     class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm bg-gray-50 text-gray-500">
             </div>
-            <div>
+            <div class="sm:col-span-3">
                 <label class="block text-xs font-semibold text-gray-500 mb-1.5">Uraian Akun (AP) <span
                         class="text-red-400">*</span></label>
                 <input type="text" name="uraian_akun_ap"
@@ -272,7 +272,7 @@
                     value="{{ $agenda->kode_belanja ?? '' }}"
                     class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm bg-gray-50 text-gray-500">
             </div>
-            <div>
+            <div class="sm:col-span-3">
                 <label class="block text-xs font-semibold text-gray-500 mb-1.5">Uraian Belanja <span
                         class="text-red-400">*</span></label>
                 <input type="text" name="uraian_belanja"

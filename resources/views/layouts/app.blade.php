@@ -3,34 +3,24 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}
     </title>
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
-    @include('layouts.partials.pwa-head')
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    {{-- Harus setelah Vite CSS supaya bisa menimpa. File CSS biasa, tanpa build. --}}
-    <link rel="stylesheet" href="{{ asset('css/spj-ui.css') }}?v=5">
 
     <!-- SweetAlert2 (dipakai untuk konfirmasi hapus yang seragam di semua halaman) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body class="spj-body font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: true }"
-    :class="{ 'spj-lock': sidebarOpen }" @keydown.escape.window="sidebarOpen = false">
-
-    {{-- Penanda offline (PWA) --}}
-    <div id="spj-offline" class="spj-offline" role="status" aria-live="polite"><i></i> Anda sedang offline</div>
-
+<body class="font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: true }">
     <div class="min-h-screen bg-gray-100 flex">
 
         @include('layouts.navigation')
@@ -41,35 +31,38 @@
         <div x-cloak class="flex-1 flex flex-col min-w-0 transition-all duration-200"
             :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
 
-            <!-- Top bar: logo + (pasang aplikasi) + menu pengguna. Di HP, navigasi ada di bottom bar. -->
-            <div class="spj-topbar">
-                <x-application-logo class="spj-logo" />
+            <!-- Top bar (logo + mobile toggle + user menu) -->
+            <div class="bg-white border-b border-gray-100 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
 
-                <div class="spj-topbar-right">
-                    <button type="button" class="spj-install" data-install hidden>
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"
-                            style="width:16px;height:16px">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+                <div class="flex items-center gap-3">
+                    <button @click="sidebarOpen = true"
+                        class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
-                        Pasang
                     </button>
 
+                    <x-application-logo class="h-8 w-auto" />
+                </div>
+
+                <div class="ms-auto">
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <button type="button" class="spj-user" aria-label="Menu pengguna">
-                                <span class="spj-avatar">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(Auth::user()->name, 0, 1)) }}</span>
-                                <span class="spj-user-name">{{ Auth::user()->name }}</span>
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                    style="width:16px;height:16px">
-                                    <path fill-rule="evenodd"
-                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                        clip-rule="evenodd" />
-                                </svg>
+                            <button
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                                <div>{{ Auth::user()->name }}</div>
+                                <div class="ms-1">
+                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </div>
                             </button>
                         </x-slot>
                         <x-slot name="content">
-                            <div class="px-4 py-2 text-xs text-gray-400 truncate">{{ Auth::user()->name }}</div>
                             <x-dropdown-link :href="route('profile.edit')">{{ __('Profile') }}</x-dropdown-link>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -85,15 +78,15 @@
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="spj-header">
-                    <div class="spj-header-inner">
+                <header class="bg-white shadow">
+                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>
             @endisset
 
             <!-- Page Content -->
-            <main class="spj-main flex-1">
+            <main class="flex-1">
                 {{-- Flash message global (success & error).
                 Datanya cuma dititip lewat data-attribute yang disembunyikan di sini,
                 lalu ditampilkan sebagai toast modern oleh script di bawah (lihat #flash-data).
@@ -105,9 +98,6 @@
             </main>
         </div>
     </div>
-
-    {{-- Bottom navigation (HP) --}}
-    @include('layouts.bottom-nav')
 
     {{--
     Fungsi konfirmasi hapus global.
@@ -125,24 +115,15 @@
     </button>
     --}}
     <style>
-        /* Dialog hapus (SweetAlert): ukuran ringkas */
         .swal-delete-popup {
-            width: 21rem !important;
-            max-width: calc(100vw - 32px) !important;
-            border-radius: 1.125rem !important;
-            padding: 1.5rem 1.25rem 1.25rem !important;
-            font-size: 1rem !important;
-        }
-
-        .swal-delete-popup .swal2-html-container {
-            margin: 0 !important;
-            padding: 0 !important;
+            border-radius: 1.25rem !important;
+            padding: 2rem 1.5rem !important;
         }
 
         .swal-delete-icon-wrap {
-            width: 52px;
-            height: 52px;
-            margin: 0 auto 0.875rem;
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 1.25rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -154,41 +135,38 @@
         }
 
         .swal-delete-title {
-            font-size: 1rem !important;
-            font-weight: 600 !important;
-            line-height: 1.4 !important;
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
             color: #1f2937 !important;
-            margin-bottom: 0.25rem !important;
+            margin-bottom: 0.375rem !important;
         }
 
         .swal-delete-text {
-            font-size: 0.8125rem !important;
-            color: #6b7280 !important;
-            line-height: 1.45 !important;
+            font-size: 0.9rem !important;
+            color: #9ca3af !important;
+            line-height: 1.4 !important;
         }
 
         .swal-delete-actions {
-            gap: 0.625rem !important;
+            gap: 0.75rem !important;
             width: 100%;
-            margin: 1.25rem 0 0 !important;
+            margin-top: 1.5rem !important;
         }
 
         .swal-btn-cancel {
             flex: 1;
-            border: 1px solid #e5e7eb !important;
+            border: 2px solid #fecaca !important;
             background: #ffffff !important;
-            color: #4b5563 !important;
-            font-size: 0.875rem !important;
+            color: #ef4444 !important;
             font-weight: 600 !important;
             border-radius: 0.75rem !important;
-            padding: 0.6rem 1rem !important;
-            min-height: 42px;
+            padding: 0.7rem 1rem !important;
             box-shadow: none !important;
             transition: background 0.15s ease;
         }
 
         .swal-btn-cancel:hover {
-            background: #f9fafb !important;
+            background: #fef2f2 !important;
         }
 
         .swal-btn-confirm {
@@ -196,23 +174,15 @@
             border: none !important;
             background: #ef4444 !important;
             color: #ffffff !important;
-            font-size: 0.875rem !important;
             font-weight: 600 !important;
             border-radius: 0.75rem !important;
-            padding: 0.6rem 1rem !important;
-            min-height: 42px;
+            padding: 0.7rem 1rem !important;
             box-shadow: none !important;
             transition: background 0.15s ease;
         }
 
         .swal-btn-confirm:hover {
             background: #dc2626 !important;
-        }
-
-        .swal-btn-cancel:focus-visible,
-        .swal-btn-confirm:focus-visible {
-            outline: 2px solid #93c5fd !important;
-            outline-offset: 2px;
         }
 
         /* Toast flash message (success/error) */
@@ -341,8 +311,6 @@
             if (errorMsg) showToast(errorMsg, 'error');
         });
     </script>
-    @include('layouts.partials.dialog')
-    @include('layouts.partials.pwa-scripts')
 </body>
 
 </html>
