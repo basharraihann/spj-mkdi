@@ -3,25 +3,34 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $attributes->get('title') ?$attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}
+    <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}
     </title>
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    @include('layouts.partials.pwa-head')
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Harus setelah Vite CSS supaya bisa menimpa. File CSS biasa, tanpa build. --}}
+    <link rel="stylesheet" href="{{ asset('css/spj-ui.css') }}?v=3">
 
-    <!-- SweetAlert2 -->
+    <!-- SweetAlert2 (dipakai untuk konfirmasi hapus yang seragam di semua halaman) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-{{-- PERBAIKAN: Default sidebarCollapsed diubah ke false --}}
-<body class="font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
+<body class="spj-body font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: true }"
+    :class="{ 'spj-lock': sidebarOpen }" @keydown.escape.window="sidebarOpen = false">
+
+    {{-- Penanda offline (PWA) --}}
+    <div id="spj-offline" class="spj-offline" role="status" aria-live="polite"><i></i> Anda sedang offline</div>
+
     <div class="min-h-screen bg-gray-100 flex">
 
         @include('layouts.navigation')
@@ -32,38 +41,35 @@
         <div x-cloak class="flex-1 flex flex-col min-w-0 transition-all duration-200"
             :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
 
-            <!-- Top bar -->
-            <div class="bg-white border-b border-gray-100 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+            <!-- Top bar: logo + (pasang aplikasi) + menu pengguna. Di HP, navigasi ada di bottom bar. -->
+            <div class="spj-topbar">
+                <x-application-logo class="spj-logo" />
 
-                <div class="flex items-center gap-3">
-                    <button @click="sidebarOpen = true"
-                        class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
-                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16" />
+                <div class="spj-topbar-right">
+                    <button type="button" class="spj-install" data-install hidden>
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"
+                            style="width:16px;height:16px">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
                         </svg>
+                        Pasang
                     </button>
 
-                    <x-application-logo class="h-8 w-auto" />
-                </div>
-
-                <div class="ms-auto">
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <button
-                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                                <div>{{ Auth::user()->name }}</div>
-                                <div class="ms-1">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </div>
+                            <button type="button" class="spj-user" aria-label="Menu pengguna">
+                                <span class="spj-avatar">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(Auth::user()->name, 0, 1)) }}</span>
+                                <span class="spj-user-name">{{ Auth::user()->name }}</span>
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                    style="width:16px;height:16px">
+                                    <path fill-rule="evenodd"
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
                             </button>
                         </x-slot>
                         <x-slot name="content">
+                            <div class="px-4 py-2 text-xs text-gray-400 truncate">{{ Auth::user()->name }}</div>
                             <x-dropdown-link :href="route('profile.edit')">{{ __('Profile') }}</x-dropdown-link>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -79,15 +85,19 @@
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <header class="spj-header">
+                    <div class="spj-header-inner">
                         {{ $header }}
                     </div>
                 </header>
             @endisset
 
             <!-- Page Content -->
-            <main class="flex-1">
+            <main class="spj-main flex-1">
+                {{-- Flash message global (success & error).
+                Datanya cuma dititip lewat data-attribute yang disembunyikan di sini,
+                lalu ditampilkan sebagai toast modern oleh script di bawah (lihat #flash-data).
+                TIDAK perlu lagi nulis blok @if(session('success')) ... @endif di tiap Blade view. --}}
                 <div id="flash-data" class="hidden" data-success="{{ session('success') }}"
                     data-error="{{ session('error') }}"></div>
 
@@ -96,23 +106,127 @@
         </div>
     </div>
 
+    {{-- Bottom navigation (HP) --}}
+    @include('layouts.bottom-nav')
+
+    {{--
+    Fungsi konfirmasi hapus global.
+    Dipakai di SEMUA tombol Hapus di seluruh aplikasi (Pegawai, Nomor Memo, dll)
+    supaya tampilannya konsisten, bukan confirm() bawaan browser.
+
+    Cara pakai di Blade manapun (contoh, JANGAN taruh di file ini):
+
+    <form id="delete-pegawai-XXX" action="URL_DESTROY" method="POST" class="hidden">
+        @csrf
+        @method('DELETE')
+    </form>
+    <button type="button" onclick="confirmDelete('delete-pegawai-XXX', 'pegawai NAMA')">
+        Hapus
+    </button>
+    --}}
     <style>
-        .swal-delete-popup { border-radius: 1.25rem !important; padding: 2rem 1.5rem !important; }
-        .swal-delete-icon-wrap { width: 84px; height: 84px; margin: 0 auto 1.25rem; display: flex; align-items: center; justify-content: center; }
-        .swal-delete-icon-wrap svg { width: 100%; height: 100%; }
-        .swal-delete-title { font-size: 1.25rem !important; font-weight: 700 !important; color: #1f2937 !important; margin-bottom: 0.375rem !important; }
-        .swal-delete-text { font-size: 0.9rem !important; color: #9ca3af !important; line-height: 1.4 !important; }
-        .swal-delete-actions { gap: 0.75rem !important; width: 100%; margin-top: 1.5rem !important; }
-        .swal-btn-cancel { flex: 1; border: 2px solid #fecaca !important; background: #ffffff !important; color: #ef4444 !important; font-weight: 600 !important; border-radius: 0.75rem !important; padding: 0.7rem 1rem !important; box-shadow: none !important; transition: background 0.15s ease; }
-        .swal-btn-cancel:hover { background: #fef2f2 !important; }
-        .swal-btn-confirm { flex: 1; border: none !important; background: #ef4444 !important; color: #ffffff !important; font-weight: 600 !important; border-radius: 0.75rem !important; padding: 0.7rem 1rem !important; box-shadow: none !important; transition: background 0.15s ease; }
-        .swal-btn-confirm:hover { background: #dc2626 !important; }
-        .app-toast-popup { border-radius: 0.875rem !important; padding: 0.85rem 1.1rem !important; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important; }
-        .app-toast-inner { display: flex; align-items: center; gap: 0.6rem; }
-        .app-toast-icon { width: 22px; height: 22px; flex-shrink: 0; }
-        .app-toast-msg { font-size: 0.875rem; font-weight: 500; color: #1f2937; }
-        .app-toast-progress-success { background: #16a34a !important; }
-        .app-toast-progress-error { background: #dc2626 !important; }
+        .swal-delete-popup {
+            border-radius: 1.25rem !important;
+            padding: 2rem 1.5rem !important;
+        }
+
+        .swal-delete-icon-wrap {
+            width: 84px;
+            height: 84px;
+            margin: 0 auto 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swal-delete-icon-wrap svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .swal-delete-title {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+            color: #1f2937 !important;
+            margin-bottom: 0.375rem !important;
+        }
+
+        .swal-delete-text {
+            font-size: 0.9rem !important;
+            color: #9ca3af !important;
+            line-height: 1.4 !important;
+        }
+
+        .swal-delete-actions {
+            gap: 0.75rem !important;
+            width: 100%;
+            margin-top: 1.5rem !important;
+        }
+
+        .swal-btn-cancel {
+            flex: 1;
+            border: 2px solid #fecaca !important;
+            background: #ffffff !important;
+            color: #ef4444 !important;
+            font-weight: 600 !important;
+            border-radius: 0.75rem !important;
+            padding: 0.7rem 1rem !important;
+            box-shadow: none !important;
+            transition: background 0.15s ease;
+        }
+
+        .swal-btn-cancel:hover {
+            background: #fef2f2 !important;
+        }
+
+        .swal-btn-confirm {
+            flex: 1;
+            border: none !important;
+            background: #ef4444 !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            border-radius: 0.75rem !important;
+            padding: 0.7rem 1rem !important;
+            box-shadow: none !important;
+            transition: background 0.15s ease;
+        }
+
+        .swal-btn-confirm:hover {
+            background: #dc2626 !important;
+        }
+
+        /* Toast flash message (success/error) */
+        .app-toast-popup {
+            border-radius: 0.875rem !important;
+            padding: 0.85rem 1.1rem !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .app-toast-inner {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .app-toast-icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .app-toast-msg {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .app-toast-progress-success {
+            background: #16a34a !important;
+        }
+
+        .app-toast-progress-error {
+            background: #dc2626 !important;
+        }
     </style>
 
     <script>
@@ -154,6 +268,8 @@
             });
         }
 
+        // Toast modern untuk flash message (session success/error).
+        // Otomatis muncul di pojok kanan atas, slide-in, lalu hilang sendiri setelah beberapa detik.
         function showToast(message, type = 'success') {
             const isSuccess = type === 'success';
 
@@ -205,6 +321,8 @@
             if (errorMsg) showToast(errorMsg, 'error');
         });
     </script>
+    @include('layouts.partials.dialog')
+    @include('layouts.partials.pwa-scripts')
 </body>
 
 </html>

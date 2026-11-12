@@ -6,10 +6,14 @@ use App\Models\Agenda;
 use App\Models\MakOption;
 use App\Models\MemoEntry;
 use App\Models\Pegawai;
+use App\Services\MakSisaService;
+use App\Services\MemoTahapService;
 use App\Services\NomorMemoService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class MemoController extends Controller
 {
@@ -21,6 +25,9 @@ class MemoController extends Controller
      *
      * Ditampilkan satu baris per agenda: memo PNS dan Non PNS dari agenda yang
      * sama digabung. Memo mandiri tetap satu grup satu item.
+     *
+     * Daftar ini tetap dibatasi per unit (global scope 'unit'). Hanya
+     * penomoran yang lintas unit (lihat NomorMemoService).
      */
     public function index(Request $request)
     {
@@ -49,8 +56,11 @@ class MemoController extends Controller
                     'uraian_kegiatan' => $agenda->uraian_kegiatan,
                     'pic' => $pic,
                     'mak' => $agenda->mak,
-                    'nominal' => $agenda->biaya_asn,
+                    'nominal' => $agenda->nominal_memo_pns ?? $agenda->biaya_asn,
                     'status' => 'PNS',
+                    'status_anggaran' => $agenda->status_pns ?? 'outstanding',
+                    'tgl_sakti' => $agenda->tgl_sakti_pns,
+                    'tgl_sp2d' => $agenda->tgl_sp2d_pns,
                     'jenis' => 'perdin',
                     'jenis_label' => 'Perjalanan Dinas',
                     'editable' => false,
@@ -70,8 +80,11 @@ class MemoController extends Controller
                     'uraian_kegiatan' => $agenda->uraian_kegiatan,
                     'pic' => $pic,
                     'mak' => $agenda->mak,
-                    'nominal' => $agenda->biaya_non_asn,
+                    'nominal' => $agenda->nominal_memo_non_pns ?? $agenda->biaya_non_asn,
                     'status' => 'Non PNS',
+                    'status_anggaran' => $agenda->status_non_pns ?? 'outstanding',
+                    'tgl_sakti' => $agenda->tgl_sakti_non_pns,
+                    'tgl_sp2d' => $agenda->tgl_sp2d_non_pns,
                     'jenis' => 'perdin',
                     'jenis_label' => 'Perjalanan Dinas',
                     'editable' => false,
@@ -94,14 +107,47 @@ class MemoController extends Controller
                 'mak' => $entry->mak,
                 'nominal' => $entry->nominal,
                 'status' => null,
+                'status_anggaran' => $entry->status_anggaran ?? 'outstanding',
+                'tgl_sakti' => $entry->tgl_sakti,
+                'tgl_sp2d' => $entry->tgl_sp2d,
                 'mandiri' => true,
                 'jenis' => $entry->jenis_memo,
                 'jenis_label' => $entry->jenis_label, // accessor di model MemoEntry
-                'editable' => true,
+                'editable' => ($entry->status_anggaran ?? 'outstanding') === 'outstanding',
                 'edit_url' => route('memo.edit', $entry->id),
                 'pdf_url' => route('memo.pdf', $entry->id),
             ]);
         }
+
+        // Tahap alur tiap memo, dimuat sekali untuk semua memo (tanpa N+1).
+        $tahapMap = MemoTahapService::petaTahap(
+            $memos->mapWithKeys(fn($m) => [$m['id'] => $m['status_anggaran']])->all()
+        );
+
+        // Pengajuan pengembalian yang masih menunggu, satu query untuk semua memo.
+        $pengajuanMenunggu = DB::table('memo_pengajuan_kembali')
+            ->where('status', 'menunggu')
+            ->whereIn('memo_key', $memos->pluck('id')->all())
+            ->get()
+            ->keyBy('memo_key');
+
+        $memos = $memos->map(function ($m) use ($tahapMap, $pengajuanMenunggu) {
+            $m['tahap'] = $tahapMap[$m['id']];
+            $bisaDiedit = in_array($m['tahap'], ['draft', 'dikembalikan'], true);
+
+            $p = $pengajuanMenunggu->get($m['id']);
+            $m['pengajuan_id'] = $p->id ?? null;
+            $m['pengajuan_alasan'] = $p->alasan ?? null;
+
+            if (!empty($m['mandiri'])) {
+                $m['editable'] = $m['status_anggaran'] === 'outstanding' && $bisaDiedit;
+            }
+            $m['bisa_kirim'] = $bisaDiedit && $m['status_anggaran'] === 'outstanding';
+            $m['bisa_ajukan'] = $p === null
+                && in_array($m['tahap'], ['dikirim', 'lolos_spk', 'sakti', 'otp_ppk'], true);
+
+            return $m;
+        });
 
         // Opsi PIC buat dropdown filter
         $picOptions = $memos->pluck('pic')->unique()->sort()->values();
@@ -110,7 +156,6 @@ class MemoController extends Controller
         $memos = $memos->sortByDesc('nomor_urut')->values();
 
         // Satu grup = satu agenda (atau satu memo mandiri).
-        // groupBy mempertahankan urutan kemunculan pertama, jadi urutan nomor tetap.
         $groups = $memos
             ->groupBy('group_key')
             ->map(function ($items) {
@@ -121,7 +166,7 @@ class MemoController extends Controller
 
                 return [
                     'agenda_id' => $first['agenda_id'],
-                    'delete_id' => $first['id'], // untuk agenda, destroy() menghapus agenda + kedua memonya
+                    'delete_id' => $first['id'],
                     'jenis' => $first['jenis'],
                     'jenis_label' => $first['jenis_label'],
                     'tanggal_memo' => $first['tanggal_memo'],
@@ -154,16 +199,20 @@ class MemoController extends Controller
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $nomorBerikutnya = NomorMemoService::dataBerikutnya();
         $makOptions = MakOption::orderBy('mak')->get();
-
-        return view('memo.create', compact('pegawaiList', 'nomorBerikutnya', 'makOptions'));
+        $makOutstanding = MakSisaService::outstanding();
+        return view('memo.create', compact('pegawaiList', 'nomorBerikutnya', 'makOptions', 'makOutstanding'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate($this->rules());
+        $validated = $request->validate(self::rules());
+
+        // Nomor itu satu urutan untuk semua unit: cek lintas unit.
+        $this->pastikanNomorBelumDipakai($validated['nomor_memo']);
 
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
 
+        // status_anggaran tidak diisi di sini: default kolomnya 'outstanding'.
         MemoEntry::create($validated);
 
         return redirect()->route('memo.index')
@@ -176,15 +225,30 @@ class MemoController extends Controller
      */
     public function edit(MemoEntry $memo)
     {
+        abort_if(
+            !$this->bolehEdit($memo),
+            403,
+            'Memo sudah dikirim, SAKTI, atau SP2D, tidak bisa diubah. Ajukan pengembalian jika perlu perbaikan.'
+        );
+
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $makOptions = MakOption::orderBy('mak')->get();
-
-        return view('memo.edit', compact('memo', 'pegawaiList', 'makOptions'));
+        $makOutstanding = MakSisaService::outstanding($memo->id); // nominal memo ini sendiri tidak ikut dihitung
+        return view('memo.edit', compact('memo', 'pegawaiList', 'makOptions', 'makOutstanding'));
     }
 
     public function update(Request $request, MemoEntry $memo)
     {
-        $validated = $request->validate($this->rules());
+        abort_if(
+            !$this->bolehEdit($memo),
+            403,
+            'Memo sudah dikirim, SAKTI, atau SP2D, tidak bisa diubah. Ajukan pengembalian jika perlu perbaikan.'
+        );
+
+        $validated = $request->validate(self::rules());
+
+        // Abaikan memo yang sedang diedit supaya nomornya sendiri tidak dianggap bentrok.
+        $this->pastikanNomorBelumDipakai($validated['nomor_memo'], $memo->id);
 
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
 
@@ -200,6 +264,9 @@ class MemoController extends Controller
      * - "agenda-{agenda_id}-pns" / "agenda-{agenda_id}-non_pns" -> hapus agenda
      *   (memo PNS dan Non PNS yang nempel ikut hilang)
      * - "entry-{memo_entry_id}" -> hapus baris di memo_entries
+     *
+     * Memo yang sudah SAKTI/SP2D tidak boleh dihapus (uangnya sudah tercatat di SAKTI);
+     * ubah statusnya jadi Batal dulu lewat dropdown status.
      */
     public function destroy(string $id)
     {
@@ -207,9 +274,29 @@ class MemoController extends Controller
             $parts = explode('-', $id, 3);
             $agenda = Agenda::findOrFail($parts[1] ?? null);
 
+            $terkunci = (filled($agenda->nomor_memo_pns) && in_array($agenda->status_pns, ['sakti', 'sp2d'], true))
+                || (filled($agenda->nomor_memo_non_pns) && in_array($agenda->status_non_pns, ['sakti', 'sp2d'], true));
+
+            if ($terkunci) {
+                return redirect()->route('memo.index')
+                    ->with('error', 'Agenda tidak bisa dihapus karena memo sudah SAKTI/SP2D. '
+                        . 'Ubah status memo menjadi Batal terlebih dahulu jika memang dibatalkan.');
+            }
+
+            // Memo agenda yang sudah dikirim ke Keuangan tidak boleh hilang begitu saja.
+            foreach (['pns' => $agenda->nomor_memo_pns, 'non_pns' => $agenda->nomor_memo_non_pns] as $jenis => $nomor) {
+                if (filled($nomor) && !MemoTahapService::bisaDiedit("agenda-{$agenda->id}-{$jenis}")) {
+                    return redirect()->route('memo.index')
+                        ->with('error', 'Agenda tidak bisa dihapus karena memonya sudah dikirim ke Keuangan. Ajukan pengembalian terlebih dahulu.');
+                }
+            }
+
             // Agenda dan nomor memonya satu kesatuan: hapus agendanya,
-            // memo PNS dan Non-PNS yang nempel ikut hilang.
-            $agenda->delete();
+            // memo PNS dan Non-PNS yang nempel ikut hilang, begitu juga jejak tahapnya.
+            DB::transaction(function () use ($agenda) {
+                $agenda->delete();
+                MemoTahapService::hapusJejak(MemoTahapService::kunciAgenda($agenda->id));
+            });
 
             return redirect()->route('memo.index')
                 ->with('success', 'Agenda beserta nomor memonya berhasil dihapus.');
@@ -219,7 +306,22 @@ class MemoController extends Controller
             $entryId = substr($id, strlen('entry-'));
 
             $entry = MemoEntry::findOrFail($entryId);
-            $entry->delete();
+
+            if (!in_array($entry->status_anggaran ?? 'outstanding', ['outstanding', 'batal'], true)) {
+                return redirect()->route('memo.index')
+                    ->with('error', 'Memo tidak bisa dihapus karena sudah SAKTI/SP2D. '
+                        . 'Ubah status memo menjadi Batal terlebih dahulu jika memang dibatalkan.');
+            }
+
+            if (!MemoTahapService::bisaDiedit($id)) {
+                return redirect()->route('memo.index')
+                    ->with('error', 'Memo sudah dikirim ke Keuangan, tidak bisa dihapus. Ajukan pengembalian terlebih dahulu.');
+            }
+
+            DB::transaction(function () use ($entry, $id) {
+                $entry->delete();
+                MemoTahapService::hapusJejak([$id]);
+            });
 
             return redirect()->route('memo.index')
                 ->with('success', 'Nomor memo berhasil dihapus.');
@@ -240,17 +342,7 @@ class MemoController extends Controller
         $kodeBelanja = $kodeParts[5] ?? null;
 
         // Tentukan "Hal" berdasarkan jenis memo
-        $halMemo = match ($memo->jenis_memo) {
-            'konsumsi' => 'Permintaan Pembayaran Langsung (LS) Konsumsi',
-            'honorarium' => 'Permintaan Pembayaran Langsung (LS) Honorarium',
-            'atk' => 'Permintaan Pembayaran Langsung (LS) Alat Tulis Kantor (ATK)',
-            'seminar_kit' => 'Permintaan Pembayaran Langsung (LS) Seminar Kit',
-            'sewa_ruangan' => 'Permintaan Pembayaran Langsung (LS) Sewa Ruangan',
-            'fullboard_meeting' => 'Permintaan Pembayaran Langsung (LS) Fullboard Meeting',
-            'fullday_meeting' => 'Permintaan Pembayaran Langsung (LS) Fullday Meeting',
-            'perdin' => 'Permintaan Pembayaran Langsung (LS) Perjalanan Dinas', // baru
-            default => 'Permintaan Pembayaran Langsung (LS)',
-        };
+        $halMemo = $memo->hal_memo;
 
         $agendaProxy = (object) [
             'dari_memo' => 'Pejabat Pembuat Komitmen Biro Manajemen Kinerja, Data dan Informasi',
@@ -286,14 +378,40 @@ class MemoController extends Controller
     }
 
     /**
-     * Aturan validasi bersama untuk store() dan update().
+     * Memo mandiri boleh diedit hanya kalau status anggarannya masih outstanding
+     * DAN tahap alurnya draft/dikembalikan (belum dikirim ke Keuangan).
+     */
+    private function bolehEdit(MemoEntry $memo): bool
+    {
+        return ($memo->status_anggaran ?? 'outstanding') === 'outstanding'
+            && MemoTahapService::bisaDiedit("entry-{$memo->id}");
+    }
+
+    /**
+     * Tolak nomor yang angka urutnya sudah dipakai di unit mana pun
+     * (memo_entries maupun agendas). Pesan sengaja tidak menyebut unit
+     * atau uraian pemakainya.
+     */
+    private function pastikanNomorBelumDipakai(string $nomorMemo, ?int $ignoreEntryId = null): void
+    {
+        if (NomorMemoService::sudahDipakai($nomorMemo, $ignoreEntryId)) {
+            throw ValidationException::withMessages([
+                'nomor_memo' => 'Nomor memo ini sudah dipakai. Klik "Ambil Nomor" untuk mendapat nomor terbaru.',
+            ]);
+        }
+    }
+
+    /**
+     * Aturan validasi bersama untuk store(), update(), dan MemoTahapController::uji().
      * Daftar jenis memo diambil dari MemoEntry::JENIS, jadi nambah jenis baru
      * cukup di model.
      */
-    private function rules(): array
+    public static function rules(): array
     {
         return [
-            'nomor_memo' => 'required|string',
+            // Wajib diawali angka urut, karena nomor_urut diekstrak dari situ.
+            // Tanpa ini nomor_urut jadi 0 dan lolos dari cek nomor kembar.
+            'nomor_memo' => ['required', 'string', 'regex:/^\s*\d+/'],
             'jenis_memo' => ['required', Rule::in(array_keys(MemoEntry::JENIS))],
             'tanggal_memo' => 'required|date',
             'uraian_kegiatan' => 'required|string',
@@ -305,6 +423,7 @@ class MemoController extends Controller
             'mak' => 'required|string',
             'nominal' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string',
+            'tipe_pembayaran' => ['required', Rule::in(array_keys(MemoEntry::TIPE_PEMBAYARAN))],
         ];
     }
 }

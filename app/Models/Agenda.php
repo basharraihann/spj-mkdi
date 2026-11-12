@@ -27,6 +27,7 @@ class Agenda extends Model
         // Komponen biaya & jenis uang harian yang dipilih utk agenda ini (step "Buat Agenda")
         'komponen_biaya' => 'array',
         'jenis_uang_harian' => 'array',
+        'anggaran_at' => 'datetime',
     ];
 
     public function pegawai()
@@ -71,15 +72,6 @@ class Agenda extends Model
     public function dokumen(string $kategori)
     {
         return $this->dokumenUploads->where('kategori', $kategori)->first();
-    }
-
-    /**
-     * Surat Tugas (modul Surat Tugas) yang jadi sumber data agenda ini.
-     * Hanya referensi: isi agenda disalin saat dipilih, jadi null-nya aman.
-     */
-    public function suratTugas()
-    {
-        return $this->belongsTo(SuratTugas::class);
     }
 
     public function ppk()

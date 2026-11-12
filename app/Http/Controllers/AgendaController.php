@@ -10,13 +10,12 @@ use App\Models\SbmFlatRate;
 use App\Models\PengRiilRate;
 use App\Models\KabupatenKota;
 use App\Models\MakOption;
-use App\Models\SuratTugas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
-
+use App\Services\MakSisaService;
+use App\Services\NomorMemoService;
 
 class AgendaController extends Controller
 {
@@ -107,18 +106,14 @@ class AgendaController extends Controller
         $kabKotaMap = KabupatenKota::orderBy('nama')->get()->groupBy('provinsi')
             ->map(fn($g) => $g->pluck('nama')->values());
 
-        $makOptions = MakOption::orderBy('mak')->get();
-
-        // Surat Tugas bernomor yang belum dipakai agenda lain (untuk dropdown "Ambil dari Surat Tugas")
-        $suratTugasList = $this->suratTugasOptions();
-
-        return view('agendas.create', compact('pegawaiList', 'provinsiList', 'kabKotaMap', 'makOptions', 'suratTugasList'));
+        // MAK & field administrasi dipilih di step 3 (anggaranForm), bukan di sini.
+        return view('agendas.create', compact('pegawaiList', 'provinsiList', 'kabKotaMap'));
     }
 
     public function store(Request $request)
     {
+        // pic_id dan field anggaran/memo diisi di step 3 (anggaranStore()).
         $validated = $request->validate([
-            'surat_tugas_id' => 'nullable|exists:surat_tugas,id',
             'nomor_st' => 'required|string',
             'nomor_st_karo' => 'nullable|string',
             'uraian_kegiatan' => 'required|string',
@@ -130,19 +125,14 @@ class AgendaController extends Controller
             'ppk_id' => 'nullable|exists:pegawai,id',
             'bendahara_id' => 'nullable|exists:pegawai,id',
             'penanggung_jawab_id' => 'nullable|exists:pegawai,id',
-            'pic_id' => 'required|exists:pegawai,id',
             'pegawai_id' => 'required|array|min:1',
             'pegawai_id.*' => 'exists:pegawai,id',
         ], [
             'pegawai_id.required' => 'Pilih minimal satu peserta.',
         ]);
 
-        // Field administrasi/anggaran (MAK, klasifikasi, dst) — dipakai bersama
-        // PNS & Non-PNS, opsional, divalidasi & di-parse terpisah (lihat method-nya).
-        $adminData = $this->validateAdministrasiFields($request, $validated['uraian_kegiatan']);
-
         // Catatan: komponen_biaya & jenis_uang_harian SENGAJA tidak divalidasi/diterima
-        // di sini lagi. Pemilihan komponen sekarang dilakukan di halaman "Rincian Biaya"
+        // di sini. Pemilihan komponen dilakukan di halaman "Rincian Biaya"
         // (step 2, lihat pesertaStore()), bukan di step 1 ini.
 
         $pegawaiIds = $validated['pegawai_id'];
@@ -152,14 +142,7 @@ class AgendaController extends Controller
         // Kepala Biro (sama persis logic deteksi yg dipakai AgendaPdfController@generateSpd).
         $this->ensureNomorStKaroFilled($pegawaiIds, $validated['nomor_st_karo'] ?? null);
 
-        // Nomor Memo PNS/Non PNS wajib sesuai status peserta yang dipilih.
-        $this->ensureNomorMemoFilled($pegawaiIds, $adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null);
-
-        // Nomor Memo harus unik antar agenda (cegah nomor kembar kalau ada
-        // beberapa orang input bersamaan).
-        $this->ensureNomorMemoUnique($adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null);
-
-        $agenda = Agenda::create(array_merge($validated, $adminData));
+        $agenda = Agenda::create($validated);
 
         // Attach peserta terpilih dengan biaya kosong dulu (default 0/null),
         // rinciannya baru diisi di halaman berikutnya (input biaya), sekalian
@@ -182,16 +165,16 @@ class AgendaController extends Controller
         $ppkList = $pegawaiList;
         $bendaharaList = $pegawaiList;
         $pjList = $pegawaiList;
+
+        // TODO: $picList & $makOptions dihapus (beserta dari compact di bawah)
+        // setelah edit.blade.php tidak lagi memakainya / meng-include
+        // partial administrasi-anggaran.
         $picList = $pegawaiList;
+        $makOptions = MakOption::orderBy('mak')->get();
 
         $provinsiList = SbmRate::orderBy('provinsi')->pluck('provinsi');
         $kabKotaMap = KabupatenKota::orderBy('nama')->get()->groupBy('provinsi')
             ->map(fn($g) => $g->pluck('nama')->values());
-
-        $makOptions = MakOption::orderBy('mak')->get();
-
-        // ST yang belum dipakai agenda lain, plus ST milik agenda ini sendiri
-        $suratTugasList = $this->suratTugasOptions($agenda->surat_tugas_id);
 
         $selectedPesertaIds = $agenda->pegawai->pluck('id');
         $simpleFieldsCek = array_diff(self::SIMPLE_KOMPONEN_FIELDS, ['peng_riil']);
@@ -231,15 +214,13 @@ class AgendaController extends Controller
             'kabKotaMap',
             'makOptions',
             'selectedPesertaIds',
-            'pesertaHasBiayaIds',
-            'suratTugasList'
+            'pesertaHasBiayaIds'
         ));
     }
 
     public function update(Request $request, Agenda $agenda)
     {
         $validated = $request->validate([
-            'surat_tugas_id' => 'nullable|exists:surat_tugas,id',
             'nomor_st' => 'required|string',
             'nomor_st_karo' => 'nullable|string',
             'uraian_kegiatan' => 'required|string',
@@ -251,40 +232,44 @@ class AgendaController extends Controller
             'ppk_id' => 'nullable|exists:pegawai,id',
             'bendahara_id' => 'nullable|exists:pegawai,id',
             'penanggung_jawab_id' => 'nullable|exists:pegawai,id',
-            'pic_id' => 'required|exists:pegawai,id',
             'pegawai_id' => 'required|array|min:1',
             'pegawai_id.*' => 'exists:pegawai,id',
         ], [
             'pegawai_id.required' => 'Pilih minimal satu peserta.',
         ]);
 
-        // Field administrasi/anggaran (MAK, klasifikasi, dst) — sama kayak store().
-        $adminData = $this->validateAdministrasiFields($request, $validated['uraian_kegiatan']);
-
-        // komponen_biaya & jenis_uang_harian juga gak lagi diedit dari sini (lihat
-        // catatan yg sama di store()) — tetap dipertahankan apa adanya di $agenda.
+        // komponen_biaya, jenis_uang_harian, MAK, nomor memo & pic_id tidak diedit dari sini
+        // (lihat pesertaStore() dan anggaranStore()) — dipertahankan apa adanya di $agenda.
 
         $pegawaiIds = collect($validated['pegawai_id'])->map(fn($id) => (int) $id);
         unset($validated['pegawai_id']);
 
         $this->ensureNomorStKaroFilled($pegawaiIds->all(), $validated['nomor_st_karo'] ?? null);
-        $this->ensureNomorMemoFilled($pegawaiIds->all(), $adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null);
 
-        // Unik antar agenda; agenda ini sendiri dikecualikan lewat $agenda->id.
-        $this->ensureNomorMemoUnique($adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null, $agenda->id);
+        // Dihitung sebelum update supaya penolakan di bawah tidak meninggalkan data setengah tersimpan.
+        $currentPegawaiIds = $agenda->pegawai()->pluck('pegawai.id');
+        $toDetach = $currentPegawaiIds->diff($pegawaiIds);
+        $toAttach = $pegawaiIds->diff($currentPegawaiIds);
 
-        $agenda->update(array_merge($validated, $adminData));
+        // Menambah/mengurangi peserta mengubah total biaya memo. Kalau memo sudah
+        // SAKTI/SP2D, angkanya sudah tercatat di SAKTI, jadi susunan peserta dikunci.
+        if ($this->adaMemoTerkunci($agenda) && ($toDetach->isNotEmpty() || $toAttach->isNotEmpty())) {
+            return redirect()->route('agendas.show', $agenda)
+                ->with('warning', 'Peserta tidak bisa ditambah atau dikurangi karena memo sudah SAKTI/SP2D. '
+                    . 'Mundurkan status memo dulu jika perlu koreksi.');
+        }
+
+        $agenda->update($validated);
 
         // Peserta lama yg sudah ter-attach TIDAK disentuh pivot-nya di sini (biar
         // rincian biaya yg udah diisi gak ke-reset) — cuma yg beneran nambah/kurang
         // yg diproses. Ini sengaja gak pakai sync() polos, karena sync() akan nulis
         // ulang kolom pivot yg gak disebutkan jadi default/null.
-        $currentPegawaiIds = $agenda->pegawai()->pluck('pegawai.id');
-        $toDetach = $currentPegawaiIds->diff($pegawaiIds);
-        $toAttach = $pegawaiIds->diff($currentPegawaiIds);
-
         if ($toDetach->isNotEmpty()) {
             $agenda->pegawai()->detach($toDetach);
+
+            // Peserta berkurang -> total biaya berubah -> segarkan snapshot memo yang masih outstanding.
+            $this->segarkanSnapshotMemo($agenda);
         }
 
         foreach ($toAttach as $pegawaiId) {
@@ -332,6 +317,14 @@ class AgendaController extends Controller
 
     public function pesertaStore(Request $request, Agenda $agenda)
     {
+        // Rincian biaya menentukan nominal memo. Kalau salah satu memo sudah SAKTI/SP2D,
+        // angkanya sudah tercatat di SAKTI, jadi rincian tidak boleh berubah.
+        if ($this->adaMemoTerkunci($agenda)) {
+            return redirect()->route('agendas.show', $agenda)
+                ->with('warning', 'Rincian biaya tidak bisa diubah karena memo sudah SAKTI/SP2D. '
+                    . 'Mundurkan status memo dulu jika perlu koreksi.');
+        }
+
         // Rentang surat tugas (batas tanggal peserta)
         $min = $agenda->tanggal_mulai->toDateString();
         $max = $agenda->tanggal_selesai->toDateString();
@@ -511,13 +504,155 @@ class AgendaController extends Controller
                 $rowData['lumpsum'] = $lumpsumTotal;
             }
 
-            $syncData[$pegawaiId] = $rowData;
+            // Nol-kan semua kolom biaya yang tidak aktif supaya nilai lama tidak nyangkut di pivot.
+            // $rowData menang atas default, jadi komponen aktif tetap pakai nilai barunya.
+            $resetDefaults = [];
+            foreach (self::SIMPLE_KOMPONEN_FIELDS as $f) {
+                $resetDefaults[$f] = 0;
+            }
+            $resetDefaults['peng_riil'] = 0;
+            $resetDefaults['peng_riil_detail'] = null;
+            $resetDefaults['lumpsum'] = 0;
+            foreach (self::UH_FIELD_MAP as $f) {
+                $resetDefaults[$f['hari']] = 0;
+                $resetDefaults[$f['rate']] = 0;
+            }
+
+            $syncData[$pegawaiId] = array_merge($resetDefaults, $rowData);
         }
 
         $agenda->pegawai()->sync($syncData);
 
-        return redirect()->route('agendas.show', $agenda)
+        // Rincian baru saja berubah: perbarui snapshot nominal memo yang masih outstanding
+        // (yang sudah punya nomor memo). Kalau tidak, nominal di daftar memo tertinggal angka lama.
+        $this->segarkanSnapshotMemo($agenda);
+
+        // Belum pilih anggaran -> lanjut ke step 3
+        if (empty($agenda->mak)) {
+            return redirect()->route('agendas.anggaran', $agenda)
+                ->with('success', 'Biaya tersimpan. Lanjut pilih anggaran & nomor memo.');
+        }
+
+        // Sudah punya MAK: biaya baru bisa melebihi sisa MAK -> peringatan saja (data tetap tersimpan)
+        $redirect = redirect()->route('agendas.show', $agenda)
             ->with('success', 'Peserta & biaya berhasil disimpan.');
+
+        $peringatan = MakSisaService::cek($agenda->fresh(), $agenda->mak);
+
+        return $peringatan ? $redirect->with('warning', $peringatan) : $redirect;
+    }
+
+    /**
+     * Step 3: pilih MAK (setelah total biaya diketahui), isi uraian, petugas
+     * verifikasi, nomor memo PNS/Non PNS, dan PIC.
+     */
+    public function anggaranForm(Agenda $agenda)
+    {
+        if (empty($agenda->komponen_biaya)) {
+            return redirect()->route('agendas.peserta', $agenda)
+                ->withErrors(['biaya' => 'Isi rincian biaya dulu sebelum memilih anggaran.']);
+        }
+
+        $agenda->load('pegawai');
+
+        $pegawaiList = Pegawai::orderBy('nama')->get();
+
+        // Hanya MAK aktif; MAK yang sedang dipakai agenda ini tetap ikut walau sudah nonaktif.
+        $makOptions = MakOption::where(fn($q) => $q->where('is_active', true)->orWhere('mak', $agenda->mak))
+            ->orderBy('mak')
+            ->get();
+
+        // Agenda ini sendiri dikecualikan supaya biayanya tidak mengurangi sisa dua kali.
+        $makOutstanding = MakSisaService::outstanding(null, $agenda->id);
+
+        $totalAsn = (int) $agenda->biaya_asn;
+        $totalNonAsn = (int) $agenda->biaya_non_asn;
+        $totalBiaya = $totalAsn + $totalNonAsn;
+
+        return view('agendas.anggaran', compact(
+            'agenda',
+            'pegawaiList',
+            'makOptions',
+            'makOutstanding',
+            'totalAsn',
+            'totalNonAsn',
+            'totalBiaya'
+        ));
+    }
+
+    public function anggaranStore(Request $request, Agenda $agenda)
+    {
+        $picData = $request->validate(['pic_id' => 'required|exists:pegawai,id']);
+        $adminData = $this->validateAdministrasiFields($request, $agenda->uraian_kegiatan);
+
+        $pegawaiIds = $agenda->pegawai()->pluck('pegawai.id')->all();
+
+        // Nomor Memo PNS/Non PNS wajib sesuai status peserta yang dipilih.
+        $this->ensureNomorMemoFilled($pegawaiIds, $adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null);
+
+        // Nomor Memo harus unik antar agenda; agenda ini sendiri dikecualikan.
+        $this->ensureNomorMemoUnique($adminData['nomor_memo_pns'] ?? null, $adminData['nomor_memo_non_pns'] ?? null, $agenda->id);
+
+        // ---- Kunci: memo yang sudah SAKTI / SP2D tidak boleh ganti MAK atau nomor memo ----
+        // (uangnya sudah tercatat di SAKTI; kalau perlu koreksi, mundurkan status memo dulu)
+        $terkunciPns = filled($agenda->nomor_memo_pns)
+            && in_array($agenda->status_pns, ['sakti', 'sp2d'], true);
+        $terkunciNonPns = filled($agenda->nomor_memo_non_pns)
+            && in_array($agenda->status_non_pns, ['sakti', 'sp2d'], true);
+        $adaTerkunci = $terkunciPns || $terkunciNonPns;
+
+        if ($adaTerkunci) {
+            $berubah = $agenda->mak !== ($adminData['mak'] ?? null)
+                || ($terkunciPns && $agenda->nomor_memo_pns !== ($adminData['nomor_memo_pns'] ?? null))
+                || ($terkunciNonPns && $agenda->nomor_memo_non_pns !== ($adminData['nomor_memo_non_pns'] ?? null));
+
+            if ($berubah) {
+                throw ValidationException::withMessages([
+                    'mak' => 'MAK dan nomor memo tidak bisa diubah karena memo sudah SAKTI/SP2D. '
+                        . 'Mundurkan status memo dulu jika perlu koreksi.',
+                ]);
+            }
+        }
+
+        // Hard block kalau total biaya > sisa MAK (MAK manual di luar master tidak bisa dicek).
+        // Dilewati kalau sudah ada memo SAKTI/SP2D: biayanya sudah masuk realisasi master MAK,
+        // jadi membandingkannya lagi dengan sisa akan menghitung dua kali.
+        if (!$adaTerkunci && ($msg = MakSisaService::cek($agenda, $adminData['mak']))) {
+            throw ValidationException::withMessages(['mak' => $msg]);
+        }
+
+        // anggaran_at hanya diisi kalau MAK baru / berubah, supaya simpan ulang
+        // tidak menggeser agenda lama ke "setelah tanggal laporan FA".
+        // (Tidak lagi dipakai MakSisaService, tapi dibiarkan supaya data lama tetap utuh.)
+        if ($agenda->mak !== $adminData['mak']) {
+            $adminData['anggaran_at'] = now();
+        }
+
+        // ---- Snapshot nominal memo: angka tetap saat memo disimpan ----
+        // Hanya memo yang masih outstanding yang di-refresh. Memo SAKTI/SP2D dibiarkan,
+        // jadi angkanya tidak ikut bergeser kalau rincian biaya diedit belakangan.
+        $agenda->load('pegawai');
+        $snapshot = [];
+
+        $nomorPns = $adminData['nomor_memo_pns'] ?? null;
+        if (!filled($nomorPns)) {
+            $snapshot['nominal_memo_pns'] = null;
+        } elseif (!$terkunciPns) {
+            $snapshot['nominal_memo_pns'] = (int) $agenda->biaya_asn;
+        }
+
+        $nomorNonPns = $adminData['nomor_memo_non_pns'] ?? null;
+        if (!filled($nomorNonPns)) {
+            $snapshot['nominal_memo_non_pns'] = null;
+        } elseif (!$terkunciNonPns) {
+            $snapshot['nominal_memo_non_pns'] = (int) $agenda->biaya_non_asn;
+        }
+
+        // forceFill: kolom snapshot tidak ada di $fillable; semua isi sudah divalidasi di atas.
+        $agenda->forceFill(array_merge($picData, $adminData, $snapshot))->save();
+
+        return redirect()->route('agendas.show', $agenda)
+            ->with('success', 'Anggaran & nomor memo berhasil disimpan.');
     }
 
     public function dokumenForm(Agenda $agenda)
@@ -620,24 +755,36 @@ class AgendaController extends Controller
     // AgendaPdfController — jangan ditambahin lagi di sini, biar gak dobel.
 
     /**
-     * Surat Tugas bernomor untuk dropdown "Ambil dari Surat Tugas" di form agenda.
-     * ST yang sudah dipakai agenda lain disembunyikan; $termasukId = ST milik agenda
-     * yang sedang diedit supaya pilihannya tetap tampil.
+     * True kalau salah satu memo agenda (yang sudah bernomor) berstatus SAKTI atau SP2D.
+     * Memo seperti itu sudah tercatat di SAKTI, jadi nominal, MAK, nomor memo, susunan
+     * peserta, dan penghapusan agenda dikunci. Status batal TIDAK ikut mengunci.
      */
-    private function suratTugasOptions(?int $termasukId = null): array
+    private function adaMemoTerkunci(Agenda $agenda): bool
     {
-        $dipakai = Agenda::whereNotNull('surat_tugas_id')
-            ->when($termasukId, fn($q) => $q->where('surat_tugas_id', '!=', $termasukId))
-            ->pluck('surat_tugas_id');
+        return (filled($agenda->nomor_memo_pns) && in_array($agenda->status_pns, ['sakti', 'sp2d'], true))
+            || (filled($agenda->nomor_memo_non_pns) && in_array($agenda->status_non_pns, ['sakti', 'sp2d'], true));
+    }
 
-        return SuratTugas::whereNotNull('nomor')
-            ->whereNotIn('id', $dipakai)
-            ->orderByDesc('tanggal')->orderByDesc('id')
-            ->get(['id', 'nomor', 'untuk'])
-            ->map(fn($s) => [
-                'id' => $s->id,
-                'label' => $s->nomor . ' — ' . Str::limit($s->untuk[0] ?? '-', 70),
-            ])->all();
+    /**
+     * Perbarui snapshot nominal untuk memo yang masih outstanding dan sudah bernomor,
+     * dihitung dari rincian peserta saat ini. Memo SAKTI/SP2D/batal tidak disentuh.
+     */
+    private function segarkanSnapshotMemo(Agenda $agenda): void
+    {
+        $agenda->load('pegawai');
+        $snapshot = [];
+
+        if (filled($agenda->nomor_memo_pns) && ($agenda->status_pns ?? 'outstanding') === 'outstanding') {
+            $snapshot['nominal_memo_pns'] = (int) $agenda->biaya_asn;
+        }
+
+        if (filled($agenda->nomor_memo_non_pns) && ($agenda->status_non_pns ?? 'outstanding') === 'outstanding') {
+            $snapshot['nominal_memo_non_pns'] = (int) $agenda->biaya_non_asn;
+        }
+
+        if ($snapshot) {
+            $agenda->forceFill($snapshot)->save();
+        }
     }
 
     /**
@@ -706,9 +853,7 @@ class AgendaController extends Controller
                 continue;
             }
 
-            $dipakai = Agenda::where($kolom, $item['nilai'])
-                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
-                ->exists();
+            $dipakai = NomorMemoService::sudahDipakai($item['nilai'], null, $ignoreId);
 
             if ($dipakai) {
                 $errors[$kolom] = $item['label'] . ' ini sudah dipakai agenda lain. Klik "Ambil Nomor" lagi untuk dapat nomor terbaru.';
@@ -725,36 +870,26 @@ class AgendaController extends Controller
         }
     }
 
-    /**
-     * Nomor ST Kepala Biro wajib diisi kalau salah satu peserta yang dipilih
-     * jabatannya Kepala Biro — deteksinya sama persis kayak yang dipakai
-     * AgendaPdfController@generateSpd (jabatan mengandung "kepala biro").
-     * Divalidasi manual di sini (bukan lewat $request->validate() biasa) karena
-     * aturannya tergantung data peserta yang dipilih, bukan cuma field lain.
-     */
     private function ensureNomorStKaroFilled(array $pegawaiIds, ?string $nomorStKaro): void
     {
-        $adaKaro = Pegawai::whereIn('id', $pegawaiIds)
-            ->get()
-            ->contains(fn($p) => str_contains(strtolower($p->jabatan ?? ''), 'kepala biro'));
+        $adaEselon = Pegawai::whereIn('id', $pegawaiIds)
+            ->whereIn('eselon', Pegawai::ESELON_ST_KHUSUS)
+            ->exists();
 
-        if ($adaKaro && empty($nomorStKaro)) {
+        if ($adaEselon && empty($nomorStKaro)) {
             throw ValidationException::withMessages([
-                'nomor_st_karo' => 'Nomor ST Kepala Biro wajib diisi karena ada peserta Kepala Biro di agenda ini.',
+                'nomor_st_karo' => 'Nomor ST khusus wajib diisi karena ada peserta Eselon I/II di agenda ini.',
             ]);
         }
     }
-
     /**
-     * Field administrasi/anggaran yang dipakai bersama PNS & Non-PNS (dulu diisi
-     * di halaman Memorandum tiap generate PDF per status, sekarang diisi sekali
-     * di form Buat/Edit Agenda biar gak double pengisian). Semua opsional — boleh
-     * dikosongin dulu pas bikin agenda, dilengkapi belakangan lewat edit.
+     * Field administrasi/anggaran yang dipakai bersama PNS & Non-PNS. Sekarang
+     * diisi di step 3 (Anggaran & Memo), setelah total biaya agenda diketahui.
      *
      * $uraianKegiatan dipakai buat nyusun otomatis uraian_memo_pns/non_pns —
      * gak ada input terpisah buat itu, biar gak diketik ulang.
      *
-     * Dipakai bareng oleh store() & update().
+     * Dipakai oleh anggaranStore().
      */
     private function validateAdministrasiFields(Request $request, string $uraianKegiatan): array
     {
@@ -800,7 +935,7 @@ class AgendaController extends Controller
         }
 
         // Uraian memo bukan input manual — selalu disusun ulang dari uraian_kegiatan
-        // tiap kali agenda disimpan, biar selalu sinkron kalau uraian_kegiatan diedit.
+        // tiap kali anggaran disimpan, biar selalu sinkron kalau uraian_kegiatan diedit.
         $validated['uraian_memo_pns'] = 'Sehubungan dengan Perjalanan ASN ' . $uraianKegiatan;
         $validated['uraian_memo_non_pns'] = 'Sehubungan dengan Perjalanan NON ASN ' . $uraianKegiatan;
 
@@ -808,15 +943,31 @@ class AgendaController extends Controller
     }
 
     // memorandumForm() & memorandumStore() DIHAPUS — halaman "Isi Data Memorandum"
-    // gak dipakai lagi. Nomor Memo (PNS/Non-PNS) sekarang diisi manual di form
-    // Buat/Edit Agenda (lihat partial administrasi-anggaran), Uraian Memo disusun
-    // otomatis dari uraian_kegiatan (lihat validateAdministrasiFields() di atas).
+    // gak dipakai lagi. Nomor Memo (PNS/Non-PNS) diisi manual di step 3
+    // (anggaranForm/anggaranStore), Uraian Memo disusun otomatis dari
+    // uraian_kegiatan (lihat validateAdministrasiFields() di atas).
+    // memorandumPdf() TETAP ADA di AgendaPdfController — itu yang beneran
+    // generate PDF-nya, dipanggil dari halaman show agenda.
+    //
+    // CATATAN: hapus juga 2 route ini dari routes/web.php kalau masih ada:
+    //   - GET  agendas/{agenda}/memorandum/{status}        (agendas.memorandum)
+    //   - POST agendas/{agenda}/memorandum/{status}         (agendas.memorandum.store)
+    // Route agendas.memorandum.pdf (GET) TETAP DIPAKAI (AgendaPdfController@memorandumPdf).
+    //
     // memorandumPdf(), generateRincianBiaya(), generatePengeluaranRiil(),
     // generateMergedPdf() SEMUA DIPINDAH ke AgendaPdfController — jangan
     // ditambahin lagi di sini, biar gak dobel.
 
     public function destroy(Agenda $agenda)
     {
+        // Memo yang sudah SAKTI/SP2D sudah tercatat di SAKTI, jadi agendanya tidak boleh dihapus.
+        // Kalau memang harus dibatalkan, ubah status memo jadi Batal (dengan alasan) dulu.
+        if ($this->adaMemoTerkunci($agenda)) {
+            return redirect()->route('agendas.show', $agenda)
+                ->with('warning', 'Agenda tidak bisa dihapus karena memo sudah SAKTI/SP2D. '
+                    . 'Ubah status memo menjadi Batal terlebih dahulu jika memang dibatalkan.');
+        }
+
         // Hapus dokumen fisik yang terkait biar tidak jadi file sampah
         foreach ($agenda->dokumenUploads as $dokumen) {
             Storage::disk('public')->delete($dokumen->file_path);

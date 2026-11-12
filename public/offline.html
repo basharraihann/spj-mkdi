@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<title>Sedang offline | SPJ</title>
+<style>
+  :root{color-scheme:light dark;--bg:#f4f6fb;--fg:#0f172a;--mut:#64748b;--card:#fff;--line:#e2e8f0;--pri:#2563eb}
+  @media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e5e9f2;--mut:#94a3b8;--card:#111a2e;--line:#1f2b45}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px;background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  main{width:100%;max-width:380px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:32px 24px}
+  .ic{width:56px;height:56px;margin:0 auto 16px;border-radius:16px;background:#eff6ff;color:var(--pri);display:grid;place-items:center}
+  h1{font-size:1.125rem;margin:0 0 6px}
+  p{margin:0 0 20px;color:var(--mut);font-size:.875rem;line-height:1.55}
+  button{font:inherit;font-weight:600;font-size:.875rem;background:var(--pri);color:#fff;border:0;border-radius:12px;padding:12px 20px;cursor:pointer;width:100%}
+  button:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <div class="ic" aria-hidden="true">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>
+  </div>
+  <h1>Sedang offline</h1>
+  <p>Koneksi internet terputus. Data anggaran dan memo hanya bisa dibuka saat online, supaya angka yang tampil selalu terbaru.</p>
+  <button type="button" onclick="location.reload()">Coba lagi</button>
+</main>
+</body>
+</html>

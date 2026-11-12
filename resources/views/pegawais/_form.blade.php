@@ -158,6 +158,28 @@
         </div>
     </div>
 
+    <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">
+            Eselon <span class="text-gray-300 font-normal normal-case">(opsional, kosongkan kalau non-struktural)</span>
+        </label>
+        <div class="relative">
+            <select name="eselon"
+                class="w-full appearance-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white">
+                <option value="">— Non struktural —</option>
+                @foreach (\App\Models\Pegawai::ESELON as $value => $label)
+                    <option value="{{ $value }}" {{ old('eselon', $pegawai->eselon ?? '') === $value ? 'selected' : '' }}>
+                        {{ $label }}
+                    </option>
+                @endforeach
+            </select>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+    </div>
+
     <p class="text-xs text-gray-400 flex items-start gap-1.5 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
             stroke="currentColor" stroke-width="2">
@@ -167,7 +189,8 @@
         <span>
             <strong class="text-gray-500">Status Kepegawaian</strong> dipakai buat misahin biaya ASN vs Non-ASN di
             rekap agenda. <strong class="text-gray-500">Peran Penandatangan</strong> menandai kalau pegawai ini biasa
-            jadi PPK/Bendahara/dst di dropdown form agenda.
+            jadi PPK/Bendahara/dst di dropdown form agenda. <strong class="text-gray-500">Eselon</strong> I/II
+            mewajibkan Nomor ST khusus saat pegawai ini dipilih sebagai peserta agenda.
         </span>
     </p>
 </div>

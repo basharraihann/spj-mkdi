@@ -4,6 +4,12 @@
             {{ __('Dashboard') }}
         </h2>
     </x-slot>
+
+    @php
+        // Admin tidak boleh mengubah role akunnya sendiri (dicek juga di UserController@update).
+        $akunSendiri = $user->id === auth()->id();
+    @endphp
+
     <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto space-y-6">
 
         <!-- Back & Title -->
@@ -73,7 +79,7 @@
                 <!-- Unit -->
                 <div>
                     <label for="unit_id" class="block text-sm font-medium text-gray-700 mb-1">
-                        Unit
+                        Unit <span id="unit-required" class="text-rose-500">*</span>
                     </label>
                     <select name="unit_id" id="unit_id"
                         class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('unit_id') border-rose-500 @enderror">
@@ -84,6 +90,8 @@
                             </option>
                         @endforeach
                     </select>
+                    <p class="text-xs text-gray-400 mt-1">Wajib untuk Staf dan TU, karena menentukan data yang bisa
+                        dilihat. Boleh kosong untuk Administrator.</p>
                     @error('unit_id')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -94,51 +102,60 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Hak Akses / Role <span class="text-rose-500">*</span>
                     </label>
-                    @php
-                        $roleInfo = [
-                            'user' => [
-                                'badge' => 'Staf',
-                                'badgeClass' => 'bg-emerald-100 text-emerald-700',
-                                'desc' => 'Dapat mengelola Agenda, Pegawai, dan Nomor Memo. Tidak dapat mengelola user.',
-                            ],
-                            'pimpinan' => [
-                                'badge' => 'Pimpinan',
-                                'badgeClass' => 'bg-amber-100 text-amber-700',
-                                'desc' => 'Hanya melihat: memantau kegiatan Surat Tugas, notulensi, dan materi di halaman Monitoring. Tidak dapat mengubah data.',
-                            ],
-                            'admin' => [
-                                'badge' => 'Admin',
-                                'badgeClass' => 'bg-purple-100 text-purple-700',
-                                'desc' => 'Akses penuh ke seluruh sistem, termasuk kelola User Manajemen.',
-                            ],
-                        ];
-                        $selectedRole = old('role', $user->role);
-                        $isSelf = auth()->id() === $user->id;
-                    @endphp
 
-                    @if ($isSelf)
-                        <p class="text-xs text-amber-600 mb-2">Role akun Anda sendiri tidak dapat diubah.</p>
+                    @if ($akunSendiri)
+                        {{-- Radio yang disabled tidak ikut terkirim, jadi role dikirim lewat input hidden. --}}
                         <input type="hidden" name="role" value="{{ $user->role }}">
+                        <p class="text-xs text-amber-600 mb-2">Role akun yang sedang Anda pakai tidak bisa diubah.</p>
                     @endif
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        @foreach (\App\Models\User::ROLE_LABEL as $value => $label)
-                            @php $info = $roleInfo[$value] ?? ['badge' => $label, 'badgeClass' => 'bg-gray-100 text-gray-700', 'desc' => '']; @endphp
-                            <label
-                                class="relative flex flex-col p-4 rounded-xl border-2 transition focus:outline-none has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30 border-gray-200 {{ $isSelf ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-gray-300' }}">
-                                <div class="flex items-center justify-between mb-1 gap-2">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <input type="radio" name="role" value="{{ $value }}"
-                                            @checked($selectedRole === $value) @disabled($isSelf)
-                                            class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                                        <span class="font-semibold text-gray-900 text-sm">{{ $label }}</span>
-                                    </div>
-                                    <span
-                                        class="text-xs font-semibold px-2 py-0.5 rounded shrink-0 {{ $info['badgeClass'] }}">{{ $info['badge'] }}</span>
+                        <label
+                            class="relative flex flex-col p-4 rounded-xl border-2 transition focus:outline-none has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30 border-gray-200 {{ $akunSendiri ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-gray-300' }}">
+                            <div class="flex items-center justify-between mb-1 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="role" value="user" {{ old('role', $user->role) == 'user' ? 'checked' : '' }}
+                                        @disabled($akunSendiri)
+                                        class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    <span class="font-semibold text-gray-900 text-sm">Staf / User</span>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">{{ $info['desc'] }}</p>
-                            </label>
-                        @endforeach
+                                <span
+                                    class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Staf</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Dapat mengelola Agenda, Pegawai, dan Nomor Memo
+                                unitnya. Tidak dapat mengubah status memo, upload anggaran, atau mengelola user.</p>
+                        </label>
+
+                        <label
+                            class="relative flex flex-col p-4 rounded-xl border-2 transition focus:outline-none has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30 border-gray-200 {{ $akunSendiri ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-gray-300' }}">
+                            <div class="flex items-center justify-between mb-1 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="role" value="tu" {{ old('role', $user->role) == 'tu' ? 'checked' : '' }}
+                                        @disabled($akunSendiri)
+                                        class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    <span class="font-semibold text-gray-900 text-sm">Tata Usaha</span>
+                                </div>
+                                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-700">TU</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Seperti Staf, ditambah dapat mengubah status memo dan
+                                meng-upload anggaran. Tidak dapat mengelola user.</p>
+                        </label>
+
+                        <label
+                            class="relative flex flex-col p-4 rounded-xl border-2 transition focus:outline-none has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30 border-gray-200 {{ $akunSendiri ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-gray-300' }}">
+                            <div class="flex items-center justify-between mb-1 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="role" value="admin" {{ old('role', $user->role) == 'admin' ? 'checked' : '' }}
+                                        @disabled($akunSendiri)
+                                        class="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    <span class="font-semibold text-gray-900 text-sm">Administrator</span>
+                                </div>
+                                <span
+                                    class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">Admin</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Akses penuh ke seluruh sistem dan semua unit,
+                                termasuk kelola User Manajemen.</p>
+                        </label>
                     </div>
                     @error('role')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
@@ -194,4 +211,24 @@
         </div>
 
     </div>
+
+    <script>
+        // Unit wajib untuk Staf dan TU, opsional untuk Administrator.
+        (function () {
+            const unit = document.getElementById('unit_id');
+            const star = document.getElementById('unit-required');
+
+            function sync() {
+                const checked = document.querySelector('input[type="radio"][name="role"]:checked');
+                const isAdmin = checked && checked.value === 'admin';
+                unit.required = !isAdmin;
+                star.classList.toggle('hidden', isAdmin);
+            }
+
+            document.querySelectorAll('input[type="radio"][name="role"]').forEach(function (el) {
+                el.addEventListener('change', sync);
+            });
+            sync();
+        })();
+    </script>
 </x-app-layout>

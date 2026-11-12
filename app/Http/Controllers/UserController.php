@@ -14,38 +14,70 @@ use Illuminate\View\View;
 class UserController extends Controller
 {
     /**
+     * Role yang boleh dipilih di form.
+     */
+    private function roles(): array
+    {
+        return [User::ROLE_ADMIN, User::ROLE_USER, User::ROLE_TU];
+    }
+
+    /**
+     * Pesan validasi khusus (unit wajib untuk selain admin).
+     */
+    private function messages(): array
+    {
+        return [
+            'unit_id.required_unless' => 'Unit wajib dipilih untuk role selain Administrator.',
+            'role.in' => 'Role yang dipilih tidak valid.',
+        ];
+    }
+
+    /**
      * Tampilkan daftar user (Manajemen User).
      */
-    public function index()
+    public function index(Request $request): View
     {
-        // Ambil semua user beserta unit-nya (tanpa paginate dan tanpa filter)
-        $users = User::with('unit')
-            ->orderBy('name')
-            ->get();
+        $query = User::query()->with('unit');
 
-        $units = Unit::orderBy('kode')->get();
+        if ($request->filled('q')) {
+            $search = $request->q;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhereHas('unit', function ($u) use ($search) {
+                        $u->where('nama', 'like', "%{$search}%")
+                            ->orWhere('kode', 'like', "%{$search}%");
+                    });
+            });
+        }
 
-        // Ringkasan dihitung dari koleksi yang sama supaya angkanya selalu cocok
-        $totalUsers = $users->count();
-        $totalAdmin = $users->filter(fn($u) => $u->isAdmin())->count();
-        $totalPimpinan = $users->filter(fn($u) => $u->isPimpinan())->count();
-        $totalStaf = $totalUsers - $totalAdmin - $totalPimpinan;
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
 
-        return view('users.index', compact(
-            'users',
-            'units',
-            'totalUsers',
-            'totalAdmin',
-            'totalPimpinan',
-            'totalStaf'
-        ));
+        if ($request->filled('unit_id')) {
+            $query->where('unit_id', $request->unit_id);
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->get();
+
+        $units = Unit::orderBy('id')->get();
+
+        $totalUsers = User::count();
+        $totalAdmin = User::where('role', User::ROLE_ADMIN)->count();
+        $totalTu = User::where('role', User::ROLE_TU)->count();
+        $totalStaf = User::where('role', User::ROLE_USER)->count();
+
+        return view('users.index', compact('users', 'units', 'totalUsers', 'totalAdmin', 'totalTu', 'totalStaf'));
     }
+
     /**
      * Form tambah user baru.
      */
     public function create(): View
     {
-        $units = Unit::orderBy('nama')->get();
+        $units = Unit::orderBy('id')->get();
 
         return view('users.create', compact('units'));
     }
@@ -59,10 +91,10 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', 'unique:' . User::class, 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
-            'unit_id' => ['nullable', 'exists:units,id'],
-            'role' => ['required', 'string', Rule::in(array_keys(User::ROLE_LABEL))],
+            'unit_id' => ['required_unless:role,' . User::ROLE_ADMIN, 'nullable', 'exists:units,id'],
+            'role' => ['required', 'string', Rule::in($this->roles())],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        ], $this->messages());
 
         User::create([
             'name' => $validated['name'],
@@ -73,7 +105,7 @@ class UserController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        return redirect()->route('users.index');
+        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
     }
 
     /**
@@ -81,7 +113,7 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
-        $units = Unit::orderBy('nama')->get();
+        $units = Unit::orderBy('id')->get();
 
         return view('users.edit', compact('user', 'units'));
     }
@@ -95,15 +127,16 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id), 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'unit_id' => ['nullable', 'exists:units,id'],
-            'role' => ['required', 'string', Rule::in(array_keys(User::ROLE_LABEL))],
+            'unit_id' => ['required_unless:role,' . User::ROLE_ADMIN, 'nullable', 'exists:units,id'],
+            'role' => ['required', 'string', Rule::in($this->roles())],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-        ]);
+        ], $this->messages());
 
-        // Cegah admin menurunkan role akunnya sendiri (bisa kehilangan akses manajemen user).
+        // Admin tidak boleh mengubah role akunnya sendiri (mencegah kehilangan satu-satunya admin).
         if ($user->id === auth()->id() && $validated['role'] !== $user->role) {
-            return back()->withInput()
-                ->with('error', 'Anda tidak dapat mengubah role akun Anda sendiri.');
+            return back()
+                ->withErrors(['role' => 'Anda tidak bisa mengubah role akun sendiri.'])
+                ->withInput();
         }
 
         $user->name = $validated['name'];

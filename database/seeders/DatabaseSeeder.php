@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,24 +16,24 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Administrator',
+                'username' => 'admin',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_ADMIN,
+            ]
+        );
+
         $this->call([
-                // 1. Master Data & Referensi Dasar
-            UnitSeeder::class,
-            TusiSeeder::class,
+            UnitSeeder::class,          // taruh paling atas kalau Pegawai butuh unit
             PegawaiSeeder::class,
             KabupatenKotaSeeder::class,
-
-                // 2. Data Anggaran & SBM
-            MakOptionSeeder::class,
             SbmRateSeeder::class,
             SbmFlatRateSeeder::class,
             PengRiilRateSeeder::class,
             AnggaranPemetaanSeeder::class,
-
-                // 3. Pengguna 5 Role Baku (tu, eselon1, eselon2, user, admin)
-            UserSeeder::class,
-
-
         ]);
     }
 }

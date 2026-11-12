@@ -8,8 +8,9 @@ use Illuminate\Support\Collection;
 
 /**
  * Nomor memo itu satu urutan global — gak dibedain PNS/Non-PNS, gak ada
- * reset per tahun. Nomor "terbesar yang pernah dipakai" dihitung dari
- * gabungan dua sumber:
+ * reset per tahun, dan gak dibedain per unit. Nomor "terbesar yang pernah
+ * dipakai" dihitung dari gabungan dua sumber, SEMUA unit (scope 'unit'
+ * sengaja dilepas, yang diambil cuma angka/format nomor, bukan uraian):
  *   1. agendas.nomor_memo_pns / nomor_memo_non_pns  (nomor lama, teks bebas,
  *      format "323/LS.D1.PPK/KU.00/07/2026" — angka di depan yang dipakai)
  *   2. memo_entries.nomor_urut                       (nomor yang dibuat lewat
@@ -32,7 +33,8 @@ class NomorMemoService
             ->filter()
             ->max();
 
-        $dariEntries = MemoEntry::max('nomor_urut');
+        // lintas unit: nomor itu satu urutan untuk seluruh instansi
+        $dariEntries = MemoEntry::withoutGlobalScope('unit')->max('nomor_urut');
 
         return max((int) $dariAgenda, (int) $dariEntries, self::NOMOR_AWAL - 1);
     }
@@ -75,9 +77,41 @@ class NomorMemoService
         return preg_match('/^\s*(\d+)/', $nomor, $m) ? (int) $m[1] : null;
     }
 
+    /**
+     * Apakah angka urut dari $nomor sudah dipakai di unit mana pun
+     * (memo_entries atau agendas)? Cek lintas unit, dibandingkan per angka urut.
+     */
+    public static function sudahDipakai(?string $nomor, ?int $ignoreEntryId = null, ?int $ignoreAgendaId = null): bool
+    {
+        $urut = self::ekstrakUrutan($nomor);
+
+        if ($urut === null) {
+            return false;
+        }
+
+        $diEntries = MemoEntry::withoutGlobalScope('unit')
+            ->where('nomor_urut', $urut)
+            ->when($ignoreEntryId, fn($q) => $q->where('id', '!=', $ignoreEntryId))
+            ->exists();
+
+        if ($diEntries) {
+            return true;
+        }
+
+        return Agenda::withoutGlobalScope('unit')
+            ->when($ignoreAgendaId, fn($q) => $q->where('id', '!=', $ignoreAgendaId))
+            ->where(function ($q) {
+                $q->whereNotNull('nomor_memo_pns')->orWhereNotNull('nomor_memo_non_pns');
+            })
+            ->get(['nomor_memo_pns', 'nomor_memo_non_pns'])
+            ->flatMap(fn($a) => [$a->nomor_memo_pns, $a->nomor_memo_non_pns])
+            ->filter()
+            ->contains(fn($n) => self::ekstrakUrutan($n) === $urut);
+    }
+
     private static function semuaNomorDariAgenda(): Collection
     {
-        return Agenda::query()
+        return Agenda::withoutGlobalScope('unit')
             ->where(function ($q) {
                 $q->whereNotNull('nomor_memo_pns')->orWhereNotNull('nomor_memo_non_pns');
             })
@@ -95,9 +129,7 @@ class NomorMemoService
      * string, BUKAN explode('/') + hitung index segmen — karena format nomor
      * memo yang beneran dipakai ternyata gak konsisten jumlah segmennya
      * (mis. format lama "323/LS.D1.PPK/KU.00/07/2026" vs format baru
-     * "374.KU.00.00/2027"). Pendekatan lama (explode + index) cuma cocok utk
-     * format lama, jadi di format baru bulan/tahunnya gak pernah ke-update
-     * dan nyangkut ke tahun manapun yang kebetulan jadi contoh pertama.
+     * "374.KU.00.00/2027").
      */
     private static function templateEkor(): string
     {
@@ -107,21 +139,18 @@ class NomorMemoService
         $contoh = self::contohTerakhir();
 
         if (!$contoh) {
-            // Belum pernah ada nomor memo sama sekali -> template default kamu
+            // Belum pernah ada nomor memo sama sekali -> template default
             return ".KU.00.00/{$tahun}";
         }
 
         // Buang angka urut di depan, sisanya dipakai sbg "ekor" format.
         $ekor = preg_replace('/^\s*\d+/', '', $contoh);
 
-        // Ganti 4 digit tahun di paling ujung ke tahun sekarang — gak
-        // bergantung separator apapun (baik "/" maupun "."), jadi format lama
-        // ("323/.../07/2026") maupun format baru (".KU.00.00/2027") sama-sama
-        // ke-update tahunnya.
+        // Ganti 4 digit tahun di paling ujung ke tahun sekarang.
         $ekor = preg_replace('/\d{4}\s*$/', $tahun, $ekor);
 
-        // Kalau formatnya juga punya segmen bulan terpisah (misal ".../07/2026"),
-        // segmen bulan (2 digit sebelum tahun, dipisah "/") ikut di-update juga.
+        // Kalau formatnya punya segmen bulan terpisah (".../07/2026"),
+        // segmen bulan ikut di-update juga.
         $ekor = preg_replace('/(\/)\d{2}(\/\d{4}\s*$)/', '$1' . $bulan . '$2', $ekor);
 
         return $ekor;
@@ -129,11 +158,13 @@ class NomorMemoService
 
     /**
      * Teks nomor memo lengkap dengan nomor_urut TERBESAR yang pernah dipakai
-     * (dari kedua sumber), dipakai sebagai acuan format "ekor".
+     * (dari kedua sumber, semua unit), dipakai sebagai acuan format "ekor".
      */
     private static function contohTerakhir(): ?string
     {
-        $entryTerakhir = MemoEntry::orderByDesc('nomor_urut')->first()?->nomor_memo;
+        $entryTerakhir = MemoEntry::withoutGlobalScope('unit')
+            ->orderByDesc('nomor_urut')
+            ->first()?->nomor_memo;
 
         $agendaTerakhir = self::semuaNomorDariAgenda()
             ->sortByDesc(fn($n) => self::ekstrakUrutan($n))
