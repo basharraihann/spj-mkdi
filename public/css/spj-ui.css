@@ -1394,9 +1394,13 @@ html.spj-dlg-lock body {
 
     .mm-head-cols {
         display: grid;
-        grid-template-columns: 10rem minmax(0, 1fr) 7rem 8.5rem;
+        grid-template-columns: 12rem minmax(0, 1fr) 7rem 8.5rem;
         gap: 12px;
         padding: 0 15px;
+    }
+
+    .mm-head-cols> :nth-child(2) {
+        padding-left: 12px;
     }
 
     .mm-head-cols> :nth-child(3),
@@ -1499,9 +1503,13 @@ html.spj-dlg-lock body {
 
 @media (min-width: 1280px) {
     .mm-item {
-        grid-template-columns: 10rem minmax(0, 1fr) 7rem 8.5rem;
+        grid-template-columns: 12rem minmax(0, 1fr) 7rem 8.5rem;
         grid-template-areas: "no st nom ak";
         padding: 14px;
+    }
+
+    .mm-st {
+        padding-left: 12px;
     }
 
     .mm-nom {

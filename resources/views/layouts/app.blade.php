@@ -19,7 +19,7 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{-- Harus setelah Vite CSS supaya bisa menimpa. File CSS biasa, tanpa build. --}}
-    <link rel="stylesheet" href="{{ asset('css/spj-ui.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset('css/spj-ui.css') }}?v=4">
 
     <!-- SweetAlert2 (dipakai untuk konfirmasi hapus yang seragam di semua halaman) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -125,15 +125,24 @@
     </button>
     --}}
     <style>
+        /* Dialog hapus (SweetAlert): ukuran ringkas */
         .swal-delete-popup {
-            border-radius: 1.25rem !important;
-            padding: 2rem 1.5rem !important;
+            width: 21rem !important;
+            max-width: calc(100vw - 32px) !important;
+            border-radius: 1.125rem !important;
+            padding: 1.5rem 1.25rem 1.25rem !important;
+            font-size: 1rem !important;
+        }
+
+        .swal-delete-popup .swal2-html-container {
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         .swal-delete-icon-wrap {
-            width: 84px;
-            height: 84px;
-            margin: 0 auto 1.25rem;
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 0.875rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -145,38 +154,41 @@
         }
 
         .swal-delete-title {
-            font-size: 1.25rem !important;
-            font-weight: 700 !important;
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            line-height: 1.4 !important;
             color: #1f2937 !important;
-            margin-bottom: 0.375rem !important;
+            margin-bottom: 0.25rem !important;
         }
 
         .swal-delete-text {
-            font-size: 0.9rem !important;
-            color: #9ca3af !important;
-            line-height: 1.4 !important;
+            font-size: 0.8125rem !important;
+            color: #6b7280 !important;
+            line-height: 1.45 !important;
         }
 
         .swal-delete-actions {
-            gap: 0.75rem !important;
+            gap: 0.625rem !important;
             width: 100%;
-            margin-top: 1.5rem !important;
+            margin: 1.25rem 0 0 !important;
         }
 
         .swal-btn-cancel {
             flex: 1;
-            border: 2px solid #fecaca !important;
+            border: 1px solid #e5e7eb !important;
             background: #ffffff !important;
-            color: #ef4444 !important;
+            color: #4b5563 !important;
+            font-size: 0.875rem !important;
             font-weight: 600 !important;
             border-radius: 0.75rem !important;
-            padding: 0.7rem 1rem !important;
+            padding: 0.6rem 1rem !important;
+            min-height: 42px;
             box-shadow: none !important;
             transition: background 0.15s ease;
         }
 
         .swal-btn-cancel:hover {
-            background: #fef2f2 !important;
+            background: #f9fafb !important;
         }
 
         .swal-btn-confirm {
@@ -184,15 +196,23 @@
             border: none !important;
             background: #ef4444 !important;
             color: #ffffff !important;
+            font-size: 0.875rem !important;
             font-weight: 600 !important;
             border-radius: 0.75rem !important;
-            padding: 0.7rem 1rem !important;
+            padding: 0.6rem 1rem !important;
+            min-height: 42px;
             box-shadow: none !important;
             transition: background 0.15s ease;
         }
 
         .swal-btn-confirm:hover {
             background: #dc2626 !important;
+        }
+
+        .swal-btn-cancel:focus-visible,
+        .swal-btn-confirm:focus-visible {
+            outline: 2px solid #93c5fd !important;
+            outline-offset: 2px;
         }
 
         /* Toast flash message (success/error) */
