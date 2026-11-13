@@ -41,6 +41,7 @@ Mau ubah form memo? Cukup ubah file ini.
     $nomorBerikutnya = $nomorBerikutnya ?? null;
     $makOptions = $makOptions ?? collect();
     $makOutstanding = $makOutstanding ?? [];
+    $makSisaEfektif = $makSisaEfektif ?? [];
 
     // ----- Daftar pegawai per peran -----
     $ppkList = $pegawaiList->filter(fn($p) => str_contains($p->role_penandatangan ?? '', 'PPK'))->values();
@@ -393,7 +394,8 @@ Mau ubah form memo? Cukup ubah file ini.
                                         data-uraian-akun-ap="{{ $opt->uraian_akun_ap }}"
                                         data-uraian-belanja="{{ $opt->uraian_belanja }}" data-pagu="{{ (int) $opt->pagu }}"
                                         data-realisasi="{{ (int) $opt->realisasi }}" data-sisa="{{ (int) $opt->sisa }}"
-                                        data-outstanding="{{ (int) ($makOutstanding[$opt->mak] ?? 0) }}"
+                                        data-outstanding-sendiri="{{ (int) ($makOutstanding[$opt->mak]['sendiri'] ?? 0) }}"
+                                        data-outstanding-lain="{{ (int) ($makOutstanding[$opt->mak]['lain'] ?? 0) }}"
                                         data-periode="{{ $opt->periode }}"
                                         data-per-tanggal="{{ $opt->per_tanggal ? \Carbon\Carbon::parse($opt->per_tanggal)->format('d/m/Y') : '' }}"
                                         @selected($currentMak === $opt->mak)>
@@ -443,8 +445,7 @@ Mau ubah form memo? Cukup ubah file ini.
                                         <div class="ml-4 my-1 border-l border-gray-200">
                                             @foreach ($items as $opt)
                                                 @php
-                                                    $efektif = (int) $opt->sisa - (int) ($makOutstanding[$opt->mak] ?? 0);
-                                                    // Edit: nominal memo ini sudah masuk realisasi FA, kembalikan ke sisa
+                                                    $efektif = $makSisaEfektif[$opt->mak] ?? (int) $opt->sisa;                                                    // Edit: nominal memo ini sudah masuk realisasi FA, kembalikan ke sisa
                                                     if ($memoSudahDiFa && $opt->mak === $memo->mak) {
                                                         $efektif += (int) round((float) $memo->nominal);
                                                     }

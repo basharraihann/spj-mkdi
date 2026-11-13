@@ -13,15 +13,18 @@ class MakSisaService
      * (belum diinput di SAKTI). Master MAK ditarik dari SAKTI, jadi memo berstatus
      * sakti / sp2d sudah ada di realisasi dan tidak dihitung lagi. Memo batal juga tidak.
      *
-     * Agenda dihitung per memo: memo PNS dan Non PNS punya status sendiri,
-     * dan hanya dihitung kalau nomor memonya sudah terisi.
+     * $semuaUnit = true  -> hitung dari SEMUA unit (scope unit dilepas)
+     * $semuaUnit = false -> hanya unit user yang login (perilaku lama)
      *
      * @return array<string,int>
      */
-    public static function outstanding(?int $kecualiEntryId = null, ?int $kecualiAgendaId = null): array
-    {
+    public static function outstanding(
+        ?int $kecualiEntryId = null,
+        ?int $kecualiAgendaId = null,
+        bool $semuaUnit = false
+    ): array {
         $entry = MemoEntry::query()
-            ->where('status_anggaran', 'outstanding')
+            ->when($semuaUnit, fn($q) => $q->withoutGlobalScope('unit'))->where('status_anggaran', 'outstanding')
             ->whereNotNull('mak')
             ->when($kecualiEntryId, fn($q) => $q->where('id', '!=', $kecualiEntryId))
             ->selectRaw('mak, SUM(nominal) as total')
@@ -29,7 +32,7 @@ class MakSisaService
             ->pluck('total', 'mak');
 
         $agenda = Agenda::query()
-            ->with('pegawai')
+            ->when($semuaUnit, fn($q) => $q->withoutGlobalScope('unit'))->with('pegawai')
             ->whereNotNull('mak')
             ->where(function ($q) {
                 $q->where(function ($w) {
@@ -55,6 +58,50 @@ class MakSisaService
         }
 
         return $hasil;
+    }
+
+    /**
+     * Outstanding per MAK, dipisah: unit user sendiri vs unit lain.
+     * Yang dikurangkan dari sisa anggaran = sendiri + lain.
+     *
+     * @return array<string, array{sendiri:int, lain:int}>
+     */
+    public static function outstandingDetail(?int $kecualiEntryId = null, ?int $kecualiAgendaId = null): array
+    {
+        $sendiri = self::outstanding($kecualiEntryId, $kecualiAgendaId, false);
+        $semua = self::outstanding($kecualiEntryId, $kecualiAgendaId, true);
+
+        $hasil = [];
+        foreach ($semua as $mak => $total) {
+            $s = (int) ($sendiri[$mak] ?? 0);
+            $hasil[$mak] = ['sendiri' => $s, 'lain' => max((int) $total - $s, 0)];
+        }
+
+        return $hasil;
+    }
+
+    public static function sisaEfektif(?int $kecualiEntryId = null): array
+    {
+        $out = self::outstanding($kecualiEntryId, null, true);
+
+        return MakOption::get(['mak', 'sisa'])
+            ->mapWithKeys(fn($o) => [$o->mak => (int) $o->sisa - ($out[$o->mak] ?? 0)])
+            ->all();
+    }
+
+    public static function cekNominal(string $mak, int $nominal, ?int $kecualiEntryId = null): ?string
+    {
+        $opt = MakOption::where('mak', $mak)->first();
+        if (!$opt) {
+            return null; // MAK manual, tidak bisa dicek
+        }
+
+        $efektif = (int) $opt->sisa - (self::outstanding($kecualiEntryId, null, true)[$mak] ?? 0);
+
+        return $nominal <= $efektif
+            ? null
+            : 'Nominal (Rp ' . number_format($nominal, 0, ',', '.') . ') melebihi sisa MAK '
+            . $mak . ' (Rp ' . number_format(max($efektif, 0), 0, ',', '.') . ').';
     }
 
     /**
@@ -89,7 +136,7 @@ class MakSisaService
 
         $agenda->loadMissing('pegawai');
         $total = (int) ((float) $agenda->biaya_asn + (float) $agenda->biaya_non_asn);
-        $lain = self::outstanding(null, $agenda->id)[$mak] ?? 0;
+        $lain = self::outstanding(null, $agenda->id, true)[$mak] ?? 0; // true = semua unit
         $efektif = (int) $opt->sisa - $lain;
 
         if ($total <= $efektif) {

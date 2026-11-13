@@ -22,9 +22,9 @@ class MemoStatusService
     /** Perpindahan yang diizinkan dari status saat ini. */
     public const BOLEH = [
         'outstanding' => ['sakti', 'batal'],
-        'sakti'       => ['sp2d', 'outstanding', 'batal'],
-        'sp2d'        => ['sakti', 'batal'],
-        'batal'       => ['outstanding'],
+        'sakti' => ['sp2d', 'outstanding', 'batal'],
+        'sp2d' => ['sakti', 'batal'],
+        'batal' => ['outstanding'],
     ];
 
     /** Perpindahan "maju" yang normal. Selain ini (mundur / batal) wajib isi alasan. */
@@ -32,6 +32,9 @@ class MemoStatusService
 
     /**
      * Ubah status satu memo.
+     *
+     * Dipanggil dari alur Keuangan (lintas unit), jadi scope 'unit' dilepas di sini.
+     * Pembatasan untuk unit kerja dicek di MemoStatusController::update().
      *
      * @return bool true kalau status berubah, false kalau sudah berstatus itu.
      * @throws \DomainException kalau perpindahan tidak diizinkan / alasan kurang / id tidak valid.
@@ -56,7 +59,7 @@ class MemoStatusService
 
         return DB::transaction(function () use ($tipe, $id, $jenis, $ke, $tanggal, $alasan, $userId, $kolom) {
             $class = $tipe === 'entry' ? MemoEntry::class : Agenda::class;
-            $row = $class::query()->lockForUpdate()->findOrFail($id);
+            $row = $class::query()->withoutGlobalScope('unit')->lockForUpdate()->findOrFail($id);
 
             $dari = $row->{$kolom['status']} ?: 'outstanding';
 
@@ -89,13 +92,13 @@ class MemoStatusService
             $row->save();
 
             DB::table('memo_status_logs')->insert([
-                'memo_type'  => $tipe,
-                'memo_id'    => $id,
-                'jenis'      => $jenis,
-                'dari'       => $dari,
-                'ke'         => $ke,
-                'alasan'     => $alasan,
-                'user_id'    => $userId,
+                'memo_type' => $tipe,
+                'memo_id' => $id,
+                'jenis' => $jenis,
+                'dari' => $dari,
+                'ke' => $ke,
+                'alasan' => $alasan,
+                'user_id' => $userId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

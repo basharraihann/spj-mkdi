@@ -562,9 +562,8 @@ class AgendaController extends Controller
             ->orderBy('mak')
             ->get();
 
-        // Agenda ini sendiri dikecualikan supaya biayanya tidak mengurangi sisa dua kali.
-        $makOutstanding = MakSisaService::outstanding(null, $agenda->id);
-
+        $makOutstandingDetail = MakSisaService::outstandingDetail(null, $agenda->id);
+        $makOutstanding = array_map(fn($d) => $d['sendiri'] + $d['lain'], $makOutstandingDetail);
         $totalAsn = (int) $agenda->biaya_asn;
         $totalNonAsn = (int) $agenda->biaya_non_asn;
         $totalBiaya = $totalAsn + $totalNonAsn;
@@ -574,6 +573,7 @@ class AgendaController extends Controller
             'pegawaiList',
             'makOptions',
             'makOutstanding',
+            'makOutstandingDetail',
             'totalAsn',
             'totalNonAsn',
             'totalBiaya'

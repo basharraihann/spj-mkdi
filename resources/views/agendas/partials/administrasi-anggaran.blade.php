@@ -1,6 +1,7 @@
 @php
     $agenda = $agenda ?? null;
     $makOutstanding = $makOutstanding ?? [];
+    $makOutstandingDetail = $makOutstandingDetail ?? [];
     $kebutuhan = (int) ($totalBiaya ?? 0); // total biaya agenda, pembanding sisa MAK
 
     $fmtRp = fn($n) => ($n < 0 ? '-Rp ' : 'Rp ') . number_format(abs((int) $n), 0, ',', '.');
@@ -41,7 +42,7 @@
     $selectCls = 'js-searchable w-full appearance-none bg-none border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition bg-white';
 @endphp
 
-{{-- =====================  KARTU 1 — PILIH MAK  ===================== --}}
+{{-- ===================== KARTU 1 — PILIH MAK ===================== --}}
 <section class="bg-white shadow-sm rounded-2xl border border-gray-100">
     <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
         <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -69,10 +70,11 @@
                     @foreach ($items as $opt)
                         <option value="{{ $opt->mak }}" data-label="{{ $opt->mak }} — {{ $opt->uraian_belanja }}"
                             data-uraian-giat="{{ $opt->uraian_giat }}" data-uraian-komponen="{{ $opt->uraian_komponen }}"
-                            data-uraian-akun-ap="{{ $opt->uraian_akun_ap }}"
-                            data-uraian-belanja="{{ $opt->uraian_belanja }}" data-pagu="{{ (int) $opt->pagu }}"
-                            data-realisasi="{{ (int) $opt->realisasi }}" data-sisa="{{ (int) $opt->sisa }}"
-                            data-outstanding="{{ $makOutstanding[$opt->mak] ?? 0 }}"
+                            data-uraian-akun-ap="{{ $opt->uraian_akun_ap }}" data-uraian-belanja="{{ $opt->uraian_belanja }}"
+                            data-pagu="{{ (int) $opt->pagu }}" data-realisasi="{{ (int) $opt->realisasi }}"
+                            data-sisa="{{ (int) $opt->sisa }}" data-outstanding="{{ $makOutstanding[$opt->mak] ?? 0 }}"
+                            data-outstanding-sendiri="{{ (int) ($makOutstandingDetail[$opt->mak]['sendiri'] ?? 0) }}"
+                            data-outstanding-lain="{{ (int) ($makOutstandingDetail[$opt->mak]['lain'] ?? 0) }}"
                             data-periode="{{ $opt->periode }}"
                             data-per-tanggal="{{ $opt->per_tanggal ? \Carbon\Carbon::parse($opt->per_tanggal)->translatedFormat('d M Y') : '' }}"
                             @selected($currentMak === $opt->mak)>
@@ -88,8 +90,8 @@
             {{-- Dropdown MAK buatan sendiri: header per payung + item dengan MAK lengkap & sisa anggaran --}}
             <div id="mak-combo" class="relative">
                 <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    class="h-4 w-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
                 </svg>
@@ -115,7 +117,8 @@
                                     <span class="text-[11px] text-gray-400">{{ $items->count() }} akun belanja</span>
                                 </div>
                                 <div class="text-xs font-semibold text-gray-700 mt-1 leading-snug">
-                                    {{ $first->uraian_giat }}</div>
+                                    {{ $first->uraian_giat }}
+                                </div>
                                 <div class="text-[11px] text-gray-500 leading-snug">{{ $first->uraian_komponen }}
                                 </div>
                             </div>
@@ -196,7 +199,7 @@
     </div>
 </section>
 
-{{-- =====================  KARTU 2 — KLASIFIKASI  ===================== --}}
+{{-- ===================== KARTU 2 — KLASIFIKASI ===================== --}}
 <section class="bg-white shadow-sm rounded-2xl border border-gray-100">
     <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
         <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
@@ -286,7 +289,7 @@
     </div>
 </section>
 
-{{-- =====================  KARTU 3 — MEMORANDUM & PENANGGUNG JAWAB  ===================== --}}
+{{-- ===================== KARTU 3 — MEMORANDUM & PENANGGUNG JAWAB ===================== --}}
 <section class="bg-white shadow-sm rounded-2xl border border-gray-100">
     <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
         <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -310,8 +313,7 @@
                 <div class="relative">
                     <select name="petugas_verifikasi_id" required data-placeholder="Cari Petugas Verifikasi..."
                         class="{{ $selectCls }}">
-                        <option value="" disabled
-                            {{ old('petugas_verifikasi_id', $agenda->petugas_verifikasi_id ?? null) ? '' : 'selected' }}>
+                        <option value="" disabled {{ old('petugas_verifikasi_id', $agenda->petugas_verifikasi_id ?? null) ? '' : 'selected' }}>
                             — Pilih —</option>
                         @forelse ($petugasVerifikasiList as $pv)
                             <option value="{{ $pv->id }}" @selected(old('petugas_verifikasi_id', $agenda->petugas_verifikasi_id ?? null) == $pv->id)>

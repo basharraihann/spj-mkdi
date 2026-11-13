@@ -6,6 +6,7 @@ use App\Models\Agenda;
 use App\Models\MakOption;
 use App\Models\MemoEntry;
 use App\Models\Pegawai;
+use App\Models\Unit;
 use App\Services\MakSisaService;
 use App\Services\MemoTahapService;
 use App\Services\NomorMemoService;
@@ -31,7 +32,17 @@ class MemoController extends Controller
      */
     public function index(Request $request)
     {
-        $agendas = Agenda::with(['penanggungJawab', 'pic'])
+        // Keuangan (TU) membaca lintas unit; unit kerja tetap dibatasi scope 'unit'.
+        $lintasUnit = (bool) auth()->user()?->can('kelola-anggaran');
+
+        // Label unit pengirim (kolom kode/nama: sesuaikan dengan tabel units).
+        $unitMap = Unit::all()->mapWithKeys(
+            fn($u) => [$u->id => trim(($u->kode ?? '') . ' ' . ($u->nama ?? ''))]
+        );
+
+        $agendas = Agenda::query()
+            ->when($lintasUnit, fn($q) => $q->withoutGlobalScope('unit'))
+            ->with(['penanggungJawab', 'pic'])
             ->latest()
             ->get();
 
@@ -47,6 +58,7 @@ class MemoController extends Controller
             if (!empty($agenda->nomor_memo_pns)) {
                 $memos->push([
                     'id' => 'agenda-' . $agenda->id . '-pns',
+                    'unit' => ($unitMap[$agenda->unit_id] ?? '') ?: '-',
                     'group_key' => 'agenda-' . $agenda->id,
                     'agenda_id' => $agenda->id,
                     'nomor_memo' => $agenda->nomor_memo_pns,
@@ -71,6 +83,7 @@ class MemoController extends Controller
             if (!empty($agenda->nomor_memo_non_pns)) {
                 $memos->push([
                     'id' => 'agenda-' . $agenda->id . '-non_pns',
+                    'unit' => ($unitMap[$agenda->unit_id] ?? '') ?: '-',
                     'group_key' => 'agenda-' . $agenda->id,
                     'agenda_id' => $agenda->id,
                     'nomor_memo' => $agenda->nomor_memo_non_pns,
@@ -93,9 +106,15 @@ class MemoController extends Controller
             }
         }
 
-        foreach (MemoEntry::with('pic')->get() as $entry) {
+        $entries = MemoEntry::query()
+            ->when($lintasUnit, fn($q) => $q->withoutGlobalScope('unit'))
+            ->with('pic')
+            ->get();
+
+        foreach ($entries as $entry) {
             $memos->push([
                 'id' => 'entry-' . $entry->id,
+                'unit' => ($unitMap[$entry->unit_id] ?? '') ?: '-',
                 'group_key' => 'entry-' . $entry->id,
                 'agenda_id' => null,
                 'nomor_memo' => $entry->nomor_memo,
@@ -131,8 +150,19 @@ class MemoController extends Controller
             ->get()
             ->keyBy('memo_key');
 
-        $memos = $memos->map(function ($m) use ($tahapMap, $pengajuanMenunggu) {
+        // Id milik unit user sendiri (scope 'unit' aktif di sini). Dipakai Keuangan untuk
+        // menyembunyikan draft unit lain dan mematikan tombol aksi unit kerja di baris unit lain.
+        $agendaSendiri = $lintasUnit ? Agenda::pluck('id')->all() : [];
+        $entrySendiri = $lintasUnit ? MemoEntry::pluck('id')->all() : [];
+
+        $memos = $memos->map(function ($m) use ($tahapMap, $pengajuanMenunggu, $lintasUnit, $agendaSendiri, $entrySendiri) {
             $m['tahap'] = $tahapMap[$m['id']];
+
+            $milik = !$lintasUnit
+                || (!empty($m['mandiri'])
+                    ? in_array((int) substr($m['id'], 6), $entrySendiri, true) // 'entry-' = 6 huruf
+                    : in_array($m['agenda_id'], $agendaSendiri, true));
+            $m['milik_sendiri'] = $milik;
             $bisaDiedit = in_array($m['tahap'], ['draft', 'dikembalikan'], true);
 
             $p = $pengajuanMenunggu->get($m['id']);
@@ -140,14 +170,20 @@ class MemoController extends Controller
             $m['pengajuan_alasan'] = $p->alasan ?? null;
 
             if (!empty($m['mandiri'])) {
-                $m['editable'] = $m['status_anggaran'] === 'outstanding' && $bisaDiedit;
+                $m['editable'] = $milik && $m['status_anggaran'] === 'outstanding' && $bisaDiedit;
             }
-            $m['bisa_kirim'] = $bisaDiedit && $m['status_anggaran'] === 'outstanding';
-            $m['bisa_ajukan'] = $p === null
+            $m['bisa_kirim'] = $milik && $bisaDiedit && $m['status_anggaran'] === 'outstanding';
+            $m['bisa_ajukan'] = $milik && $p === null
                 && in_array($m['tahap'], ['dikirim', 'lolos_spk', 'sakti', 'otp_ppk'], true);
 
+            // Draft / dikembalikan milik unit lain belum "dikirim ke Keuangan": jangan tampil.
+            $m['sembunyi'] = !$milik && $bisaDiedit;
+
             return $m;
-        });
+        })->reject(fn($m) => $m['sembunyi'])->values();
+
+        // Riwayat tiap memo, dimuat sekali untuk semua memo yang tampil (tanpa N+1).
+        $logMap = $this->petaLog($memos->pluck('id')->all());
 
         // Opsi PIC buat dropdown filter
         $picOptions = $memos->pluck('pic')->unique()->sort()->values();
@@ -173,6 +209,7 @@ class MemoController extends Controller
                     'uraian_kegiatan' => $first['uraian_kegiatan'],
                     'pic' => $first['pic'],
                     'mak' => $first['mak'],
+                    'unit' => $first['unit'],
                     'items' => $items->all(),
                 ];
             })
@@ -180,7 +217,7 @@ class MemoController extends Controller
 
         $nomorBerikutnya = NomorMemoService::dataBerikutnya();
 
-        return view('memo.index', compact('groups', 'nomorBerikutnya', 'picOptions'));
+        return view('memo.index', compact('groups', 'nomorBerikutnya', 'picOptions', 'logMap'));
     }
 
     /**
@@ -199,21 +236,40 @@ class MemoController extends Controller
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $nomorBerikutnya = NomorMemoService::dataBerikutnya();
         $makOptions = MakOption::orderBy('mak')->get();
-        $makOutstanding = MakSisaService::outstanding();
-        return view('memo.create', compact('pegawaiList', 'nomorBerikutnya', 'makOptions', 'makOutstanding'));
+        $makOutstanding = MakSisaService::outstandingDetail();
+        $makSisaEfektif = MakSisaService::sisaEfektif();
+
+        return view('memo.create', compact(
+            'pegawaiList',
+            'nomorBerikutnya',
+            'makOptions',
+            'makOutstanding',
+            'makSisaEfektif'
+        ));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate(self::rules());
 
-        // Nomor itu satu urutan untuk semua unit: cek lintas unit.
-        $this->pastikanNomorBelumDipakai($validated['nomor_memo']);
-
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
 
-        // status_anggaran tidak diisi di sini: default kolomnya 'outstanding'.
-        MemoEntry::create($validated);
+        DB::transaction(function () use ($validated) {
+            // Kunci baris MAK: request bersamaan untuk MAK yang sama antre di sini,
+            // jadi dua unit tidak bisa sama-sama lolos dari sisa yang sama.
+            MakOption::where('mak', $validated['mak'])->lockForUpdate()->first();
+
+            // Nomor itu satu urutan untuk semua unit: cek lintas unit.
+            $this->pastikanNomorBelumDipakai($validated['nomor_memo']);
+
+            // Sisa efektif dihitung lintas unit (outstanding semua unit ikut dikurangi).
+            if ($pesan = MakSisaService::cekNominal($validated['mak'], (int) $validated['nominal'])) {
+                throw ValidationException::withMessages(['nominal' => $pesan]);
+            }
+
+            // status_anggaran tidak diisi di sini: default kolomnya 'outstanding'.
+            MemoEntry::create($validated);
+        });
 
         return redirect()->route('memo.index')
             ->with('success', 'Nomor memo berhasil dibuat.');
@@ -233,8 +289,17 @@ class MemoController extends Controller
 
         $pegawaiList = Pegawai::orderBy('nama')->get();
         $makOptions = MakOption::orderBy('mak')->get();
-        $makOutstanding = MakSisaService::outstanding($memo->id); // nominal memo ini sendiri tidak ikut dihitung
-        return view('memo.edit', compact('memo', 'pegawaiList', 'makOptions', 'makOutstanding'));
+        // Nominal memo ini sendiri tidak ikut dihitung.
+        $makOutstanding = MakSisaService::outstandingDetail($memo->id);
+        $makSisaEfektif = MakSisaService::sisaEfektif($memo->id);
+
+        return view('memo.edit', compact(
+            'memo',
+            'pegawaiList',
+            'makOptions',
+            'makOutstanding',
+            'makSisaEfektif'
+        ));
     }
 
     public function update(Request $request, MemoEntry $memo)
@@ -247,12 +312,21 @@ class MemoController extends Controller
 
         $validated = $request->validate(self::rules());
 
-        // Abaikan memo yang sedang diedit supaya nomornya sendiri tidak dianggap bentrok.
-        $this->pastikanNomorBelumDipakai($validated['nomor_memo'], $memo->id);
-
         $validated['nomor_urut'] = NomorMemoService::ekstrakUrutan($validated['nomor_memo']) ?? 0;
 
-        $memo->update($validated);
+        DB::transaction(function () use ($validated, $memo) {
+            MakOption::where('mak', $validated['mak'])->lockForUpdate()->first();
+
+            // Abaikan memo yang sedang diedit supaya nomornya sendiri tidak dianggap bentrok.
+            $this->pastikanNomorBelumDipakai($validated['nomor_memo'], $memo->id);
+
+            // Nominal memo ini sendiri dikecualikan dari outstanding.
+            if ($pesan = MakSisaService::cekNominal($validated['mak'], (int) $validated['nominal'], $memo->id)) {
+                throw ValidationException::withMessages(['nominal' => $pesan]);
+            }
+
+            $memo->update($validated);
+        });
 
         return redirect()->route('memo.index')
             ->with('success', 'Nomor memo berhasil diperbarui.');
@@ -330,8 +404,13 @@ class MemoController extends Controller
         abort(404);
     }
 
-    public function pdf(MemoEntry $memo)
+    public function pdf(int $memo)
     {
+        // Keuangan membaca lintas unit; unit kerja tetap dibatasi scope 'unit' (404 untuk unit lain).
+        $memo = MemoEntry::query()
+            ->when(auth()->user()?->can('kelola-anggaran'), fn($q) => $q->withoutGlobalScope('unit'))
+            ->findOrFail($memo);
+
         $memo->load(['pic', 'ppk', 'bendahara', 'penanggungJawab', 'petugasVerifikasi']);
 
         $makOption = MakOption::where('mak', $memo->mak)->first();
@@ -385,6 +464,111 @@ class MemoController extends Controller
     {
         return ($memo->status_anggaran ?? 'outstanding') === 'outstanding'
             && MemoTahapService::bisaDiedit("entry-{$memo->id}");
+    }
+
+    /**
+     * Riwayat per memo dari empat sumber: pengiriman, verifikasi K2/K3, perubahan status
+     * anggaran, dan pengajuan pengembalian. Tiap sumber dibaca dengan satu query untuk
+     * semua memo. Kunci memo yang masuk sudah lolos filter unit di index(), jadi log
+     * unit lain tidak ikut terbaca.
+     *
+     * @param  string[]  $memoKeys  mis. ['entry-1', 'agenda-2-pns']
+     * @return array<string, array<int, array{waktu:string, judul:string, detail:?string, oleh:?string}>>
+     */
+    private function petaLog(array $memoKeys): array
+    {
+        if ($memoKeys === []) {
+            return [];
+        }
+
+        $baris = []; // memo_key => daftar baris log
+        $tambah = function (string $key, $waktu, string $judul, ?string $detail, $userId) use (&$baris) {
+            if ($waktu) {
+                $baris[$key][] = [
+                    'waktu' => (string) $waktu,
+                    'judul' => $judul,
+                    'detail' => $detail,
+                    'user_id' => $userId,
+                ];
+            }
+        };
+
+        // 1. Pengiriman ke Keuangan
+        foreach (DB::table('memo_progres')->whereIn('memo_key', $memoKeys)->whereNotNull('dikirim_at')->get() as $r) {
+            $tambah($r->memo_key, $r->dikirim_at, 'Dikirim ke Keuangan', null, $r->dikirim_oleh);
+        }
+
+        // 2. Verifikasi K2 / K3
+        foreach (DB::table('memo_verifikasi_logs')->whereIn('memo_key', $memoKeys)->get() as $r) {
+            $tambah(
+                $r->memo_key,
+                $r->created_at,
+                "Verifikasi {$r->gerbang}: " . ($r->lengkap_sesuai ? 'lolos' : 'tidak lolos'),
+                $r->alasan,
+                $r->user_id
+            );
+        }
+
+        // 3. Perubahan status anggaran. Tabel ini memakai (tipe, id, jenis), bukan memo_key.
+        $entryIds = [];
+        $agendaIds = [];
+        foreach ($memoKeys as $key) {
+            if (preg_match('/^entry-(\d+)$/', $key, $m)) {
+                $entryIds[] = (int) $m[1];
+            } elseif (preg_match('/^agenda-(\d+)-/', $key, $m)) {
+                $agendaIds[] = (int) $m[1];
+            }
+        }
+
+        $statusLogs = DB::table('memo_status_logs')
+            ->where(function ($q) use ($entryIds, $agendaIds) {
+                $q->where(fn($w) => $w->where('memo_type', 'entry')->whereIn('memo_id', $entryIds))
+                    ->orWhere(fn($w) => $w->where('memo_type', 'agenda')->whereIn('memo_id', $agendaIds));
+            })
+            ->get();
+
+        foreach ($statusLogs as $r) {
+            $key = $r->memo_type === 'entry'
+                ? "entry-{$r->memo_id}"
+                : "agenda-{$r->memo_id}-{$r->jenis}";
+
+            $tambah($key, $r->created_at, "Status anggaran: {$r->dari} → {$r->ke}", $r->alasan, $r->user_id);
+        }
+
+        // 4. Pengajuan pengembalian
+        foreach (DB::table('memo_pengajuan_kembali')->whereIn('memo_key', $memoKeys)->get() as $r) {
+            $tambah($r->memo_key, $r->created_at ?? null, 'Pengajuan pengembalian diajukan', $r->alasan, null);
+
+            if ($r->status !== 'menunggu') {
+                $tambah(
+                    $r->memo_key,
+                    $r->diputus_at ?? null,
+                    'Pengajuan ' . $r->status,
+                    $r->catatan_putusan ?? null,
+                    $r->diputus_oleh ?? null
+                );
+            }
+        }
+
+        // Nama pelaku, satu query.
+        $userIds = collect($baris)->flatten(1)->pluck('user_id')->filter()->unique()->all();
+        $nama = $userIds === []
+            ? collect()
+            : DB::table('users')->whereIn('id', $userIds)->pluck('name', 'id');
+
+        $hasil = [];
+        foreach ($baris as $key => $rows) {
+            usort($rows, fn($a, $b) => strcmp($b['waktu'], $a['waktu'])); // terbaru di atas
+
+            $hasil[$key] = array_map(fn($r) => [
+                'waktu' => $r['waktu'],
+                'judul' => $r['judul'],
+                'detail' => $r['detail'],
+                'oleh' => $r['user_id'] ? ($nama[$r['user_id']] ?? null) : null,
+            ], $rows);
+        }
+
+        return $hasil;
     }
 
     /**

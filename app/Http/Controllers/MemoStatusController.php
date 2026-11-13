@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Agenda;
+use App\Models\MemoEntry;
 use App\Services\MemoStatusService;
 use App\Services\MemoTahapService;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +23,19 @@ class MemoStatusController extends Controller
             'tanggal' => ['nullable', 'date'],
             'alasan' => ['nullable', 'string', 'max:255'],
         ]);
+
+        // MemoStatusService::ubah() melepas scope 'unit' (alur Keuangan lintas unit).
+        // Supaya unit kerja tidak bisa mengubah memo unit lain, cek kepemilikan di sini:
+        // findOrFail di bawah kena scope 'unit', jadi unit lain mendapat 404.
+        if (!$request->user()?->can('kelola-anggaran')) {
+            try {
+                [$tipe, $id] = MemoStatusService::parse($memo);
+            } catch (\DomainException $e) {
+                abort(404);
+            }
+
+            ($tipe === 'entry' ? MemoEntry::class : Agenda::class)::findOrFail($id);
+        }
 
         try {
             MemoTahapService::ubahStatusManual(
