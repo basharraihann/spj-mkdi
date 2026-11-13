@@ -55,12 +55,6 @@
             };
         };
 
-        // Kelas tombol aksi alur
-        $btnBase = 'inline-flex items-center justify-center px-2.5 py-1.5 xl:py-1 text-[11px] font-semibold rounded-md border transition cursor-pointer focus:outline-none focus-visible:ring-2';
-        $btnBiru = $btnBase . ' text-white bg-blue-600 hover:bg-blue-700 border-blue-600 focus-visible:ring-blue-500';
-        $btnHijau = $btnBase . ' text-white bg-emerald-600 hover:bg-emerald-700 border-emerald-600 focus-visible:ring-emerald-500';
-        $btnMerah = $btnBase . ' text-red-600 bg-white hover:bg-red-50 border-red-400 focus-visible:ring-red-500';
-        $btnAbu = $btnBase . ' text-gray-600 bg-white hover:bg-gray-100 border-gray-300 focus-visible:ring-blue-500';
 
         // Hitung data tampilan sekali saja
         $groups = $groups->map(function ($g) {
@@ -384,19 +378,19 @@
                                         @if (!empty($memo['bisa_kirim']) || !empty($memo['bisa_ajukan']))
                                             <div class="flex flex-wrap gap-1.5">
                                                 @if (!empty($memo['bisa_kirim']))
-                                                    <button type="button" class="js-aksi {{ $btnBiru }}"
-                                                        data-url="{{ route('memo.kirim', $memo['id']) }}"
-                                                        data-konfirmasi="Kirim memo {{ $memo['nomor_memo'] }} ke Keuangan? Setelah dikirim, memo tidak bisa diedit.">
+                                                    <x-aksi-button varian="biru"
+                                                        :url="route('memo.kirim', $memo['id'])"
+                                                        :konfirmasi="'Kirim memo ' . $memo['nomor_memo'] . ' ke Keuangan? Setelah dikirim, memo tidak bisa diedit.'">
                                                         Kirim ke Keuangan
-                                                    </button>
+                                                    </x-aksi-button>
                                                 @endif
                                                 @if (!empty($memo['bisa_ajukan']))
-                                                    <button type="button" class="js-aksi {{ $btnAbu }}"
-                                                        data-url="{{ route('memo.ajukan', $memo['id']) }}"
-                                                        data-prompt="alasan" data-prompt-wajib="1"
-                                                        data-prompt-label="Alasan pengajuan pengembalian (wajib diisi):">
+                                                    <x-aksi-button varian="abu"
+                                                        :url="route('memo.ajukan', $memo['id'])"
+                                                        prompt="alasan" :wajib="true"
+                                                        prompt-label="Alasan pengajuan pengembalian (wajib diisi):">
                                                         Ajukan pengembalian
-                                                    </button>
+                                                    </x-aksi-button>
                                                 @endif
                                             </div>
                                         @endif
@@ -410,52 +404,52 @@
                                             @if ($adaAksiKeuangan)
                                                 <div class="flex flex-wrap gap-1.5">
                                                     @if (!empty($memo['pengajuan_id']))
-                                                        <button type="button" class="js-aksi {{ $btnHijau }}"
-                                                            data-url="{{ route('memo.pengajuan.putusan', $memo['pengajuan_id']) }}"
-                                                            data-fields="{{ json_encode(['setuju' => 1]) }}"
-                                                            data-konfirmasi="Setujui pengajuan? Memo akan dikembalikan ke unit kerja{{ in_array($tahap, ['sakti', 'otp_ppk'], true) ? ' dan SAKTI dilepas' : '' }}.">
+                                                        <x-aksi-button varian="hijau"
+                                                            :url="route('memo.pengajuan.putusan', $memo['pengajuan_id'])"
+                                                            :fields="['setuju' => 1]"
+                                                            :konfirmasi="'Setujui pengajuan? Memo akan dikembalikan ke unit kerja' . (in_array($tahap, ['sakti', 'otp_ppk'], true) ? ' dan SAKTI dilepas' : '') . '.'">
                                                             Setujui pengajuan
-                                                        </button>
-                                                        <button type="button" class="js-aksi {{ $btnMerah }}"
-                                                            data-url="{{ route('memo.pengajuan.putusan', $memo['pengajuan_id']) }}"
-                                                            data-fields="{{ json_encode(['setuju' => 0]) }}"
-                                                            data-prompt="catatan" data-prompt-wajib="1"
-                                                            data-prompt-label="Catatan penolakan pengajuan (wajib diisi):">
+                                                        </x-aksi-button>
+                                                        <x-aksi-button varian="merah"
+                                                            :url="route('memo.pengajuan.putusan', $memo['pengajuan_id'])"
+                                                            :fields="['setuju' => 0]"
+                                                            prompt="catatan" :wajib="true"
+                                                            prompt-label="Catatan penolakan pengajuan (wajib diisi):">
                                                             Tolak pengajuan
-                                                        </button>
+                                                        </x-aksi-button>
                                                     @endif
 
                                                     @if ($tahap === 'dikirim' || $tahap === 'sakti')
                                                         @php $gerbang = $tahap === 'dikirim' ? 'K2' : 'K3'; @endphp
-                                                        <button type="button" class="js-aksi {{ $btnHijau }}"
-                                                            data-url="{{ route('memo.verifikasi', $memo['id']) }}"
-                                                            data-fields="{{ json_encode(['gerbang' => $gerbang, 'lolos' => 1]) }}"
-                                                            data-konfirmasi="Verifikasi {{ $gerbang }}: lengkap dan sesuai?">
+                                                        <x-aksi-button varian="hijau"
+                                                            :url="route('memo.verifikasi', $memo['id'])"
+                                                            :fields="['gerbang' => $gerbang, 'lolos' => 1]"
+                                                            :konfirmasi="'Verifikasi ' . $gerbang . ': lengkap dan sesuai?'">
                                                             {{ $gerbang }} lolos
-                                                        </button>
-                                                        <button type="button" class="js-aksi {{ $btnMerah }}"
-                                                            data-url="{{ route('memo.verifikasi', $memo['id']) }}"
-                                                            data-fields="{{ json_encode(['gerbang' => $gerbang, 'lolos' => 0]) }}"
-                                                            data-prompt="alasan" data-prompt-wajib="1"
-                                                            data-prompt-label="Alasan tidak lolos {{ $gerbang }} (wajib diisi). Memo akan dikembalikan ke unit kerja:">
+                                                        </x-aksi-button>
+                                                        <x-aksi-button varian="merah"
+                                                            :url="route('memo.verifikasi', $memo['id'])"
+                                                            :fields="['gerbang' => $gerbang, 'lolos' => 0]"
+                                                            prompt="alasan" :wajib="true"
+                                                            :prompt-label="'Alasan tidak lolos ' . $gerbang . ' (wajib diisi). Memo akan dikembalikan ke unit kerja:'">
                                                             {{ $gerbang }} tidak lolos
-                                                        </button>
+                                                        </x-aksi-button>
                                                     @endif
 
                                                     @if ($tahap === 'lolos_spk')
-                                                        <button type="button" class="js-aksi {{ $btnBiru }}"
-                                                            data-url="{{ route('memo.input-sakti', $memo['id']) }}"
-                                                            data-konfirmasi="Catat memo {{ $memo['nomor_memo'] }} sudah diinput di SAKTI?">
+                                                        <x-aksi-button varian="biru"
+                                                            :url="route('memo.input-sakti', $memo['id'])"
+                                                            :konfirmasi="'Catat memo ' . $memo['nomor_memo'] . ' sudah diinput di SAKTI?'">
                                                             Input SAKTI
-                                                        </button>
+                                                        </x-aksi-button>
                                                     @endif
 
                                                     @if ($tahap === 'otp_ppk')
-                                                        <button type="button" class="js-aksi {{ $btnBiru }}"
-                                                            data-url="{{ route('memo.selesai-otp', $memo['id']) }}"
-                                                            data-konfirmasi="OTP PPK selesai? Setelah ini memo tidak bisa dikembalikan lagi.">
+                                                        <x-aksi-button varian="biru"
+                                                            :url="route('memo.selesai-otp', $memo['id'])"
+                                                            konfirmasi="OTP PPK selesai? Setelah ini memo tidak bisa dikembalikan lagi.">
                                                             Selesai OTP
-                                                        </button>
+                                                        </x-aksi-button>
                                                     @endif
                                                 </div>
                                             @endif
@@ -537,11 +531,6 @@
         </div>
     </div>
 
-    {{-- Form kosong yang dipakai semua tombol aksi alur (diisi lewat JS) --}}
-    <form id="form-aksi" method="POST" class="hidden">
-        @csrf
-    </form>
-
   <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Setiap form hapus diberi id unik, lalu konfirmasi lewat confirmDelete()
@@ -584,61 +573,7 @@
                 });
             });
 
-            // Aksi alur (kirim, ajukan, verifikasi, input SAKTI, selesai OTP, putusan pengajuan).
-            // data-url: tujuan POST. data-fields: JSON field tetap.
-            // data-prompt: nama field yang diisi dari dialog; data-prompt-wajib="1" kalau wajib.
-            const formAksi = document.getElementById('form-aksi');
-
-            // Warna tombol OK di dialog mengikuti warna tombol pemicunya
-            function varianTombol(btn) {
-                if (btn.className.includes('bg-emerald-600')) return 'hijau';
-                if (btn.className.includes('text-red-600')) return 'merah';
-                return 'biru';
-            }
-
-            document.querySelectorAll('.js-aksi').forEach(function (btn) {
-                btn.addEventListener('click', async function () {
-                    const judul = btn.textContent.trim();
-                    const varian = varianTombol(btn);
-                    const fields = JSON.parse(btn.dataset.fields || '{}');
-
-                    if (btn.dataset.konfirmasi) {
-                        const ok = await window.appDialog.confirm({
-                            judul: judul,
-                            pesan: btn.dataset.konfirmasi,
-                            varian: varian,
-                            teksOk: judul,
-                        });
-                        if (!ok) return;
-                    }
-
-                    if (btn.dataset.prompt) {
-                        const nilai = await window.appDialog.prompt({
-                            judul: judul,
-                            label: btn.dataset.promptLabel || 'Keterangan:',
-                            wajib: btn.dataset.promptWajib === '1',
-                            varian: varian,
-                            teksOk: judul,
-                        });
-                        if (nilai === null) return;
-                        fields[btn.dataset.prompt] = nilai;
-                    }
-
-                    formAksi.querySelectorAll('input[data-dinamis]').forEach(function (el) { el.remove(); });
-                    Object.keys(fields).forEach(function (nama) {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = nama;
-                        input.value = fields[nama];
-                        input.setAttribute('data-dinamis', '1');
-                        formAksi.appendChild(input);
-                    });
-
-                    formAksi.action = btn.dataset.url;
-                    document.querySelectorAll('.js-aksi').forEach(function (b) { b.disabled = true; });
-                    formAksi.submit();
-                });
-            });
+            // Tombol aksi alur (kirim, ajukan, verifikasi, dst.) sekarang ada di komponen aksi-button.
         });
     </script>
 

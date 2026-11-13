@@ -19,7 +19,19 @@
         input.type = 'text';
         input.autocomplete = 'off';
         input.className = select.className.replace('js-searchable', '').trim() + ' pr-9';
-        if (select.hasAttribute('required')) input.setAttribute('required', 'required');
+        // `required` dipindah ke kotak teks. Select asli disembunyikan, dan select hidden
+        // yang required bikin browser menolak submit ("invalid form control is not focusable").
+        const isRequired = select.hasAttribute('required');
+        if (isRequired) {
+            input.setAttribute('required', 'required');
+            select.removeAttribute('required');
+        }
+
+        // Teks yang diketik tapi belum dipilih dari daftar = belum valid.
+        function syncValidity() {
+            if (!isRequired) return;
+            input.setCustomValidity(select.value ? '' : 'Pilih salah satu opsi dari daftar.');
+        }
 
         const iconWrap = document.createElement('span');
         iconWrap.className = 'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400';
@@ -83,6 +95,7 @@
         function pick(o) {
             select.value = o.value;
             input.value = o.textContent.trim();
+            syncValidity();
             select.dispatchEvent(new Event('input', { bubbles: true }));
             select.dispatchEvent(new Event('change', { bubbles: true }));
             closeList();
@@ -112,6 +125,7 @@
             }
 
             input.disabled = select.disabled;
+            syncValidity();
             if (select.disabled) {
                 input.placeholder = current ? current.textContent.trim() : 'Tidak tersedia';
                 closeList();
