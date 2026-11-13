@@ -1,6 +1,9 @@
 {{--
 Form bersama untuk Buat & Edit Nominatif Honorarium Narasumber.
 Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiList, $kabKotaMap
+
+Catatan: dropdown searchable ditangani resources/js/searchable.js,
+cascading Provinsi -> Kab/Kota ditangani resources/js/lokasi.js (lewat atribut data-lokasi-*).
 --}}
 @php
     $nominatif = $nominatif ?? null;
@@ -66,6 +69,10 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
         $provinsiList = $provinsiCadangan;
     }
     sort($provinsiList);
+
+    // Provinsi & kota yang terpilih (old() kalau validasi gagal, database kalau edit)
+    $provinsiDipilih = old('provinsi', $nominatif->provinsi ?? '');
+    $kotaDipilih = old('kota', $nominatif->kota ?? '');
 @endphp
 
 <div class="py-8 bg-gradient-to-b from-gray-50/70 to-white min-h-full">
@@ -126,19 +133,24 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"
-                    x-data="lokasi(@js(['provinsi' => old('provinsi', $nominatif->provinsi ?? ''), 'kota' => old('kota', $nominatif->kota ?? ''), 'map' => $kabKotaMap]))">
+                {{-- Provinsi -> Kab/Kota: dikelola lokasi.js + searchable.js --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label class="{{ $labelClass }}">Provinsi <span class="text-red-400">*</span></label>
                         <div class="relative">
-                            <select name="provinsi" x-model="provinsi" @change="ubahProvinsi()" required
+                            <select name="provinsi" id="nominatif-provinsi" required
                                 class="js-searchable {{ $selectClass }}" data-placeholder="Cari provinsi...">
-                                <option value="" disabled {{ old('provinsi', $nominatif->provinsi ?? '') ? '' : 'selected' }}>— Pilih Provinsi —</option>
+                                <option value="" disabled {{ $provinsiDipilih ? '' : 'selected' }}>— Pilih Provinsi —
+                                </option>
                                 @foreach ($provinsiList as $p)
-                                    <option value="{{ $p }}" @selected(old('provinsi', $nominatif->provinsi ?? '') === $p)>
+                                    <option value="{{ $p }}" @selected($provinsiDipilih === $p)>
                                         {{ $p }}
                                     </option>
                                 @endforeach
+                                {{-- Data lama yang provinsinya belum ada di master tetap ditampilkan --}}
+                                @if ($provinsiDipilih && !in_array($provinsiDipilih, $provinsiList, true))
+                                    <option value="{{ $provinsiDipilih }}" selected>{{ $provinsiDipilih }}</option>
+                                @endif
                             </select>
                             {!! $chevron !!}
                         </div>
@@ -146,14 +158,11 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
                     <div>
                         <label class="{{ $labelClass }}">Kota/Kabupaten <span class="text-red-400">*</span></label>
                         <div class="relative">
-                            <select name="kota" x-model="kota" required :disabled="!provinsi"
+                            <select name="kota" id="nominatif-kota" required
                                 class="js-searchable {{ $selectClass }} disabled:bg-gray-50 disabled:cursor-not-allowed"
-                                data-placeholder="Cari kota/kabupaten...">
-                                <option value="" disabled selected
-                                    x-text="!provinsi ? 'Pilih provinsi dulu' : '— Pilih Kota/Kabupaten —'"></option>
-                                <template x-for="k in daftarKota" :key="k">
-                                    <option :value="k" x-text="k" :selected="kota === k"></option>
-                                </template>
+                                data-placeholder="Cari kab/kota..." data-lokasi-provinsi="#nominatif-provinsi"
+                                data-lokasi-map="{{ json_encode($mapArr) }}" data-lokasi-current="{{ $kotaDipilih }}"
+                                data-lokasi-placeholder="— Pilih Kota/Kabupaten —">
                             </select>
                             {!! $chevron !!}
                         </div>
@@ -468,37 +477,6 @@ Variabel: $action, $method, $submitLabel, $nominatif (null saat buat), $pegawaiL
 
 <script>
     document.addEventListener('alpine:init', function () {
-        Alpine.data('lokasi', function (cfg) {
-            return {
-                provinsi: cfg.provinsi || '',
-                kota: cfg.kota || '',
-                map: cfg.map || {},
-
-                get daftarProvinsi() {
-                    const list = Object.keys(this.map).sort();
-                    if (this.provinsi && !list.includes(this.provinsi)) {
-                        return [this.provinsi, ...list];
-                    }
-                    return list;
-                },
-
-                get daftarKota() {
-                    if (!this.provinsi) return [];
-                    let list = (this.map[this.provinsi] || []).slice().sort();
-                    if (this.kota && !list.includes(this.kota)) {
-                        list = [this.kota, ...list];
-                    }
-                    return list;
-                },
-
-                ubahProvinsi() {
-                    if (!this.daftarKota.includes(this.kota)) {
-                        this.kota = '';
-                    }
-                },
-            };
-        });
-
         Alpine.data('nominatifForm', function (cfg) {
             return {
                 seq: 0,

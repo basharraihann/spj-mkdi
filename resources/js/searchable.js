@@ -3,22 +3,46 @@
 // MutationObserver, jadi select yang opsinya berubah belakangan (Kab/Kota yang
 // nunggu Provinsi) tetap ikut update. ====
 (function () {
+    // Dipakai kalau class di <select> gak punya styling dasar (biar kotak gak "polos")
+    const FALLBACK_INPUT_CLASS =
+        'w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm bg-white ' +
+        'focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition ' +
+        'disabled:bg-gray-50 disabled:text-gray-400';
+
+    function buildInputClass(select) {
+        const classes = select.className
+            .split(/\s+/)
+            .filter(function (c) { return c && c !== 'js-searchable' && c !== 'hidden'; });
+
+        const hasBorder = classes.indexOf('border') !== -1;
+        const hasRounded = classes.some(function (c) { return c.indexOf('rounded') === 0; });
+
+        // Class dari select dianggap lengkap kalau punya border + rounded.
+        let base = (hasBorder && hasRounded) ? classes.join(' ') : FALLBACK_INPUT_CLASS + ' ' + classes.join(' ');
+
+        // Kotak teks harus selalu selebar kolomnya
+        if (!/(^|\s)w-/.test(base)) base += ' w-full';
+        return (base + ' pr-9').trim();
+    }
+
     function enhanceSearchable(select) {
         if (!select || select.dataset.searchEnhanced) return;
         select.dataset.searchEnhanced = '1';
 
         const originalParent = select.parentElement;
-        // sembunyikan ikon panah bawaan markup, biar gak dobel sama ikon di bawah
-        const existingIcon = originalParent.querySelector('svg');
+        // sembunyikan ikon panah bawaan markup (hanya yang langsung di parent select),
+        // biar gak dobel sama ikon di bawah
+        const existingIcon = originalParent.querySelector(':scope > svg');
         if (existingIcon) existingIcon.style.display = 'none';
 
         const wrapper = document.createElement('div');
-        wrapper.className = 'relative';
+        wrapper.className = 'relative w-full min-w-0';
 
         const input = document.createElement('input');
         input.type = 'text';
         input.autocomplete = 'off';
-        input.className = select.className.replace('js-searchable', '').trim() + ' pr-9';
+        input.className = buildInputClass(select);
+
         // `required` dipindah ke kotak teks. Select asli disembunyikan, dan select hidden
         // yang required bikin browser menolak submit ("invalid form control is not focusable").
         const isRequired = select.hasAttribute('required');
@@ -204,6 +228,9 @@
             childList: true,
             subtree: true,
         });
+
+        // Kode lain yang set select.value lalu dispatch 'change' ikut tersinkron
+        select.addEventListener('change', refreshFromSelect);
 
         refreshFromSelect();
 

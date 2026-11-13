@@ -399,11 +399,14 @@
                             <span class="text-red-400">*</span>
                         @endunless
                     </label>
-                    <select name="kota_tujuan" id="kota-tujuan-select" data-placeholder="Cari kab/kota..."
-                        {{ $isEdit ? '' : 'required' }}
-                        class="js-searchable w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition disabled:bg-gray-50 disabled:text-gray-400">
-                        <option value="">Pilih provinsi dulu</option>
-                    </select>
+                    <select name="kota_tujuan" id="kota-tujuan-select"
+    class="js-searchable ...class yang sudah ada..."
+    data-placeholder="Cari kab/kota..."
+    data-lokasi-provinsi="#tujuan-select"
+    data-lokasi-map='@json($kabKotaMap)'
+    data-lokasi-current="{{ old('kota_tujuan', $agenda?->kota_tujuan) }}"
+    data-lokasi-placeholder="Pilih kab/kota">
+</select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1.5">Tanggal Mulai <span
@@ -984,49 +987,4 @@
     updatePesertaCount();
     initialRender = false;
     applyPesertaFilters();
-
-    // ==== Dropdown Kab/Kota cascading sesuai Provinsi (Tujuan) yang dipilih ====
-    (function () {
-        const KAB_KOTA_MAP = @json($kabKotaMap);
-        const provinsiSelect = document.getElementById('tujuan-select');
-        const kotaSelect = document.getElementById('kota-tujuan-select');
-        if (!provinsiSelect || !kotaSelect) return;
-
-        // Kab/kota yang harus terpilih: old() kalau habis validasi gagal, kalau tidak ya data agenda (edit)
-        const currentKota = @json(old('kota_tujuan', $agenda?->kota_tujuan));
-
-        function renderKotaOptions() {
-            const list = KAB_KOTA_MAP[provinsiSelect.value] || [];
-            kotaSelect.innerHTML = '';
-
-            if (!provinsiSelect.value) {
-                kotaSelect.appendChild(new Option('Pilih provinsi dulu', ''));
-                kotaSelect.disabled = true;
-                return;
-            }
-            if (!list.length) {
-                kotaSelect.appendChild(new Option('Belum ada data kab/kota', ''));
-                kotaSelect.disabled = true;
-                return;
-            }
-
-            kotaSelect.disabled = false;
-            kotaSelect.appendChild(new Option('Pilih kab/kota', ''));
-            list.forEach(function (nama) {
-                const opt = new Option(nama, nama);
-                if (currentKota && currentKota === nama) opt.selected = true;
-                kotaSelect.appendChild(opt);
-            });
-
-            // Data lama yang kab/kota-nya belum tentu ada di master — tetap
-            // muncul biar gak keganti diam-diam pas halaman dibuka.
-            if (currentKota && !list.includes(currentKota)) {
-                const opt = new Option(currentKota + ' (belum ada di master)', currentKota, true, true);
-                kotaSelect.appendChild(opt);
-            }
-        }
-
-        provinsiSelect.addEventListener('change', renderKotaOptions);
-        renderKotaOptions();
-    })();
 </script>
