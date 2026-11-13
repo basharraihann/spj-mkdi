@@ -231,11 +231,12 @@
 
             {{-- Judul kolom (hanya layar lebar, sejajar dengan isi kartu) --}}
             <div
-                class="hidden xl:grid grid-cols-[minmax(0,1fr)_44rem] gap-6 px-5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                <div>Kegiatan</div>
-                <div class="grid grid-cols-[9rem_minmax(0,1fr)_7rem_5rem] gap-x-3 px-3">
-                    <div>Nomor Memo</div>
-                    <div>Progres &amp; Status</div>
+<div
+    class="hidden xl:grid xl:grid-cols-[19rem_minmax(0,1fr)] gap-6 px-5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+    <div>Kegiatan</div>
+    <div class="grid grid-cols-[9rem_minmax(0,1fr)_7rem_5rem] gap-x-3 px-3">
+        <div>Nomor Memo</div>
+<div class="pl-16">Progres &amp; Status</div>
                     <div class="text-right">Nominal</div>
                     <div class="text-right">Aksi</div>
                 </div>
@@ -244,8 +245,7 @@
             <div id="memo-list" class="space-y-3">
                 @forelse ($groups as $g)
                     <article
-                        class="js-memo-item bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_44rem] xl:gap-6"
-                        data-search="{{ $g['search_blob'] }}" data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}"
+class="js-memo-item bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 grid gap-4 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-6"                        data-search="{{ $g['search_blob'] }}" data-jenis="{{ $g['jenis'] }}" data-pic="{{ $g['pic'] }}"
                         data-status="{{ $g['status_blob'] }}" data-tanggal="{{ $g['tanggal_iso'] }}">
 
                         {{-- Info kegiatan --}}
@@ -272,8 +272,7 @@
                                     </div>
                                     <div class="flex gap-2">
                                         <dt class="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">MAK</dt>
-                                        <dd class="text-gray-700 font-medium font-mono text-xs break-all min-w-0">
-                                            {{ $g['mak'] ?? '-' }}
+<dd class="text-gray-700 font-medium font-mono text-[11px] break-words [overflow-wrap:anywhere] min-w-0">                                            {{ $g['mak'] ?? '-' }}
                                         </dd>
                                     </div>
                                 </dl>
@@ -334,9 +333,7 @@
                                     </div>
 
                                     {{-- Kolom 2: Progres & status --}}
-                                    <div class="order-3 col-span-2 xl:order-none xl:col-span-1 min-w-0 flex flex-col items-start gap-1.5">
-
-                                        {{-- Status anggaran + progres 3 segmen --}}
+<div class="order-3 col-span-2 xl:order-none xl:col-span-1 xl:pl-16 min-w-0 flex flex-col items-start gap-1.5">                                        {{-- Status anggaran + progres 3 segmen --}}
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                             <span
                                                 class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusBadge($st) }}">
