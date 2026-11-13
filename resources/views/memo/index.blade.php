@@ -118,6 +118,12 @@
         $statusClass = fn($status) => $status === 'PNS'
             ? 'bg-blue-50 text-blue-700 border-blue-200'
             : 'bg-orange-50 text-orange-700 border-orange-200';
+
+        // ---- Kelas Tailwind yang dipakai berulang (satu tempat, biar gampang diubah) ----
+        $kelasLabel = 'text-xs font-semibold text-gray-600';
+        $kelasField = 'w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition';
+        $kelasBadge = 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border';
+        $kelasDt = 'w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px';
     @endphp
 
     <div class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5">
@@ -169,19 +175,17 @@
                 </a>
             </div>
 
-            {{-- Filter instan, tanpa reload --}}
-            <div class="flex flex-wrap items-end gap-3">
-                <div class="flex flex-col gap-1 w-full sm:w-auto">
-                    <label for="memo-filter-cari" class="text-xs font-semibold text-gray-600">Cari</label>
+            {{-- Filter instan, tanpa reload. Kolom grid rata dan menyesuaikan lebar layar (lihat .mm-filter di spj-ui.css). --}}
+            <div class="mm-filter">
+                <div class="mm-filter-cari flex flex-col gap-1 min-w-0">
+                    <label for="memo-filter-cari" class="{{ $kelasLabel }}">Cari</label>
                     <input type="text" id="memo-filter-cari" autocomplete="off"
-                        placeholder="Nomor memo, uraian, PIC, atau unit..."
-                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-64 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                        placeholder="Nomor memo, uraian, PIC, atau unit..." class="{{ $kelasField }}">
                 </div>
 
-                <div class="flex flex-col gap-1 w-full sm:w-auto">
-                    <label for="memo-filter-jenis" class="text-xs font-semibold text-gray-600">Jenis</label>
-                    <select id="memo-filter-jenis"
-                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label for="memo-filter-jenis" class="{{ $kelasLabel }}">Jenis</label>
+                    <select id="memo-filter-jenis" class="{{ $kelasField }}">
                         <option value="semua" selected>Semua Jenis</option>
                         <option value="perdin">Perjalanan Dinas</option>
                         @foreach (\App\Models\MemoEntry::JENIS as $value => $label)
@@ -190,10 +194,9 @@
                     </select>
                 </div>
 
-                <div class="flex flex-col gap-1 w-full sm:w-auto">
-                    <label for="memo-filter-status" class="text-xs font-semibold text-gray-600">Status</label>
-                    <select id="memo-filter-status"
-                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-40 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label for="memo-filter-status" class="{{ $kelasLabel }}">Status</label>
+                    <select id="memo-filter-status" class="{{ $kelasField }}">
                         <option value="">Semua Status</option>
                         @foreach ($statusLabel as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
@@ -201,10 +204,9 @@
                     </select>
                 </div>
 
-                <div class="flex flex-col gap-1 w-full sm:w-auto">
-                    <label for="memo-filter-tahap" class="text-xs font-semibold text-gray-600">Tahap</label>
-                    <select id="memo-filter-tahap"
-                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-52 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label for="memo-filter-tahap" class="{{ $kelasLabel }}">Tahap</label>
+                    <select id="memo-filter-tahap" class="{{ $kelasField }}">
                         <option value="">Semua Tahap</option>
                         @foreach ($tahapLabel as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
@@ -213,10 +215,9 @@
                 </div>
 
                 @if ($keuangan)
-                    <div class="flex flex-col gap-1 w-full sm:w-auto">
-                        <label for="memo-filter-unit" class="text-xs font-semibold text-gray-600">Unit</label>
-                        <select id="memo-filter-unit"
-                            class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-56 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                    <div class="flex flex-col gap-1 min-w-0">
+                        <label for="memo-filter-unit" class="{{ $kelasLabel }}">Unit</label>
+                        <select id="memo-filter-unit" class="{{ $kelasField }}">
                             <option value="">Semua Unit</option>
                             @foreach ($unitOptions as $namaUnit)
                                 <option value="{{ $namaUnit }}">{{ $namaUnit }}</option>
@@ -225,10 +226,9 @@
                     </div>
                 @endif
 
-                <div class="flex flex-col gap-1 w-full sm:w-auto">
-                    <label for="memo-filter-pic" class="text-xs font-semibold text-gray-600">PIC</label>
-                    <select id="memo-filter-pic"
-                        class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label for="memo-filter-pic" class="{{ $kelasLabel }}">PIC</label>
+                    <select id="memo-filter-pic" class="{{ $kelasField }}">
                         <option value="">Semua PIC</option>
                         @foreach ($picOptions as $namaPic)
                             <option value="{{ $namaPic }}">{{ $namaPic }}</option>
@@ -236,20 +236,18 @@
                     </select>
                 </div>
 
-                <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
-                    <label for="memo-filter-dari" class="text-xs font-semibold text-gray-600">Dari tanggal</label>
-                    <input type="date" id="memo-filter-dari"
-                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label for="memo-filter-dari" class="{{ $kelasLabel }}">Dari tanggal</label>
+                    <input type="date" id="memo-filter-dari" class="{{ $kelasField }}">
                 </div>
 
-                <div class="flex flex-col gap-1 w-[calc(50%-0.375rem)] sm:w-auto min-w-0">
-                    <label for="memo-filter-sampai" class="text-xs font-semibold text-gray-600">Sampai tanggal</label>
-                    <input type="date" id="memo-filter-sampai"
-                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-40 min-w-0 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
+                <div class="flex flex-col gap-1 min-w-0">
+                    <label for="memo-filter-sampai" class="{{ $kelasLabel }}">Sampai tanggal</label>
+                    <input type="date" id="memo-filter-sampai" class="{{ $kelasField }}">
                 </div>
 
                 <button type="button" id="memo-filter-reset"
-                    class="text-sm text-gray-500 hover:text-gray-700 transition px-1 py-2 cursor-pointer">
+                    class="mm-filter-reset text-sm text-gray-500 hover:text-gray-700 transition cursor-pointer">
                     Reset
                 </button>
             </div>
@@ -289,16 +287,16 @@
                             <dl class="mt-2 space-y-1 text-xs">
                                 @if ($keuangan)
                                     <div class="flex gap-2">
-                                        <dt class="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">Unit</dt>
+                                        <dt class="{{ $kelasDt }}">Unit</dt>
                                         <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['unit'] ?? '-' }}</dd>
                                     </div>
                                 @endif
                                 <div class="flex gap-2">
-                                    <dt class="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">PIC</dt>
+                                    <dt class="{{ $kelasDt }}">PIC</dt>
                                     <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['pic'] ?: '-' }}</dd>
                                 </div>
                                 <div class="flex gap-2">
-                                    <dt class="w-12 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">MAK</dt>
+                                    <dt class="{{ $kelasDt }}">MAK</dt>
                                     <dd class="text-gray-700 font-medium font-mono text-[11px] break-words [overflow-wrap:anywhere] min-w-0">
                                         {{ $g['mak'] ?? '-' }}
                                     </dd>
@@ -342,6 +340,9 @@
                                 $aksiKeuangan = $keuangan
                                     && ($adaPengajuan || in_array($tahap, ['dikirim', 'lolos_spk', 'sakti', 'otp_ppk'], true));
                                 $aksiStatus = $keuangan && count($opsi) > 0;
+                                $pesanSetuju = 'Setujui pengajuan? Memo akan dikembalikan ke unit kerja'
+                                    . (in_array($tahap, ['sakti', 'otp_ppk'], true) ? ' dan SAKTI dilepas' : '')
+                                    . '.';
                                 $adaAksi = $adaPengajuan || $aksiUnit || $aksiKeuangan || $aksiStatus;
                             @endphp
 
@@ -365,7 +366,7 @@
 
                                         @if ($memo['status'])
                                             <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusClass($memo['status']) }}">
+                                                class="{{ $kelasBadge }} {{ $statusClass($memo['status']) }}">
                                                 {{ $memo['status'] }}
                                             </span>
                                         @endif
@@ -375,7 +376,7 @@
                                     <div class="min-w-0 flex-[1_1_13rem] flex flex-col items-start gap-1.5">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                             <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $statusBadge($st) }}">
+                                                class="{{ $kelasBadge }} {{ $statusBadge($st) }}">
                                                 {{ $statusLabel[$st] ?? $st }}
                                             </span>
 
@@ -397,7 +398,7 @@
                                         </div>
 
                                         <span
-                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $tahapBadge($tahap) }}">
+                                            class="{{ $kelasBadge }} {{ $tahapBadge($tahap) }}">
                                             {{ $tahapLabel[$tahap] ?? $tahap }}
                                         </span>
                                     </div>
@@ -477,7 +478,7 @@
                                                     <x-aksi-button varian="hijau"
                                                         :url="route('memo.pengajuan.putusan', $memo['pengajuan_id'])"
                                                         :fields="['setuju' => 1]"
-                                                        :konfirmasi="'Setujui pengajuan? Memo akan dikembalikan ke unit kerja' . (in_array($tahap, ['sakti', 'otp_ppk'], true) ? ' dan SAKTI dilepas' : '') . '.'">
+                                                        :konfirmasi="$pesanSetuju">
                                                         Setujui pengajuan
                                                     </x-aksi-button>
                                                     <x-aksi-button varian="merah"

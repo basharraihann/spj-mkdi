@@ -1053,3 +1053,45 @@ html {
         }
     }
 }
+
+/* =========================================================================
+   Halaman Memorandum: baris filter (grid rata, kolom menyesuaikan layar)
+   ========================================================================= */
+.mm-filter {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+}
+
+.mm-filter-cari {
+    grid-column: 1 / -1;
+}
+
+.mm-filter-reset {
+    justify-self: start;
+    min-height: 38px;
+    padding: 0 4px;
+}
+
+@media (min-width: 640px) {
+    .mm-filter {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .mm-filter {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .mm-filter-cari {
+        grid-column: span 2;
+    }
+}
+
+@media (min-width: 1280px) {
+    .mm-filter {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}

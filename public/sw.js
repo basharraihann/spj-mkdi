@@ -4,7 +4,7 @@
  *   jadi tidak pernah disimpan di cache). Offline -> halaman /offline.html.
  * - Request non-GET (simpan form, ambil nomor memo) : tidak disentuh sama sekali.
  */
-const VERSION = 'spj-v7';
+const VERSION = 'spj-v8';
 const STATIC_CACHE = VERSION + '-static';
 const BASE = new URL('./', self.location).pathname; // ikut subfolder kalau app tidak di root
 const OFFLINE_URL = BASE + 'offline.html';
