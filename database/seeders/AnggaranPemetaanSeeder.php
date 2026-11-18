@@ -6,7 +6,8 @@ use App\Models\AnggaranPemetaan;
 use Illuminate\Database\Seeder;
 
 /**
- * Pemetaan RO -> Unit kerja, bersumber dari sheet "MAPPING RO ANGGARAN" (73 aturan).
+ * Pemetaan RO -> Unit kerja, bersumber dari sheet "MAPPING RO ANGGARAN" (versi yang sudah dirapikan
+ * dan dicocokkan dengan Laporan FA Detail: 241 subkomponen, semuanya terpetakan).
  *   unit  = unit kerja persis seperti di sheet (mis. "Asdep 1 D1", "BIRO UHM")
  *   induk = kelompok di atasnya (mis. "D1"); kosong bila unit tidak punya induk
  *   sub_unit tidak dipakai (NULL).
@@ -37,10 +38,12 @@ class AnggaranPemetaanSeeder extends Seeder
         $r = [];
 
         // ---- CL: kegiatan menentukan Deputi (induk), RO menentukan Asdep/Sesdep (unit) ----
+        // Urutan RO = urutan unit: Asdep 1..5, lalu Sesdep (RO terakhir).
+        // D3 berbeda: sheet D3A4 = ABS.005, D3A5 = ABS.006, dan D3A6 (Sesdep) = ABR.004.
         $deputi = [
             'CL.7458' => ['D1', ['ABB.001', 'ABB.002', 'ABR.003', 'ABR.004', 'ABR.005', 'ABR.006']],
             'CL.7459' => ['D2', ['ABR.001', 'ABR.002', 'ABR.003', 'ABR.004', 'ABR.005', 'ABR.006']],
-            'CL.7460' => ['D3', ['ABR.001', 'ABR.002', 'ABR.003', 'ABR.004', 'ABS.005', 'ABS.006']],
+            'CL.7460' => ['D3', ['ABR.001', 'ABR.002', 'ABR.003', 'ABS.005', 'ABS.006', 'ABR.004']],
             'CL.7461' => ['D4', ['ABR.001', 'ABR.002', 'ABR.003', 'ABR.004', 'ABR.005', 'ABR.006']],
         ];
         foreach ($deputi as $keg => [$d, $ros]) {
@@ -49,6 +52,52 @@ class AnggaranPemetaanSeeder extends Seeder
                 $r[] = [$keg, $ro, '', '', $unit, $d];
             }
         }
+
+        // ---- CL: komponen / subkomponen yang membedakan unit (Biro & Sesdep) ----
+        // Kunci tetap keg + RO; komponen atau subkomponen yang menentukan unit.
+        // Format sub_kode mengikuti EBA.962: "<komponen>.<sub>" (mis. 073.AA).
+
+        // D1 - ABR.003 (Asdep 3 D1): komponen 073, subkomponen AA..DD
+        foreach (['AA', 'BB', 'CC'] as $s) {
+            $r[] = ['CL.7458', 'ABR.003', '', "073.$s", 'Asdep 3 D1', 'D1'];
+        }
+        $r[] = ['CL.7458', 'ABR.003', '', '073.DD', 'BIRO UHM', null];
+
+        // D1 - ABR.006 (Sesdep D1): per komponen
+        $r[] = ['CL.7458', 'ABR.006', '051', '', 'Sesdep D1', 'D1'];
+        foreach ([
+            ['071', 'INSPEKTORAT'],
+            ['072', 'BIRO HKS'],
+            ['073', 'BIRO KBMN'],
+            ['074', 'BIRO SDMO'],
+            ['075', 'BIRO MKDI'],
+            ['076', 'INSPEKTORAT'],
+            ['077', 'BIRO MKDI'],
+        ] as [$k, $unit]) {
+            $r[] = ['CL.7458', 'ABR.006', $k, '', $unit, null];
+        }
+
+        // D2 - ABR.006 (Sesdep D2): per komponen
+        foreach (['051', '054', '071', '072', '073', '074'] as $k) {
+            $r[] = ['CL.7459', 'ABR.006', $k, '', 'Sesdep D2', 'D2'];
+        }
+        foreach ([
+            ['075', 'BIRO MKDI'],
+            ['076', 'BIRO MKDI'],
+            ['077', 'BIRO UHM'],
+            ['078', 'BIRO UHM'],
+        ] as [$k, $unit]) {
+            $r[] = ['CL.7459', 'ABR.006', $k, '', $unit, null];
+        }
+        // Pengecualian: subkomponen 071.CC dipindah dari Sesdep D2 ke BIRO UHM
+        // (aturan subkomponen mengalahkan aturan komponen 071 di atas).
+        $r[] = ['CL.7459', 'ABR.006', '', '071.CC', 'BIRO UHM', null];
+
+        // D4 - ABR.006 (Sesdep D4): komponen 076, subkomponen AC / FF / MR
+        $r[] = ['CL.7461', 'ABR.006', '', '076.AC', 'Sesdep D4', 'D4'];
+        $r[] = ['CL.7461', 'ABR.006', '', '076.FF', 'Sesdep D4', 'D4'];
+        $r[] = ['CL.7461', 'ABR.006', '', '076.MR', 'INSPEKTORAT', null];
+
         $r[] = ['', 'FAN.ZZ1', '', '', 'Sesdep D1', 'D1'];
 
         // ---- WA: per RO ----
@@ -75,18 +124,23 @@ class AnggaranPemetaanSeeder extends Seeder
             $r[] = ['', $ro, '', '', $unit, null];
         }
 
-        // EBA.994: per komponen
-        $r[] = ['', 'EBA.994', '001', '', 'BIRO UHM', null];
-        $r[] = ['', 'EBA.994', '002', '', 'BIRO KBMN', null];
+        // EBA.994: per komponen, dengan pengecualian per subkomponen.
+        //   komponen 001 -> BIRO KBMN (001.0A..0D)
+        //   komponen 002 -> BIRO UHM (0A,0C..0H,0J,0K,AP), kecuali 002.0B & 002.0I -> BIRO KBMN
+        $r[] = ['', 'EBA.994', '001', '', 'BIRO KBMN', null];
+        $r[] = ['', 'EBA.994', '002', '', 'BIRO UHM', null];
+        $r[] = ['', 'EBA.994', '', '002.0B', 'BIRO KBMN', null];
+        $r[] = ['', 'EBA.994', '', '002.0I', 'BIRO KBMN', null];
 
         // EBA.962: per subkomponen. Unit Deputi (D1..D4) induknya D1..D4 itu sendiri.
+        // 0A..0F, 0O, 0P, 0Q, AP semuanya ada di sheet BUHM (tidak ada unit Sahli di sheet).
         $s962 = [
             '0A' => 'BIRO UHM',
             '0B' => 'BIRO UHM',
             '0C' => 'BIRO UHM',
-            '0D' => 'Sahli',
-            '0E' => 'Sahli',
-            '0F' => 'Sahli',
+            '0D' => 'BIRO UHM',
+            '0E' => 'BIRO UHM',
+            '0F' => 'BIRO UHM',
             '0G' => 'BIRO HKS',
             '0H' => 'INSPEKTORAT',
             '0I' => 'BIRO SDMO',

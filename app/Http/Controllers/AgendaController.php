@@ -500,7 +500,21 @@ class AgendaController extends Controller
                 $rowData['lumpsum'] = $lumpsumTotal;
             }
 
-            $syncData[$pegawaiId] = $rowData;
+                       // Nol-kan semua kolom biaya yang tidak aktif supaya nilai lama tidak nyangkut di pivot.
+            // $rowData menang atas default, jadi komponen aktif tetap pakai nilai barunya.
+            $resetDefaults = [];
+            foreach (self::SIMPLE_KOMPONEN_FIELDS as $f) {
+                $resetDefaults[$f] = 0;
+            }
+            $resetDefaults['peng_riil'] = 0;
+            $resetDefaults['peng_riil_detail'] = null;
+            $resetDefaults['lumpsum'] = 0;
+            foreach (self::UH_FIELD_MAP as $f) {
+                $resetDefaults[$f['hari']] = 0;
+                $resetDefaults[$f['rate']] = 0;
+            }
+
+            $syncData[$pegawaiId] = array_merge($resetDefaults, $rowData);
         }
 
         $agenda->pegawai()->sync($syncData);

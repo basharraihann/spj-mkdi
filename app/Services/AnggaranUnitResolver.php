@@ -6,9 +6,12 @@ use App\Models\AnggaranPemetaan;
 
 /**
  * Mencocokkan item anggaran dengan pemetaan unit. Aturan paling spesifik menang:
- *   1) RO + SubKomponen   2) RO + Komponen   3) Kegiatan + RO   4) RO saja
- * Dicocokkan saat data diambil (bukan saat import), jadi mengubah pemetaan
- * tidak perlu upload ulang, dan pemetaan tetap ada waktu upload file baru.
+ *   1) Kegiatan + RO + SubKomponen   2) RO + SubKomponen
+ *   3) Kegiatan + RO + Komponen      4) RO + Komponen
+ *   5) Kegiatan + RO                 6) RO saja
+ * Aturan yang punya kegiatan hanya berlaku untuk kegiatan itu; aturan tanpa kegiatan berlaku
+ * untuk semua kegiatan. Dicocokkan saat data diambil (bukan saat import), jadi mengubah
+ * pemetaan tidak perlu upload ulang, dan pemetaan tetap ada waktu upload file baru.
  *
  * Hasil: ['unit' => unit kerja, 'induk' => kelompok di atasnya (default = unit), 'sub_unit' => null]
  */
@@ -16,7 +19,9 @@ class AnggaranUnitResolver
 {
     public const BELUM = 'Belum dipetakan';
 
+    private array $subKeg = [];
     private array $sub = [];
+    private array $kompKeg = [];
     private array $komp = [];
     private array $kegRo = [];
     private array $ro = [];
@@ -29,16 +34,26 @@ class AnggaranUnitResolver
                 'induk' => ($m->induk !== null && $m->induk !== '') ? $m->induk : $m->unit,
                 'sub_unit' => $m->sub_unit,
             ];
+            $keg = self::n($m->keg_kode);
             $ro = self::n($m->ro_kode);
 
-            if ($m->sub_kode !== '')
-                $this->sub[$ro . '|' . self::n($m->sub_kode)] = $val;
-            elseif ($m->komp_kode !== '')
-                $this->komp[$ro . '|' . self::n($m->komp_kode)] = $val;
-            elseif ($m->keg_kode !== '')
-                $this->kegRo[self::n($m->keg_kode) . '|' . $ro] = $val;
-            else
+            if ($m->sub_kode !== '') {
+                $sub = self::n($m->sub_kode);
+                if ($keg !== '')
+                    $this->subKeg[$keg . '|' . $ro . '|' . $sub] = $val;
+                else
+                    $this->sub[$ro . '|' . $sub] = $val;
+            } elseif ($m->komp_kode !== '') {
+                $komp = self::n($m->komp_kode);
+                if ($keg !== '')
+                    $this->kompKeg[$keg . '|' . $ro . '|' . $komp] = $val;
+                else
+                    $this->komp[$ro . '|' . $komp] = $val;
+            } elseif ($keg !== '') {
+                $this->kegRo[$keg . '|' . $ro] = $val;
+            } else {
                 $this->ro[$ro] = $val;
+            }
         }
     }
 
@@ -56,7 +71,9 @@ class AnggaranUnitResolver
         $komp = $g('komp_kode');
         $sub = $g('sub_kode');
 
-        return $this->sub[$ro . '|' . $sub]
+        return $this->subKeg[$keg . '|' . $ro . '|' . $sub]
+            ?? $this->sub[$ro . '|' . $sub]
+            ?? $this->kompKeg[$keg . '|' . $ro . '|' . $komp]
             ?? $this->komp[$ro . '|' . $komp]
             ?? $this->kegRo[$keg . '|' . $ro]
             ?? $this->ro[$ro]

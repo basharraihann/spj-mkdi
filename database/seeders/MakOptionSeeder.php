@@ -12,8 +12,11 @@ class MakOptionSeeder extends Seeder
      * RKK_MULTIYEAR_SATKER — di-parse otomatis dari struktur pohon Kode Giat >
      * Kode Komponen > Kode Sub Komponen > Kode Belanja di kolom A & D.
      *
-     * Kegiatan: 7459.ABR.006 (Rekomendasi Kebijakan Bidang Usaha Pangan dan
-     * Pertanian). Komponen yg ke-cover: 075, 076, 077, 078.
+     * Kegiatan:
+     * - 7459.ABR.006 (Rekomendasi Kebijakan Bidang Usaha Pangan dan Pertanian),
+     *   komponen 075, 076, 077, 078.
+     * - 7458.ABR.006 (Rekomendasi Kebijakan Bidang Tata Niaga dan Distribusi
+     *   Pangan), komponen 075 (sub komponen EE).
      *
      * TODO: kalau satker kamu punya kegiatan/komponen lain di luar RKK ini,
      * tambahin lagi entry-nya di sini pakai format yang sama.
@@ -216,6 +219,12 @@ class MakOptionSeeder extends Seeder
             'uraian_komponen' => 'Monev Koordinasi Kebijakan Sistem Informasi Pangan Terintegrasi Nasional',
             'uraian_akun_ap' => 'TERLAKSANANYA MONEV KOORDINASI KEBIJAKAN SISTEM INFORMASI PANGAN TERINTEGRASI NASIONAL',
             'uraian_belanja' => 'Belanja Jasa Lainnya',
+        ],
+        '7458.ABR.006.075.EE.522151' => [
+            'uraian_giat' => 'Rekomendasi Kebijakan Program Prioritas Nasional Bidang Tata Niaga dan Distribusi Pangan',
+            'uraian_komponen' => 'Monev dan Sinkronisasi, Koodinasi dan Pengendalian MRPN LS Bidang Pangan Terkait Nilai Ekonomi Karbon',
+            'uraian_akun_ap' => 'Koordinasi Implementasi NEK dan Pengendalian Emisi GRK',
+            'uraian_belanja' => 'Belanja Jasa Profesi',
         ],
         '7458.ABR.006.075.EE.524111' => [
             'uraian_giat' => 'Rekomendasi Kebijakan Program Prioritas Nasional Bidang Tata Niaga dan Distribusi Pangan',
