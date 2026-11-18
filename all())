@@ -1,0 +1,1 @@
+"\n== mak_options (1 baris) ==\n"; print_r(DB::table('mak_options')-; echo "sumber: "; print_r(DB::table('mak_options')-;

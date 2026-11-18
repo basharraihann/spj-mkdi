@@ -1,0 +1,347 @@
+// ==== Searchable select: ubah <select class="js-searchable"> jadi kotak yang bisa
+// diketik buat nyaring opsi. Opsi & status disabled dibaca live dan dipantau lewat
+// MutationObserver, jadi select yang opsinya berubah belakangan (Kab/Kota yang
+// nunggu Provinsi) tetap ikut update. ====
+(function () {
+    // Dipakai kalau class di <select> gak punya styling dasar (biar kotak gak "polos")
+    const FALLBACK_INPUT_CLASS =
+        'w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm bg-white ' +
+        'focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition ' +
+        'disabled:bg-gray-50 disabled:text-gray-400';
+
+    function buildInputClass(select) {
+        const classes = select.className
+            .split(/\s+/)
+            .filter(function (c) { return c && c !== 'js-searchable' && c !== 'hidden'; });
+
+        const hasBorder = classes.indexOf('border') !== -1;
+        const hasRounded = classes.some(function (c) { return c.indexOf('rounded') === 0; });
+
+        // Class dari select dianggap lengkap kalau punya border + rounded.
+        let base = (hasBorder && hasRounded) ? classes.join(' ') : FALLBACK_INPUT_CLASS + ' ' + classes.join(' ');
+
+        // Kotak teks harus selalu selebar kolomnya
+        if (!/(^|\s)w-/.test(base)) base += ' w-full';
+        return (base + ' pr-9').trim();
+    }
+
+    // Label opsi dirapikan (spasi/baris baru beruntun jadi satu spasi) supaya rapi di kotak teks.
+    function labelOf(o) {
+        return o.textContent.replace(/\s+/g, ' ').trim();
+    }
+
+    function enhanceSearchable(select) {
+        if (!select || select.dataset.searchEnhanced) return;
+        select.dataset.searchEnhanced = '1';
+
+        const originalParent = select.parentElement;
+        // sembunyikan ikon panah bawaan markup (hanya yang langsung di parent select),
+        // biar gak dobel sama ikon di bawah
+        const existingIcon = originalParent.querySelector(':scope > svg');
+        if (existingIcon) existingIcon.style.display = 'none';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'relative w-full min-w-0';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.autocomplete = 'off';
+        input.className = buildInputClass(select);
+
+        // `required` dipindah ke kotak teks. Select asli disembunyikan, dan select hidden
+        // yang required bikin browser menolak submit ("invalid form control is not focusable").
+        const isRequired = select.hasAttribute('required');
+
+        // Mode "boleh ketik manual" (opt-in lewat data-allow-custom="1"): teks yang tidak ada
+        // di daftar disimpan sebagai opsi tambahan (data-custom) di select asli, jadi form
+        // tetap mengirim nilai lewat select seperti biasa.
+        const allowCustom = select.dataset.allowCustom === '1';
+        const maxLen = parseInt(select.dataset.maxlength || '', 10);
+        if (allowCustom && maxLen > 0) input.maxLength = maxLen;
+        if (isRequired) {
+            input.setAttribute('required', 'required');
+            select.removeAttribute('required');
+        }
+
+        // Teks yang diketik tapi belum dipilih dari daftar = belum valid.
+        function syncValidity() {
+            if (!isRequired) return;
+            if (allowCustom) {
+                input.setCustomValidity(input.value.trim() ? '' : 'Pilih dari daftar atau ketik sendiri.');
+                return;
+            }
+            input.setCustomValidity(select.value ? '' : 'Pilih salah satu opsi dari daftar.');
+        }
+
+        const iconWrap = document.createElement('span');
+        iconWrap.className = 'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400';
+        iconWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>';
+
+        const list = document.createElement('ul');
+        list.className = 'absolute z-20 top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm hidden';
+
+        let highlighted = -1;
+
+        // Opsi hasil ketikan manual (data-custom) tidak ikut tampil di daftar saran.
+        function liveOptions() {
+            return Array.from(select.options).filter(function (o) {
+                return o.value !== '' && !o.hasAttribute('data-custom');
+            });
+        }
+
+        // Cocokkan teks ketikan dengan opsi yang ada: label penuh, nilai, atau kode sebelum
+        // tanda "—" (mis. "ls" -> "LS — Pembayaran Langsung").
+        function findMatch(text) {
+            const t = (text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+            if (!t) return null;
+            return liveOptions().find(function (o) {
+                const lbl = labelOf(o).toLowerCase();
+                return lbl === t || o.value.toLowerCase() === t || lbl.split('—')[0].trim() === t;
+            }) || null;
+        }
+
+        function customOption() {
+            let o = select.querySelector('option[data-custom]');
+            if (!o) {
+                o = document.createElement('option');
+                o.setAttribute('data-custom', '1');
+                select.appendChild(o);
+            }
+            return o;
+        }
+
+        // Terapkan teks yang diketik ke select asli (opsi cocok, atau opsi custom).
+        function commitText() {
+            const text = input.value.replace(/\s+/g, ' ').trim();
+            const before = select.value;
+            const match = findMatch(text);
+
+            if (match) {
+                select.value = match.value;
+            } else if (text) {
+                const o = customOption();
+                o.value = text;
+                o.textContent = text;
+                o.selected = true;
+            } else {
+                select.value = '';
+                if (select.value !== '') select.selectedIndex = -1;
+            }
+
+            syncValidity();
+            if (select.value !== before) {
+                select.dispatchEvent(new Event('input', { bubbles: true }));
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        function itemEls() {
+            return Array.from(list.children).filter(function (li) { return li.dataset.value !== undefined; });
+        }
+
+        function updateHighlight() {
+            const items = itemEls();
+            items.forEach(function (li, idx) {
+                li.classList.toggle('bg-blue-100', idx === highlighted);
+            });
+            if (items[highlighted]) items[highlighted].scrollIntoView({ block: 'nearest' });
+        }
+
+        function renderList(filterText) {
+            const f = (filterText || '').trim().toLowerCase();
+            list.innerHTML = '';
+            highlighted = -1;
+
+            const filtered = liveOptions().filter(function (o) {
+                return labelOf(o).toLowerCase().includes(f);
+            });
+
+            const bisaPakaiTeks = allowCustom && f !== '' && !findMatch(filterText);
+
+            function addUseTextRow() {
+                const li = document.createElement('li');
+                li.className = 'px-3.5 py-2 cursor-pointer hover:bg-blue-50 text-blue-700 border-t border-gray-100';
+                li.textContent = 'Gunakan "' + filterText.replace(/\s+/g, ' ').trim() + '"';
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    commitText();
+                    closeList();
+                });
+                list.appendChild(li);
+            }
+
+            if (filtered.length === 0) {
+                if (bisaPakaiTeks) {
+                    addUseTextRow();
+                    return;
+                }
+                const li = document.createElement('li');
+                li.className = 'px-3.5 py-2 text-gray-400 text-xs';
+                li.textContent = 'Tidak ditemukan';
+                list.appendChild(li);
+                return;
+            }
+
+            filtered.forEach(function (o, idx) {
+                const isSelected = o.value === select.value;
+                const li = document.createElement('li');
+                li.textContent = labelOf(o);
+                li.dataset.value = o.value;
+                li.className = 'px-3.5 py-2 cursor-pointer hover:bg-blue-50 text-gray-700' +
+                    (isSelected ? ' bg-blue-50 font-medium text-blue-700' : '');
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault(); // biar blur gak duluan nutup list sebelum klik kepilih
+                    pick(o);
+                });
+                list.appendChild(li);
+                // tanpa filter: arahkan highlight ke opsi yang lagi terpilih
+                if (!f && isSelected) highlighted = idx;
+            });
+
+            if (bisaPakaiTeks) addUseTextRow();
+        }
+
+        function pick(o) {
+            select.value = o.value;
+            input.value = labelOf(o);
+            syncValidity();
+            select.dispatchEvent(new Event('input', { bubbles: true }));
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            closeList();
+        }
+
+        // filterText kosong = tampilkan SEMUA opsi. Filter cuma dikirim dari ketikan user.
+        function openList(filterText) {
+            if (select.disabled) return;
+            renderList(filterText || '');
+            list.classList.remove('hidden');
+            if (highlighted >= 0) updateHighlight();
+        }
+
+        function closeList() {
+            list.classList.add('hidden');
+        }
+
+        // Sinkronkan kotak teks dengan select aslinya: dipanggil pas init dan tiap
+        // select berubah dari luar (mis. Kab/Kota diisi ulang pas Provinsi diganti).
+        function refreshFromSelect() {
+            const current = select.selectedOptions[0];
+            const label = (current && current.value !== '') ? labelOf(current) : '';
+
+            // jangan timpa teks yang lagi diketik user
+            if (document.activeElement !== input || select.disabled) {
+                input.value = label;
+            }
+
+            input.disabled = select.disabled;
+            syncValidity();
+            if (select.disabled) {
+                input.placeholder = current ? labelOf(current) : 'Tidak tersedia';
+                closeList();
+            } else {
+                input.placeholder = select.dataset.placeholder || 'Cari & pilih...';
+            }
+        }
+
+        input.addEventListener('focus', function () {
+            if (select.disabled) return;
+            input.select();   // teks ke-block, jadi ngetik langsung nimpa
+            openList('');     // semua opsi, bukan difilter label terpilih
+        });
+
+        // klik pas sudah fokus tapi list tertutup (habis pilih / Escape)
+        input.addEventListener('click', function () {
+            if (select.disabled || !list.classList.contains('hidden')) return;
+            input.select();
+            openList('');
+        });
+
+        // filter hanya dari ketikan user
+        input.addEventListener('input', function () {
+            if (allowCustom) commitText();
+            openList(input.value);
+        });
+
+        input.addEventListener('blur', function () {
+            setTimeout(function () {
+                if (allowCustom) commitText(); // teks ketikan dipakai apa adanya
+                refreshFromSelect(); // kalau ditutup tanpa milih, balik ke label terpilih
+                closeList();
+            }, 120);
+        });
+
+        input.addEventListener('keydown', function (e) {
+            if (select.disabled) return;
+            const isClosed = list.classList.contains('hidden');
+
+            if (isClosed && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                e.preventDefault();
+                openList('');
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlighted = Math.min(highlighted + 1, itemEls().length - 1);
+                updateHighlight();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlighted = Math.max(highlighted - 1, 0);
+                updateHighlight();
+            } else if (e.key === 'Enter') {
+                if (isClosed) return;
+                e.preventDefault(); // list terbuka: Enter jangan submit form
+                const items = itemEls();
+                if (highlighted >= 0 && items[highlighted]) {
+                    const val = items[highlighted].dataset.value;
+                    const opt = liveOptions().find(function (o) { return o.value === val; });
+                    if (opt) pick(opt);
+                } else if (allowCustom) {
+                    commitText(); // tidak ada saran yang dipilih: pakai teks yang diketik
+                    closeList();
+                }
+            } else if (e.key === 'Escape') {
+                closeList();
+                refreshFromSelect();
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!wrapper.contains(e.target)) closeList();
+        });
+
+        // Pantau perubahan select aslinya (opsi diganti / disabled berubah).
+        const observer = new MutationObserver(refreshFromSelect);
+        observer.observe(select, {
+            attributes: true,
+            attributeFilter: ['disabled'],
+            childList: true,
+            subtree: true,
+        });
+
+        // Kode lain yang set select.value lalu dispatch 'change' ikut tersinkron
+        select.addEventListener('change', refreshFromSelect);
+
+        refreshFromSelect();
+
+        select.classList.add('hidden');
+        originalParent.insertBefore(wrapper, select);
+        wrapper.appendChild(input);
+        wrapper.appendChild(iconWrap);
+        wrapper.appendChild(list);
+        wrapper.appendChild(select);
+    }
+
+    // expose global, buat select yang baru muncul belakangan (di-render dinamis)
+    window.enhanceSearchable = enhanceSearchable;
+
+    function initAll() {
+        document.querySelectorAll('select.js-searchable').forEach(enhanceSearchable);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+        initAll();
+    }
+})();

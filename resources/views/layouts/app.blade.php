@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}
@@ -13,14 +14,28 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    @include('layouts.partials.pwa-head')
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Harus setelah Vite CSS supaya bisa menimpa. File CSS biasa, tanpa build. --}}
+    <link rel="stylesheet" href="{{ asset('css/spj-ui.css') }}?v=8">
 
-    <!-- SweetAlert2 (dipakai untuk konfirmasi hapus yang seragam di semua halaman) -->
+    <!-- SweetAlert2 (dipakai untuk konfirmasi hapus, dialog aksi, dan toast yang seragam di semua halaman) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body class="font-sans antialiased" x-data="{ sidebarOpen: false, sidebarCollapsed: true }">
+<body class="spj-body font-sans antialiased" x-data="{
+        sidebarOpen: false,
+        sidebarCollapsed: (() => {
+            try { return localStorage.getItem('sidebarCollapsed') !== 'false'; }
+            catch (e) { return true; }
+        })()
+    }" x-init="$watch('sidebarCollapsed', v => { try { localStorage.setItem('sidebarCollapsed', v); } catch (e) {} })"
+    :class="{ 'spj-lock': sidebarOpen }" @keydown.escape.window="sidebarOpen = false">
+
+    {{-- Penanda offline (PWA) --}}
+    <div id="spj-offline" class="spj-offline" role="status" aria-live="polite"><i></i> Anda sedang offline</div>
+
     <div class="min-h-screen bg-gray-100 flex">
 
         @include('layouts.navigation')
@@ -29,40 +44,38 @@
         </div>
 
         <div x-cloak class="flex-1 flex flex-col min-w-0 transition-all duration-200"
-            :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
+            :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-60'">
 
-            <!-- Top bar (logo + mobile toggle + user menu) -->
-            <div class="bg-white border-b border-gray-100 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+            <!-- Top bar: logo + (pasang aplikasi) + menu pengguna. Di HP, navigasi ada di bottom bar. -->
+            <div class="spj-topbar">
+                <x-application-logo class="spj-logo" />
 
-                <div class="flex items-center gap-3">
-                    <button @click="sidebarOpen = true"
-                        class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100">
-                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16" />
+                <div class="spj-topbar-right">
+                    <button type="button" class="spj-install" data-install hidden>
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"
+                            style="width:16px;height:16px">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
                         </svg>
+                        Pasang
                     </button>
 
-                    <x-application-logo class="h-8 w-auto" />
-                </div>
-
-                <div class="ms-auto">
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <button
-                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                                <div>{{ Auth::user()->name }}</div>
-                                <div class="ms-1">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </div>
+                            <button type="button" class="spj-user" aria-label="Menu pengguna">
+                                <span
+                                    class="spj-avatar">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(Auth::user()->name, 0, 1)) }}</span>
+                                <span class="spj-user-name">{{ Auth::user()->name }}</span>
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                    style="width:16px;height:16px">
+                                    <path fill-rule="evenodd"
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
                             </button>
                         </x-slot>
                         <x-slot name="content">
+                            <div class="px-4 py-2 text-xs text-gray-400 truncate">{{ Auth::user()->name }}</div>
                             <x-dropdown-link :href="route('profile.edit')">{{ __('Profile') }}</x-dropdown-link>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -78,15 +91,15 @@
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <header class="spj-header">
+                    <div class="spj-header-inner">
                         {{ $header }}
                     </div>
                 </header>
             @endisset
 
             <!-- Page Content -->
-            <main class="flex-1">
+            <main class="spj-main flex-1">
                 {{-- Flash message global (success & error).
                 Datanya cuma dititip lewat data-attribute yang disembunyikan di sini,
                 lalu ditampilkan sebagai toast modern oleh script di bawah (lihat #flash-data).
@@ -99,129 +112,259 @@
         </div>
     </div>
 
+    {{-- Bottom navigation (HP) --}}
+    @include('layouts.bottom-nav')
+
     {{--
-    Fungsi konfirmasi hapus global.
-    Dipakai di SEMUA tombol Hapus di seluruh aplikasi (Pegawai, Nomor Memo, dll)
-    supaya tampilannya konsisten, bukan confirm() bawaan browser.
+    Dialog global (SweetAlert2), tampilannya seragam di SEMUA halaman.
 
-    Cara pakai di Blade manapun (contoh, JANGAN taruh di file ini):
+    1) confirmDelete(formId, itemLabel)
+    Khusus tombol Hapus (submit form berdasarkan id).
 
-    <form id="delete-pegawai-XXX" action="URL_DESTROY" method="POST" class="hidden">
-        @csrf
-        @method('DELETE')
-    </form>
-    <button type="button" onclick="confirmDelete('delete-pegawai-XXX', 'pegawai NAMA')">
-        Hapus
-    </button>
-    --}}
-    <style>
-        .swal-delete-popup {
-            border-radius: 1.25rem !important;
-            padding: 2rem 1.5rem !important;
-        }
+    2) appDialog.confirm({ judul, pesan, varian, teksOk }) -> Promise<boolean>
+        appDialog.prompt({ judul, label, wajib, varian, teksOk }) -> Promise<string|null>
+            Pengganti window.confirm / window.prompt untuk aksi lain.
+            varian: 'biru' (default) | 'hijau' | 'merah'
+            prompt mengembalikan null kalau dibatalkan.
 
-        .swal-delete-icon-wrap {
-            width: 84px;
-            height: 84px;
-            margin: 0 auto 1.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+            Contoh:
+            const ok = await appDialog.confirm({ judul: 'Kirim memo?', pesan: '...', teksOk: 'Kirim' });
+            const alasan = await appDialog.prompt({ judul: 'Tolak', label: 'Alasan:', wajib: true });
+            --}}
+            <style>
+                /* ---------- Dialog hapus & dialog aksi (dasar sama) ---------- */
+                .swal-delete-popup {
+                    border-radius: 1.25rem !important;
+                    padding: 1.5rem 1.25rem !important;
+                    width: 21rem !important;
+                    max-width: calc(100vw - 32px) !important;
+                }
 
-        .swal-delete-icon-wrap svg {
-            width: 100%;
-            height: 100%;
-        }
+                .swal-delete-icon-wrap {
+                    width: 52px;
+                    height: 52px;
+                    margin: 0 auto 0.875rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
 
-        .swal-delete-title {
-            font-size: 1.25rem !important;
-            font-weight: 700 !important;
-            color: #1f2937 !important;
-            margin-bottom: 0.375rem !important;
-        }
+                .swal-delete-icon-wrap svg {
+                    width: 100%;
+                    height: 100%;
+                }
 
-        .swal-delete-text {
-            font-size: 0.9rem !important;
-            color: #9ca3af !important;
-            line-height: 1.4 !important;
-        }
+                .swal-delete-title {
+                    font-size: 1rem !important;
+                    font-weight: 600 !important;
+                    color: #1f2937 !important;
+                    margin-bottom: 0.375rem !important;
+                }
 
-        .swal-delete-actions {
-            gap: 0.75rem !important;
-            width: 100%;
-            margin-top: 1.5rem !important;
-        }
+                .swal-delete-text {
+                    font-size: 0.8125rem !important;
+                    color: #9ca3af !important;
+                    line-height: 1.4 !important;
+                }
 
-        .swal-btn-cancel {
-            flex: 1;
-            border: 2px solid #fecaca !important;
-            background: #ffffff !important;
-            color: #ef4444 !important;
-            font-weight: 600 !important;
-            border-radius: 0.75rem !important;
-            padding: 0.7rem 1rem !important;
-            box-shadow: none !important;
-            transition: background 0.15s ease;
-        }
+                .swal-delete-actions {
+                    gap: 0.625rem !important;
+                    width: 100%;
+                    margin-top: 1.25rem !important;
+                }
 
-        .swal-btn-cancel:hover {
-            background: #fef2f2 !important;
-        }
+                .swal-btn-cancel {
+                    flex: 1;
+                    border: 2px solid #fecaca !important;
+                    background: #ffffff !important;
+                    color: #ef4444 !important;
+                    font-weight: 600 !important;
+                    border-radius: 0.75rem !important;
+                    padding: 0.6rem 1rem !important;
+                    font-size: 0.875rem !important;
+                    box-shadow: none !important;
+                    transition: background 0.15s ease;
+                }
 
-        .swal-btn-confirm {
-            flex: 1;
-            border: none !important;
-            background: #ef4444 !important;
-            color: #ffffff !important;
-            font-weight: 600 !important;
-            border-radius: 0.75rem !important;
-            padding: 0.7rem 1rem !important;
-            box-shadow: none !important;
-            transition: background 0.15s ease;
-        }
+                .swal-btn-cancel:hover {
+                    background: #fef2f2 !important;
+                }
 
-        .swal-btn-confirm:hover {
-            background: #dc2626 !important;
-        }
+                .swal-btn-confirm {
+                    flex: 1;
+                    border: none !important;
+                    background: #ef4444 !important;
+                    color: #ffffff !important;
+                    font-weight: 600 !important;
+                    border-radius: 0.75rem !important;
+                    padding: 0.6rem 1rem !important;
+                    font-size: 0.875rem !important;
+                    box-shadow: none !important;
+                    transition: background 0.15s ease;
+                }
 
-        /* Toast flash message (success/error) */
-        .app-toast-popup {
-            border-radius: 0.875rem !important;
-            padding: 0.85rem 1.1rem !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-        }
+                .swal-btn-confirm:hover {
+                    background: #dc2626 !important;
+                }
 
-        .app-toast-inner {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
+                /* ---------- Dialog aksi (confirm / prompt) ---------- */
+                .swal-btn-cancel-netral {
+                    flex: 1;
+                    border: 2px solid #e5e7eb !important;
+                    background: #ffffff !important;
+                    color: #4b5563 !important;
+                    font-weight: 600 !important;
+                    border-radius: 0.75rem !important;
+                    padding: 0.6rem 1rem !important;
+                    font-size: 0.875rem !important;
+                    box-shadow: none !important;
+                    transition: background 0.15s ease;
+                }
 
-        .app-toast-icon {
-            width: 22px;
-            height: 22px;
-            flex-shrink: 0;
-        }
+                .swal-btn-cancel-netral:hover {
+                    background: #f3f4f6 !important;
+                }
 
-        .app-toast-msg {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #1f2937;
-        }
+                .swal-btn-confirm-biru,
+                .swal-btn-confirm-hijau,
+                .swal-btn-confirm-merah {
+                    flex: 1;
+                    border: none !important;
+                    color: #ffffff !important;
+                    font-weight: 600 !important;
+                    border-radius: 0.75rem !important;
+                    padding: 0.6rem 1rem !important;
+                    font-size: 0.875rem !important;
+                    box-shadow: none !important;
+                    transition: background 0.15s ease;
+                }
 
-        .app-toast-progress-success {
-            background: #16a34a !important;
-        }
+                .swal-btn-confirm-biru {
+                    background: #2563eb !important;
+                }
 
-        .app-toast-progress-error {
-            background: #dc2626 !important;
-        }
-    </style>
+                .swal-btn-confirm-biru:hover {
+                    background: #1d4ed8 !important;
+                }
 
-    <script>
-        function confirmDelete(formId, itemLabel = 'data ini') {
-            const trashIconSvg = `
+                .swal-btn-confirm-hijau {
+                    background: #059669 !important;
+                }
+
+                .swal-btn-confirm-hijau:hover {
+                    background: #047857 !important;
+                }
+
+                .swal-btn-confirm-merah {
+                    background: #ef4444 !important;
+                }
+
+                .swal-btn-confirm-merah:hover {
+                    background: #dc2626 !important;
+                }
+
+                .swal-dialog-popup {
+                    border-radius: 1.25rem !important;
+                    padding: 1.5rem 1.25rem !important;
+                    width: 22rem !important;
+                    max-width: calc(100vw - 32px) !important;
+                }
+
+                .swal-dialog-icon-wrap {
+                    width: 52px;
+                    height: 52px;
+                    margin: 0 auto 0.875rem;
+                }
+
+                .swal-dialog-icon-wrap svg {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                .swal-dialog-title {
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin-bottom: 0.375rem;
+                }
+
+                .swal-dialog-text {
+                    font-size: 0.8125rem;
+                    color: #6b7280;
+                    line-height: 1.45;
+                    word-break: break-word;
+                }
+
+                .swal-dialog-label {
+                    font-size: 0.8rem !important;
+                    font-weight: 600 !important;
+                    color: #4b5563 !important;
+                    justify-content: flex-start !important;
+                    text-align: left !important;
+                    margin: 1rem 0 0.25rem !important;
+                    padding: 0 !important;
+                }
+
+                .swal-dialog-input {
+                    width: 100% !important;
+                    margin: 0 !important;
+                    border: 1px solid #e5e7eb !important;
+                    border-radius: 0.6rem !important;
+                    font-size: 0.875rem !important;
+                    box-shadow: none !important;
+                }
+
+                .swal-dialog-input:focus {
+                    border-color: #60a5fa !important;
+                    box-shadow: 0 0 0 1px #60a5fa !important;
+                }
+
+                .swal-dialog-validation {
+                    font-size: 0.8rem !important;
+                    background: transparent !important;
+                    color: #dc2626 !important;
+                    justify-content: flex-start !important;
+                    margin: 0.35rem 0 0 !important;
+                    padding: 0 !important;
+                }
+
+                /* ---------- Toast flash message (success/error) ---------- */
+                .app-toast-popup {
+                    border-radius: 0.875rem !important;
+                    padding: 0.85rem 1.1rem !important;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+                }
+
+                .app-toast-inner {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.6rem;
+                }
+
+                .app-toast-icon {
+                    width: 22px;
+                    height: 22px;
+                    flex-shrink: 0;
+                }
+
+                .app-toast-msg {
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    color: #1f2937;
+                }
+
+                .app-toast-progress-success {
+                    background: #16a34a !important;
+                }
+
+                .app-toast-progress-error {
+                    background: #dc2626 !important;
+                }
+            </style>
+
+            <script>
+                function confirmDelete(formId, itemLabel = 'data ini') {
+                    const trashIconSvg = `
                 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="50" cy="50" r="46" fill="#FEF2F2"/>
                     <rect x="30" y="38" width="40" height="38" rx="4" fill="#EF4444"/>
@@ -233,84 +376,169 @@
                 </svg>
             `;
 
-            Swal.fire({
-                html: `
+                    Swal.fire({
+                        html: `
                     <div class="swal-delete-icon-wrap">${trashIconSvg}</div>
                     <div class="swal-delete-title">Hapus ${itemLabel}?</div>
                     <div class="swal-delete-text">Data yang sudah dihapus tidak bisa dikembalikan.</div>
                 `,
-                showCancelButton: true,
-                confirmButtonText: 'Hapus',
-                cancelButtonText: 'Batal',
-                reverseButtons: true,
-                buttonsStyling: false,
-                focusConfirm: false,
-                customClass: {
-                    popup: 'swal-delete-popup',
-                    actions: 'swal-delete-actions',
-                    confirmButton: 'swal-btn-confirm',
-                    cancelButton: 'swal-btn-cancel',
-                },
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById(formId).submit();
+                        showCancelButton: true,
+                        confirmButtonText: 'Hapus',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true,
+                        buttonsStyling: false,
+                        focusConfirm: false,
+                        customClass: {
+                            popup: 'swal-delete-popup',
+                            actions: 'swal-delete-actions',
+                            confirmButton: 'swal-btn-confirm',
+                            cancelButton: 'swal-btn-cancel',
+                        },
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            document.getElementById(formId).submit();
+                        }
+                    });
                 }
-            });
-        }
 
-        // Toast modern untuk flash message (session success/error).
-        // Otomatis muncul di pojok kanan atas, slide-in, lalu hilang sendiri setelah beberapa detik.
-        function showToast(message, type = 'success') {
-            const isSuccess = type === 'success';
+                // Dialog aksi umum: pengganti window.confirm / window.prompt.
+                window.appDialog = (function () {
+                    const warna = {
+                        biru: { bg: '#DBEAFE', fg: '#2563EB' },
+                        hijau: { bg: '#D1FAE5', fg: '#059669' },
+                        merah: { bg: '#FEE2E2', fg: '#DC2626' },
+                    };
 
-            const iconSvg = isSuccess
-                ? `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    // Teks dari data memo (nomor memo, dll) disisipkan ke HTML, jadi harus di-escape.
+                    function esc(s) {
+                        return String(s ?? '')
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;');
+                    }
+
+                    function ikon(varian) {
+                        const c = warna[varian] || warna.biru;
+                        const glyph = varian === 'hijau'
+                            ? '<path d="M20 33l8 8 16-17" stroke="' + c.fg + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'
+                            : varian === 'merah'
+                                ? '<path d="M32 20v16" stroke="' + c.fg + '" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="44" r="3" fill="' + c.fg + '"/>'
+                                : '<path d="M32 30v14" stroke="' + c.fg + '" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="21" r="3" fill="' + c.fg + '"/>';
+
+                        return '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">'
+                            + '<circle cx="32" cy="32" r="30" fill="' + c.bg + '"/>' + glyph + '</svg>';
+                    }
+
+                    function badan(o, varian) {
+                        return '<div class="swal-dialog-icon-wrap">' + ikon(varian) + '</div>'
+                            + '<div class="swal-dialog-title">' + esc(o.judul) + '</div>'
+                            + (o.pesan ? '<div class="swal-dialog-text">' + esc(o.pesan) + '</div>' : '');
+                    }
+
+                    function dasar(varian) {
+                        return {
+                            showCancelButton: true,
+                            cancelButtonText: 'Batal',
+                            reverseButtons: true,
+                            buttonsStyling: false,
+                            customClass: {
+                                popup: 'swal-dialog-popup',
+                                actions: 'swal-delete-actions',
+                                confirmButton: 'swal-btn-confirm-' + varian,
+                                cancelButton: 'swal-btn-cancel-netral',
+                                inputLabel: 'swal-dialog-label',
+                                input: 'swal-dialog-input',
+                                validationMessage: 'swal-dialog-validation',
+                            },
+                        };
+                    }
+
+                    return {
+                        // -> true / false
+                        confirm: function (o = {}) {
+                            const varian = warna[o.varian] ? o.varian : 'biru';
+                            return Swal.fire(Object.assign(dasar(varian), {
+                                html: badan({ judul: o.judul || 'Konfirmasi', pesan: o.pesan }, varian),
+                                confirmButtonText: o.teksOk || 'Ya, lanjutkan',
+                                focusConfirm: true,
+                            })).then(function (r) { return r.isConfirmed; });
+                        },
+
+                        // -> string (sudah di-trim) / null kalau dibatalkan
+                        prompt: function (o = {}) {
+                            const varian = warna[o.varian] ? o.varian : 'biru';
+                            return Swal.fire(Object.assign(dasar(varian), {
+                                html: badan({ judul: o.judul || 'Isi keterangan', pesan: o.pesan }, varian),
+                                input: 'textarea',
+                                inputLabel: o.label || 'Keterangan:',
+                                inputAttributes: { rows: 3 },
+                                confirmButtonText: o.teksOk || 'Kirim',
+                                focusConfirm: false,
+                                inputValidator: function (v) {
+                                    if (o.wajib && !String(v || '').trim()) return 'Wajib diisi.';
+                                },
+                            })).then(function (r) {
+                                return r.isConfirmed ? String(r.value || '').trim() : null;
+                            });
+                        },
+                    };
+                })();
+
+                // Toast modern untuk flash message (session success/error).
+                // Otomatis muncul di pojok kanan atas, slide-in, lalu hilang sendiri setelah beberapa detik.
+                function showToast(message, type = 'success') {
+                    const isSuccess = type === 'success';
+
+                    const iconSvg = isSuccess
+                        ? `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="12" r="12" fill="#DCFCE7"/>
                         <path d="M7 12.5l3 3 7-7" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                    </svg>`
-                : `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        : `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="12" r="12" fill="#FEE2E2"/>
                         <path d="M15 9l-6 6M9 9l6 6" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                    </svg>`;
 
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3500,
-                timerProgressBar: true,
-                buttonsStyling: false,
-                customClass: {
-                    popup: 'app-toast-popup',
-                    timerProgressBar: isSuccess ? 'app-toast-progress-success' : 'app-toast-progress-error',
-                },
-                didOpen: (toastEl) => {
-                    toastEl.addEventListener('mouseenter', Swal.stopTimer);
-                    toastEl.addEventListener('mouseleave', Swal.resumeTimer);
-                },
-            });
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3500,
+                        timerProgressBar: true,
+                        buttonsStyling: false,
+                        customClass: {
+                            popup: 'app-toast-popup',
+                            timerProgressBar: isSuccess ? 'app-toast-progress-success' : 'app-toast-progress-error',
+                        },
+                        didOpen: (toastEl) => {
+                            toastEl.addEventListener('mouseenter', Swal.stopTimer);
+                            toastEl.addEventListener('mouseleave', Swal.resumeTimer);
+                        },
+                    });
 
-            Toast.fire({
-                html: `
+                    Toast.fire({
+                        html: `
                     <div class="app-toast-inner">
                         <span class="app-toast-icon">${iconSvg}</span>
                         <span class="app-toast-msg">${message}</span>
                     </div>
                 `,
-            });
-        }
+                    });
+                }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const flash = document.getElementById('flash-data');
-            if (!flash) return;
+                document.addEventListener('DOMContentLoaded', function () {
+                    const flash = document.getElementById('flash-data');
+                    if (!flash) return;
 
-            const successMsg = flash.dataset.success;
-            const errorMsg = flash.dataset.error;
+                    const successMsg = flash.dataset.success;
+                    const errorMsg = flash.dataset.error;
 
-            if (successMsg) showToast(successMsg, 'success');
-            if (errorMsg) showToast(errorMsg, 'error');
-        });
-    </script>
+                    if (successMsg) showToast(successMsg, 'success');
+                    if (errorMsg) showToast(errorMsg, 'error');
+                });
+            </script>
+            @include('layouts.partials.pwa-scripts')
 </body>
 
 </html>

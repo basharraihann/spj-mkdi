@@ -3,30 +3,16 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name', 'Laravel') }}
     </title>
-
-    <meta name="description" content="Sistem SPJ MKDI - Kementerian Koordinator Bidang Pangan">
-
-    <!-- Link preview (WhatsApp, Telegram, Facebook, dll) -->
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="{{ config('app.name') }}">
-    <meta property="og:title" content="{{ $attributes->get('title') ? $attributes->get('title') . ' | ' : '' }}{{ config('app.name') }}">
-    <meta property="og:description" content="Sistem SPJ MKDI - Kementerian Koordinator Bidang Pangan">
-    <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ asset('images/og-image.png') }}">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:locale" content="id_ID">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    @include('layouts.partials.pwa-head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -394,6 +380,7 @@
         </div>
     @endif
 
+    @include('layouts.partials.pwa-scripts')
 </body>
 
 </html>

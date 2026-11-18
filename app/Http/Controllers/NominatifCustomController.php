@@ -66,7 +66,7 @@ class NominatifCustomController extends Controller
     public function pdf(NominatifEntry $nominatif)
     {
         abort_unless($nominatif->jenis_detail === 'custom', 404);
-        $nominatif->load(['items', 'ppk', 'bendahara', 'penanggungJawab']);
+        $nominatif->load(['items', 'ppk', 'bendahara', 'penanggungJawab', 'pic']);
 
         return Pdf::loadView('pdf.nominatif-custom', ['entry' => $nominatif])
             ->setPaper('a4', 'landscape')
@@ -81,6 +81,7 @@ class NominatifCustomController extends Controller
             'ppk_id' => 'required|exists:pegawai,id',
             'bendahara_id' => 'required|exists:pegawai,id',
             'penanggung_jawab_id' => 'required|exists:pegawai,id',
+            'pic_id' => 'required|exists:pegawai,id',
             'items' => 'required|array|min:1',
             'items.*.uraian' => 'required|string',
             'items.*.harga' => 'required|string',
@@ -94,6 +95,7 @@ class NominatifCustomController extends Controller
             'items.*.uraian.required' => 'Uraian item wajib diisi.',
             'items.*.harga.required' => 'Harga item wajib diisi.',
             'items.*.jumlah.required' => 'Jumlah item wajib diisi.',
+            'pic_id.required' => 'PIC wajib dipilih.',
         ]);
     }
 

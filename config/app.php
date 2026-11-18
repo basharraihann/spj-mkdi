@@ -65,18 +65,16 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Application Locale Configuration
-    |--------------------------------------------------------------------------
-    |
-    | The application locale determines the default locale that will be used
-    | by Laravel's translation / localization methods. This option can be
-    | set to any locale for which you plan to have translation strings.
-    |
-    */
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),    /*
+|--------------------------------------------------------------------------
+| Application Locale Configuration
+|--------------------------------------------------------------------------
+|
+| The application locale determines the default locale that will be used
+| by Laravel's translation / localization methods. This option can be
+| set to any locale for which you plan to have translation strings.
+|
+*/
 
     'locale' => env('APP_LOCALE', 'en'),
 

@@ -10,7 +10,7 @@
         $groups = $groups->map(function ($g) {
             $statuses = '|' . collect($g['items'])->pluck('status')->implode('|') . '|';
             $search = strtolower(
-                $g['uraian_kegiatan'] . ' ' . $g['tujuan'] . ' ' .
+                $g['uraian_kegiatan'] . ' ' . $g['tujuan'] . ' ' . ($g['pic'] ?? '') . ' ' .
                 collect($g['items'])->map(fn($i) => $i['status'] . ($i['status'] === 'Honorarium' ? ' narasumber' : ''))->implode(' ')
             );
 
@@ -49,8 +49,9 @@
 
             <div class="flex flex-wrap items-end gap-3">
                 <div class="flex flex-col gap-1 w-full sm:w-auto">
-                    <label for="nom-filter-q" class="text-xs font-semibold text-gray-600">Uraian / Tujuan</label>
-                    <input type="text" id="nom-filter-q" autocomplete="off" placeholder="Ketik uraian atau tujuan..."
+                    <label for="nom-filter-q" class="text-xs font-semibold text-gray-600">Uraian / Tujuan / PIC</label>
+                    <input type="text" id="nom-filter-q" autocomplete="off"
+                        placeholder="Ketik uraian, tujuan, atau PIC..."
                         class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-72 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                 </div>
 
@@ -130,6 +131,13 @@
                                             class="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">
                                             Tanggal</dt>
                                         <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['tanggal'] ?: '-' }}
+                                        </dd>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <dt
+                                            class="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 pt-px">
+                                            PIC</dt>
+                                        <dd class="text-gray-700 font-medium break-words min-w-0">{{ $g['pic'] ?? '-' }}
                                         </dd>
                                     </div>
                                 </dl>

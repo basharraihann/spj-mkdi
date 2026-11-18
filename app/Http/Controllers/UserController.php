@@ -14,6 +14,25 @@ use Illuminate\View\View;
 class UserController extends Controller
 {
     /**
+     * Role yang boleh dipilih di form.
+     */
+    private function roles(): array
+    {
+        return [User::ROLE_ADMIN, User::ROLE_USER, User::ROLE_TU];
+    }
+
+    /**
+     * Pesan validasi khusus (unit wajib untuk selain admin).
+     */
+    private function messages(): array
+    {
+        return [
+            'unit_id.required_unless' => 'Unit wajib dipilih untuk role selain Administrator.',
+            'role.in' => 'Role yang dipilih tidak valid.',
+        ];
+    }
+
+    /**
      * Tampilkan daftar user (Manajemen User).
      */
     public function index(Request $request): View
@@ -41,15 +60,16 @@ class UserController extends Controller
             $query->where('unit_id', $request->unit_id);
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $users = $query->orderBy('created_at', 'desc')->get();
 
-        $units = Unit::orderBy('nama')->get();
+        $units = Unit::orderBy('id')->get();
 
         $totalUsers = User::count();
         $totalAdmin = User::where('role', User::ROLE_ADMIN)->count();
+        $totalTu = User::where('role', User::ROLE_TU)->count();
         $totalStaf = User::where('role', User::ROLE_USER)->count();
 
-        return view('users.index', compact('users', 'units', 'totalUsers', 'totalAdmin', 'totalStaf'));
+        return view('users.index', compact('users', 'units', 'totalUsers', 'totalAdmin', 'totalTu', 'totalStaf'));
     }
 
     /**
@@ -57,7 +77,7 @@ class UserController extends Controller
      */
     public function create(): View
     {
-        $units = Unit::orderBy('nama')->get();
+        $units = Unit::orderBy('id')->get();
 
         return view('users.create', compact('units'));
     }
@@ -71,10 +91,10 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', 'unique:' . User::class, 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
-            'unit_id' => ['nullable', 'exists:units,id'],
-            'role' => ['required', 'string', Rule::in([User::ROLE_ADMIN, User::ROLE_USER])],
+            'unit_id' => ['required_unless:role,' . User::ROLE_ADMIN, 'nullable', 'exists:units,id'],
+            'role' => ['required', 'string', Rule::in($this->roles())],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        ], $this->messages());
 
         User::create([
             'name' => $validated['name'],
@@ -85,7 +105,7 @@ class UserController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        return redirect()->route('users.index');
+        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
     }
 
     /**
@@ -93,7 +113,7 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
-        $units = Unit::orderBy('nama')->get();
+        $units = Unit::orderBy('id')->get();
 
         return view('users.edit', compact('user', 'units'));
     }
@@ -107,10 +127,17 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id), 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'unit_id' => ['nullable', 'exists:units,id'],
-            'role' => ['required', 'string', Rule::in([User::ROLE_ADMIN, User::ROLE_USER])],
+            'unit_id' => ['required_unless:role,' . User::ROLE_ADMIN, 'nullable', 'exists:units,id'],
+            'role' => ['required', 'string', Rule::in($this->roles())],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-        ]);
+        ], $this->messages());
+
+        // Admin tidak boleh mengubah role akunnya sendiri (mencegah kehilangan satu-satunya admin).
+        if ($user->id === auth()->id() && $validated['role'] !== $user->role) {
+            return back()
+                ->withErrors(['role' => 'Anda tidak bisa mengubah role akun sendiri.'])
+                ->withInput();
+        }
 
         $user->name = $validated['name'];
         $user->username = $validated['username'];

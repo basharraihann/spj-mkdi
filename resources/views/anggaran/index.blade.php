@@ -21,6 +21,36 @@
             }
         }
 
+        /* Tabel bergaris: garis tipis antar baris dan antar kolom */
+        .ang-scroll table {
+            border-collapse: collapse;
+        }
+
+        .ang-scroll td,
+        .ang-scroll th {
+            border: 1px solid #e2e8f0;
+        }
+
+        .ang-scroll th {
+            border-color: rgb(255 255 255 / .25);
+        }
+
+        .ang-scroll tr> :first-child {
+            border-left: 0;
+        }
+
+        .ang-scroll tr> :last-child {
+            border-right: 0;
+        }
+
+        .ang-scroll thead tr>* {
+            border-top: 0;
+        }
+
+        .ang-scroll tbody tr:last-child>* {
+            border-bottom: 0;
+        }
+
         /* Kartu unit: jumlah kolom menyesuaikan banyaknya unit, kartu selalu mengisi baris */
         .unit-grid {
             display: grid;
@@ -354,7 +384,7 @@
                                 <th class="text-right px-2 py-2 font-semibold">Sisa</th>
                             </tr>
                         </thead>
-                        <tbody id="ang-tb" class="divide-y divide-slate-100"></tbody>
+                        <tbody id="ang-tb"></tbody>
                     </table>
                     <p id="ang-norow" class="hidden py-14 text-center text-sm text-slate-400">Tidak ada baris yang
                         cocok. Ubah kata kunci atau reset filter.</p>

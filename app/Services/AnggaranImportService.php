@@ -64,7 +64,7 @@ class AnggaranImportService
             // Jangan pakai skip() tanpa take(): MySQL menolak OFFSET tanpa LIMIT.
             $old = AnggaranUpload::orderByDesc('id')->pluck('id')->slice(self::KEEP_UPLOADS);
             if ($old->isNotEmpty()) {
-                AnggaranUpload::whereIn('id', $old)->delete();
+                AnggaranUpload::whereIn('id', $old)->get()->each->delete(); // lewat model, supaya file ikut terhapus
             }
 
             return $upload->fresh();

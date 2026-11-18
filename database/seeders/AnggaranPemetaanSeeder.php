@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 /**
  * Pemetaan RO -> Unit kerja, bersumber dari sheet "MAPPING RO ANGGARAN" (versi yang sudah dirapikan
- * dan dicocokkan dengan Laporan FA Detail: 241 subkomponen, semuanya terpetakan).
+ * dan dicocokkan dengan Laporan FA Detail: 240 subkomponen, semuanya terpetakan).
  *   unit  = unit kerja persis seperti di sheet (mis. "Asdep 1 D1", "BIRO UHM")
  *   induk = kelompok di atasnya (mis. "D1"); kosong bila unit tidak punya induk
  *   sub_unit tidak dipakai (NULL).
@@ -57,7 +57,7 @@ class AnggaranPemetaanSeeder extends Seeder
         // Kunci tetap keg + RO; komponen atau subkomponen yang menentukan unit.
         // Format sub_kode mengikuti EBA.962: "<komponen>.<sub>" (mis. 073.AA).
 
-        // D1 - ABR.003 (Asdep 3 D1): komponen 073, subkomponen AA..DD
+        // D1 - ABR.003 (Asdep 3 D1): komponen 073, subkomponen AA..CC; DD milik BIRO UHM
         foreach (['AA', 'BB', 'CC'] as $s) {
             $r[] = ['CL.7458', 'ABR.003', '', "073.$s", 'Asdep 3 D1', 'D1'];
         }
@@ -77,10 +77,15 @@ class AnggaranPemetaanSeeder extends Seeder
             $r[] = ['CL.7458', 'ABR.006', $k, '', $unit, null];
         }
 
-        // D2 - ABR.006 (Sesdep D2): per komponen
-        foreach (['051', '054', '071', '072', '073', '074'] as $k) {
+        // D2 - ABR.006: dipecah per komponen (sesuai sheet D2A1, D2A2, D2A4, D2A6)
+        //   Sesdep D2 : komponen 051, 054, 071
+        //   Asdep 2 D2: komponen 072 | Asdep 4 D2: komponen 073 | Asdep 1 D2: komponen 074
+        foreach (['051', '054', '071'] as $k) {
             $r[] = ['CL.7459', 'ABR.006', $k, '', 'Sesdep D2', 'D2'];
         }
+        $r[] = ['CL.7459', 'ABR.006', '072', '', 'Asdep 2 D2', 'D2'];
+        $r[] = ['CL.7459', 'ABR.006', '073', '', 'Asdep 4 D2', 'D2'];
+        $r[] = ['CL.7459', 'ABR.006', '074', '', 'Asdep 1 D2', 'D2'];
         foreach ([
             ['075', 'BIRO MKDI'],
             ['076', 'BIRO MKDI'],
@@ -89,9 +94,11 @@ class AnggaranPemetaanSeeder extends Seeder
         ] as [$k, $unit]) {
             $r[] = ['CL.7459', 'ABR.006', $k, '', $unit, null];
         }
-        // Pengecualian: subkomponen 071.CC dipindah dari Sesdep D2 ke BIRO UHM
-        // (aturan subkomponen mengalahkan aturan komponen 071 di atas).
-        $r[] = ['CL.7459', 'ABR.006', '', '071.CC', 'BIRO UHM', null];
+        // Pengecualian subkomponen (aturan subkomponen mengalahkan aturan komponen/RO di atas):
+        //  - 071.CC di ABR.006 dipindah dari Sesdep D2 ke INSPEKTORAT
+        //  - 071.AA di ABR.005 (RO Asdep 5 D2) dikerjakan Sesdep D2
+        $r[] = ['CL.7459', 'ABR.006', '', '071.CC', 'INSPEKTORAT', null];
+        $r[] = ['CL.7459', 'ABR.005', '', '071.AA', 'Sesdep D2', 'D2'];
 
         // D4 - ABR.006 (Sesdep D4): komponen 076, subkomponen AC / FF / MR
         $r[] = ['CL.7461', 'ABR.006', '', '076.AC', 'Sesdep D4', 'D4'];
@@ -132,7 +139,8 @@ class AnggaranPemetaanSeeder extends Seeder
         $r[] = ['', 'EBA.994', '', '002.0B', 'BIRO KBMN', null];
         $r[] = ['', 'EBA.994', '', '002.0I', 'BIRO KBMN', null];
 
-        // EBA.962: per subkomponen. Unit Deputi (D1..D4) induknya D1..D4 itu sendiri.
+        // EBA.962: per subkomponen. Subkomponen Deputi masuk ke Sesdep Deputi tersebut
+        // (tab D1A6..D4A6 di sheet); induknya D1..D4.
         // 0A..0F, 0O, 0P, 0Q, AP semuanya ada di sheet BUHM (tidak ada unit Sahli di sheet).
         $s962 = [
             '0A' => 'BIRO UHM',
@@ -145,17 +153,17 @@ class AnggaranPemetaanSeeder extends Seeder
             '0H' => 'INSPEKTORAT',
             '0I' => 'BIRO SDMO',
             '0J' => 'BIRO MKDI',
-            '0K' => 'D1',
-            '0L' => 'D3',
-            '0M' => 'D4',
-            '0N' => 'D2',
+            '0K' => 'Sesdep D1',
+            '0L' => 'Sesdep D3',
+            '0M' => 'Sesdep D4',
+            '0N' => 'Sesdep D2',
             '0O' => 'BIRO UHM',
             '0P' => 'BIRO UHM',
             '0Q' => 'BIRO UHM',
             'AP' => 'BIRO UHM',
         ];
         foreach ($s962 as $k => $unit) {
-            $r[] = ['', 'EBA.962', '', "962.$k", $unit, preg_match('/^D[1-4]$/', $unit) ? $unit : null];
+            $r[] = ['', 'EBA.962', '', "962.$k", $unit, preg_match('/^Sesdep (D[1-4])$/', $unit, $mm) ? $mm[1] : null];
         }
 
         // EBD.Z24: per subkomponen (komponen 953)
@@ -166,14 +174,14 @@ class AnggaranPemetaanSeeder extends Seeder
             '0D' => 'BIRO MKDI',
             '0E' => 'BIRO MKDI',
             '0F' => 'INSPEKTORAT',
-            '0G' => 'D1',
-            '0H' => 'D2',
-            '0I' => 'D3',
-            '0J' => 'D4',
+            '0G' => 'Sesdep D1',
+            '0H' => 'Sesdep D2',
+            '0I' => 'Sesdep D3',
+            '0J' => 'Sesdep D4',
             'AP' => 'BIRO MKDI',
         ];
         foreach ($s953 as $k => $unit) {
-            $r[] = ['', 'EBD.Z24', '', "953.$k", $unit, preg_match('/^D[1-4]$/', $unit) ? $unit : null];
+            $r[] = ['', 'EBD.Z24', '', "953.$k", $unit, preg_match('/^Sesdep (D[1-4])$/', $unit, $mm) ? $mm[1] : null];
         }
 
         return $r;

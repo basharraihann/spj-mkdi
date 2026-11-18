@@ -5,7 +5,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
 
             {{-- Breadcrumb --}}
             <div class="flex items-center gap-2 px-1 text-sm">
@@ -53,7 +53,7 @@
                 </div>
 
                 {{-- Daftar dokumen --}}
-                <div class="space-y-3">
+                <div class="fg-2">
                     @foreach ($kategoriList as $key => $label)
                         @php $existing = $agenda->dokumen($key); @endphp
 

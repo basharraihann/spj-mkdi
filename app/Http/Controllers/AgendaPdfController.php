@@ -32,19 +32,11 @@ class AgendaPdfController extends Controller
     {
         $agenda->load('ppk');
 
-        // Kepala Biro (Karo) pakai nomor ST sendiri, beda dari nomor_st yang
-        // dipakai bareng semua peserta lain di agenda yang sama. Kalau bukan
-        // Karo, atau nomor_st_karo belum diisi, tetap pakai nomor_st biasa.
-        $isKaro = str_contains(strtolower($pegawai->jabatan ?? ''), 'kepala biro');
-        $nomorSt = ($isKaro && $agenda->nomor_st_karo)
-            ? $agenda->nomor_st_karo
-            : $agenda->nomor_st;
-
         $pdf = Pdf::loadView('pdf.spd', [
             'agenda' => $agenda,
             'pegawai' => $pegawai,
             'ppk' => $agenda->ppk,
-            'nomorSt' => $nomorSt,
+            'nomorSt' => $this->nomorStUntuk($agenda, $pegawai),
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream("SPD-{$pegawai->nama}-{$agenda->id}.pdf");
@@ -230,21 +222,30 @@ class AgendaPdfController extends Controller
         $agenda->load(['ppk', 'bendahara']);
         $pivot = $agenda->pegawai()->where('pegawai.id', $pegawai->id)->first()?->pivot;
 
-        $isKaro = str_contains(strtolower($pegawai->jabatan ?? ''), 'kepala biro');
-        $nomorSt = ($isKaro && $agenda->nomor_st_karo)
-            ? $agenda->nomor_st_karo
-            : $agenda->nomor_st;
-
         $pdf = Pdf::loadView('pdf.merged', [
             'agenda' => $agenda,
             'pegawai' => $pegawai,
             'pivot' => $pivot,
             'ppk' => $agenda->ppk,
             'bendahara' => $agenda->bendahara,
-            'nomorSt' => $nomorSt,
+            'nomorSt' => $this->nomorStUntuk($agenda, $pegawai),
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream("Merged-{$pegawai->nama}-{$agenda->id}.pdf");
+    }
+
+    /**
+     * Nomor ST yang dipakai untuk satu pegawai. Pegawai Eselon I/II
+     * (Pegawai::ESELON_ST_KHUSUS) pakai nomor_st_karo, beda dari nomor_st yang
+     * dipakai bareng semua peserta lain. Kalau bukan Eselon I/II, atau
+     * nomor_st_karo belum diisi, tetap pakai nomor_st biasa.
+     * Aturan eselon ini sama dengan AgendaController::ensureNomorStKaroFilled().
+     */
+    private function nomorStUntuk(Agenda $agenda, Pegawai $pegawai): ?string
+    {
+        return ($pegawai->butuhStKhusus() && $agenda->nomor_st_karo)
+            ? $agenda->nomor_st_karo
+            : $agenda->nomor_st;
     }
 
     private function validateMemoStatus(string $status): void

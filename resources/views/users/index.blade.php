@@ -18,8 +18,8 @@
             <div class="flex items-start justify-between gap-4 flex-wrap">
                 <div class="min-w-0">
                     <h3 class="text-lg font-bold text-gray-800">User Manajemen</h3>
-                    <p class="text-sm text-gray-500">Kelola akun pengguna, hak akses administrator, dan staf pengelola
-                        SPJ.</p>
+                    <p class="text-sm text-gray-500">Kelola akun pengguna, hak akses administrator, tata usaha, dan staf
+                        pengelola SPJ.</p>
                 </div>
                 <span
                     class="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-100 rounded-full px-3 py-1.5"
@@ -29,7 +29,7 @@
             </div>
 
             {{-- Ringkasan --}}
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="rounded-xl bg-gray-50 border border-gray-100 px-3 sm:px-4 py-3">
                     <p class="text-xs font-medium text-gray-600">Total user</p>
                     <p class="text-xl font-bold text-gray-900 mt-0.5 tabular-nums">{{ $totalUsers }}</p>
@@ -38,8 +38,12 @@
                     <p class="text-xs font-medium text-gray-600">Administrator</p>
                     <p class="text-xl font-bold text-purple-700 mt-0.5 tabular-nums">{{ $totalAdmin }}</p>
                 </div>
+                <div class="rounded-xl bg-sky-50/60 border border-sky-100 px-3 sm:px-4 py-3">
+                    <p class="text-xs font-medium text-gray-600">Tata Usaha (TU)</p>
+                    <p class="text-xl font-bold text-sky-700 mt-0.5 tabular-nums">{{ $totalTu }}</p>
+                </div>
                 <div class="rounded-xl bg-emerald-50/60 border border-emerald-100 px-3 sm:px-4 py-3">
-                    <p class="text-xs font-medium text-gray-600">Staf / Operator</p>
+                    <p class="text-xs font-medium text-gray-600">Staf / User</p>
                     <p class="text-xl font-bold text-emerald-700 mt-0.5 tabular-nums">{{ $totalStaf }}</p>
                 </div>
             </div>
@@ -58,6 +62,7 @@
                         class="border border-gray-200 rounded-lg px-3.5 py-2 text-sm w-full sm:w-44 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition">
                         <option value="">Semua Role</option>
                         <option value="admin">Administrator</option>
+                        <option value="tu">Tata Usaha (TU)</option>
                         <option value="user">Staf / User</option>
                     </select>
                 </div>
@@ -148,6 +153,16 @@
                                         </svg>
                                         Administrator
                                     </span>
+                                @elseif ($u->isTu())
+                                    <span
+                                        class="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                            aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Tata Usaha
+                                    </span>
                                 @else
                                     <span
                                         class="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -170,8 +185,10 @@
                                         <span class="font-semibold">{{ $u->unit->kode }}</span>
                                         <span class="text-gray-500">{{ $u->unit->nama }}</span>
                                     </p>
+                                @elseif ($u->isAdmin())
+                                    <p class="text-gray-500">Semua unit</p>
                                 @else
-                                    <p class="text-gray-400">—</p>
+                                    <p class="text-rose-500 font-medium">Belum ada unit</p>
                                 @endif
                             </div>
 

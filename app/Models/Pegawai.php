@@ -24,6 +24,24 @@ class Pegawai extends Model
     ];
 
     /**
+     * Pilihan eselon untuk dropdown di form pegawai.
+     * Key = nilai yang disimpan di kolom pegawai.eselon.
+     * Kosong (null) = non-struktural (JFT / JFU).
+     */
+    public const ESELON = [
+        'I' => 'Eselon I',
+        'II' => 'Eselon II',
+        'III' => 'Eselon III',
+        'IV' => 'Eselon IV',
+    ];
+
+    /**
+     * Eselon yang mewajibkan Nomor ST khusus (agendas.nomor_st_karo).
+     * Dipakai bersama oleh AgendaController, AgendaPdfController, dan view.
+     */
+    public const ESELON_ST_KHUSUS = ['I', 'II'];
+
+    /**
      * Urutan golongan PNS dari terendah ke tertinggi, dipakai untuk sorting.
      */
     public const GOLONGAN_URUTAN = [
@@ -55,6 +73,15 @@ class Pegawai extends Model
         $index = array_search($this->golongan, self::GOLONGAN_URUTAN, true);
 
         return $index === false ? -1 : $index;
+    }
+
+    /**
+     * True kalau pegawai ini Eselon I atau II, jadi agenda yang memuatnya
+     * butuh Nomor ST khusus.
+     */
+    public function butuhStKhusus(): bool
+    {
+        return in_array($this->eselon, self::ESELON_ST_KHUSUS, true);
     }
 
     public function agendas()

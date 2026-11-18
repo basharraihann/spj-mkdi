@@ -22,6 +22,7 @@ class User extends Authenticatable
      * Role Constants
      */
     public const ROLE_ADMIN = 'admin';
+    public const ROLE_TU = 'tu';
     public const ROLE_USER = 'user';
 
     /**
@@ -41,6 +42,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is Tata Usaha (TU)
+     */
+    public function isTu(): bool
+    {
+        return $this->role === self::ROLE_TU;
+    }
+
+    /**
      * Check if user is Regular User / Staf
      */
     public function isUser(): bool
@@ -55,6 +64,7 @@ class User extends Authenticatable
     {
         return match ($this->role) {
             self::ROLE_ADMIN => 'Administrator',
+            self::ROLE_TU => 'Tata Usaha (TU)',
             self::ROLE_USER => 'Staf / User',
             default => ucfirst($this->role ?? 'User'),
         };

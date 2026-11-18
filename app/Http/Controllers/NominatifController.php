@@ -24,10 +24,11 @@ class NominatifController extends Controller
     {
         $rows = collect();
 
-        $agendas = Agenda::with('pegawai')->latest()->get();
+        $agendas = Agenda::with(['pegawai', 'pic'])->latest()->get();
 
         foreach ($agendas as $agenda) {
             $komponen = $agenda->komponen_biaya ?? [];
+            $picAgenda = $agenda->pic?->nama_gelar ?? $agenda->pic?->nama;
 
             foreach (['pns' => 'PNS', 'non-pns' => 'Non PNS'] as $slug => $label) {
                 $peserta = $agenda->pegawai->where('status_kepegawaian', $label);
@@ -49,6 +50,7 @@ class NominatifController extends Controller
                     'uraian_kegiatan' => $agenda->uraian_kegiatan,
                     'tujuan' => $tujuan ?: '-',
                     'tanggal' => $this->labelTanggal($agenda->tanggal_mulai, $agenda->tanggal_selesai),
+                    'pic' => $picAgenda,
                     'sort' => optional($agenda->tanggal_mulai)->timestamp ?? 0,
                     'status' => $label,
                     'jumlah_peserta' => $peserta->count(),
@@ -60,7 +62,7 @@ class NominatifController extends Controller
             }
         }
 
-        foreach (NominatifEntry::with(['peserta', 'items'])->get() as $entry) {
+        foreach (NominatifEntry::with(['peserta', 'items', 'pic'])->get() as $entry) {
             $custom = $entry->jenis_detail === 'custom';
             $tujuan = collect([$entry->kota ?? null, $entry->provinsi ?? null])->filter()->implode(', ');
 
@@ -71,6 +73,7 @@ class NominatifController extends Controller
                 'uraian_kegiatan' => $entry->uraian_kegiatan,
                 'tujuan' => $tujuan ?: '-',
                 'tanggal' => $this->labelTanggal($entry->tanggal, null),
+                'pic' => $entry->pic?->nama_gelar ?? $entry->pic?->nama,
                 'sort' => optional($entry->tanggal)->timestamp ?? 0,
                 'status' => $custom ? 'Custom' : 'Honorarium',
                 'jumlah_peserta' => $custom ? $entry->items->count() : $entry->peserta->count(),
@@ -94,6 +97,7 @@ class NominatifController extends Controller
                     'uraian_kegiatan' => $first['uraian_kegiatan'],
                     'tujuan' => $first['tujuan'],
                     'tanggal' => $first['tanggal'],
+                    'pic' => $items->pluck('pic')->filter()->first() ?: '-',
                     // PNS di atas, Non PNS di bawah
                     'items' => $items
                         ->sortBy(fn($i) => $i['status'] === 'PNS' ? 0 : 1)
@@ -171,7 +175,7 @@ class NominatifController extends Controller
      */
     public function pdf(NominatifEntry $nominatif)
     {
-        $nominatif->load(['peserta', 'ppk', 'bendahara']);
+        $nominatif->load(['peserta', 'ppk', 'bendahara', 'pic']);
 
         $pdf = Pdf::loadView('pdf.honorarium-narasumber', [
             'entry' => $nominatif,
@@ -192,6 +196,7 @@ class NominatifController extends Controller
             'provinsi' => ['required', 'string', 'max:100'],
             'kota' => ['required', 'string', 'max:100'],
             'bendahara_id' => 'required|exists:pegawai,id',
+            'pic_id' => 'required|exists:pegawai,id',
             'peserta' => 'required|array|min:1',
             'peserta.*.nama' => 'required|string|max:255',
             'peserta.*.npwp' => 'nullable|string|max:50',
@@ -209,6 +214,7 @@ class NominatifController extends Controller
             'peserta.*.honor.required' => 'Honor narasumber wajib diisi.',
             'peserta.*.oj.required' => 'Jumlah OJ wajib diisi.',
             'peserta.*.oj.min' => 'Jumlah OJ minimal 1.',
+            'pic_id.required' => 'PIC wajib dipilih.',
         ]);
     }
 

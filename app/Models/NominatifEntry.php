@@ -21,6 +21,7 @@ class NominatifEntry extends Model
         'bendahara_id',
         'jenis_detail',          // baru
         'penanggung_jawab_id',   // baru
+        'pic_id',                // baru
     ];
 
     protected $casts = [
@@ -54,22 +55,31 @@ class NominatifEntry extends Model
         return $this->belongsTo(Pegawai::class, 'penanggung_jawab_id');
     }
 
+    public function pic()
+    {
+        return $this->belongsTo(Pegawai::class, 'pic_id');
+    }
+
     public function totalSubtotal(): int
     {
         return (int) $this->items->sum(fn($i) => $i->subtotal);
     }
+
     public function totalPpn(): int
     {
         return (int) $this->items->sum(fn($i) => $i->ppn);
     }
+
     public function totalPph22(): int
     {
         return (int) $this->items->sum(fn($i) => $i->pph22);
     }
+
     public function totalPph23(): int
     {
         return (int) $this->items->sum(fn($i) => $i->pph23);
     }
+
     public function totalAkhir(): int
     {
         return (int) $this->items->sum(fn($i) => $i->total);
