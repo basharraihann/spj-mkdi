@@ -9,7 +9,6 @@ use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\MemoStatusController;
 use App\Http\Controllers\MemoTahapController;
-use App\Http\Controllers\MonitoringMemoController;
 use App\Http\Controllers\NominatifController;
 use App\Http\Controllers\NominatifCustomController;
 use App\Http\Controllers\PegawaiController;
@@ -130,11 +129,6 @@ Route::middleware('auth')->group(function () {
             });
         });
 
-    // Monitoring memo & anggaran (lihat: semua user login; aksi massal: Gate kelola-anggaran)
-    Route::get('monitoring-memo', [MonitoringMemoController::class, 'index'])->name('monitoring.index');
-    Route::post('monitoring-memo/status-massal', [MonitoringMemoController::class, 'statusMassal'])
-        ->middleware('can:kelola-anggaran')
-        ->name('monitoring.status-massal');
 
     // Rekap nominatif (dari agenda + nominatif mandiri tanpa agenda)
     Route::prefix('nominatif')
