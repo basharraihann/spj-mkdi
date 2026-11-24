@@ -74,6 +74,7 @@ class MemoController extends Controller
                     'status_anggaran' => $agenda->status_pns ?? 'outstanding',
                     'tgl_sakti' => $agenda->tgl_sakti_pns,
                     'tgl_sp2d' => $agenda->tgl_sp2d_pns,
+                    'is_legacy' => (bool) ($agenda->is_legacy ?? false),
                     'jenis' => 'perdin',
                     'jenis_label' => 'Perjalanan Dinas',
                     'editable' => false,
@@ -99,6 +100,7 @@ class MemoController extends Controller
                     'status_anggaran' => $agenda->status_non_pns ?? 'outstanding',
                     'tgl_sakti' => $agenda->tgl_sakti_non_pns,
                     'tgl_sp2d' => $agenda->tgl_sp2d_non_pns,
+                    'is_legacy' => (bool) ($agenda->is_legacy ?? false),
                     'jenis' => 'perdin',
                     'jenis_label' => 'Perjalanan Dinas',
                     'editable' => false,
@@ -131,6 +133,7 @@ class MemoController extends Controller
                 'status_anggaran' => $entry->status_anggaran ?? 'outstanding',
                 'tgl_sakti' => $entry->tgl_sakti,
                 'tgl_sp2d' => $entry->tgl_sp2d,
+                'is_legacy' => (bool) ($entry->is_legacy ?? false),
                 'mandiri' => true,
                 'jenis' => $entry->jenis_memo,
                 'jenis_label' => $entry->jenis_label, // accessor di model MemoEntry

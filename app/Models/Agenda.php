@@ -28,6 +28,7 @@ class Agenda extends Model
         'komponen_biaya' => 'array',
         'jenis_uang_harian' => 'array',
         'anggaran_at' => 'datetime',
+        'is_legacy' => 'boolean',
     ];
 
     public function pegawai()

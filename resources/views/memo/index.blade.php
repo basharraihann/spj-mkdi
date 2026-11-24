@@ -487,6 +487,7 @@
                                 @php
                                     $st = $memo['status_anggaran'] ?? 'outstanding';
                                     $tahap = $memo['tahap'] ?? 'draft';
+                                    $legacy = !empty($memo['is_legacy']);
                                     $idx = $urutStatus[$st] ?? null;
                                     $tglSt = $st === 'sakti'
                                         ? ($memo['tgl_sakti'] ?? null)
@@ -531,7 +532,13 @@
 
                                         {{-- Progres & status --}}
                                         <div class="min-w-0 flex flex-col items-start gap-2">
-                                            {{-- Badge status anggaran + tanggal --}}
+                                            @if ($legacy)
+    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border bg-gray-100 text-gray-600 border-gray-200"
+        title="Dibuat sebelum sistem outstanding ada">
+        Pra-outstanding
+    </span>
+@else
+    {{-- Badge status anggaran + tanggal --}}
                                             <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                 <span
                                                     class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border {{ $statusBadge($st) }}">
@@ -546,8 +553,8 @@
                                             </div>
 
                                             {{-- Stepper progres 3 tahap dengan label --}}
-                                            @if ($idx !== null)
-                                                <div class="w-full max-w-[12rem]" role="img"
+@if ($idx !== null && !$legacy)                                               
+ <div class="w-full max-w-[12rem]" role="img"
                                                     aria-label="Progres: {{ $statusLabel[$st] }}, tahap {{ $idx + 1 }} dari 3">
                                                     <div class="flex gap-1">
                                                         @foreach ([0, 1, 2] as $i)
