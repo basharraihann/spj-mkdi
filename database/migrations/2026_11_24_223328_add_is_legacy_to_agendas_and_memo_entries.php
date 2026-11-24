@@ -8,13 +8,21 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        // GANTI: waktu deploy fitur outstanding / waktu migrate dijalankan
+        $batas = '2026-11-25 00:00:00';
+
         foreach (['agendas', 'memo_entries'] as $tabel) {
             Schema::table($tabel, function (Blueprint $table) {
                 $table->boolean('is_legacy')->default(false);
             });
 
-            // Semua data yang ada saat migrate = dibuat sebelum sistem outstanding
-            DB::table($tabel)->update(['is_legacy' => true]);
+            // Hanya memo yang dibuat sebelum batas yang ditandai lama
+            DB::table($tabel)
+                ->where(function ($q) use ($batas) {
+                    $q->whereNull('created_at')
+                        ->orWhere('created_at', '<', $batas);
+                })
+                ->update(['is_legacy' => true]);
         }
     }
 
