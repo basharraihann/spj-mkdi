@@ -539,49 +539,51 @@
                                                                                                 Pra-outstanding
                                                                                             </span>
                                                                                         @else
-                                                {{-- Badge status anggaran + tanggal --}}
-                                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                    <span
-                                                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border {{ $statusBadge($st) }}">
-                                                        <span class="h-1.5 w-1.5 rounded-full {{ $statusDot($st) }}"></span>
-                                                        {{ $statusLabel[$st] ?? $st }}
-                                                    </span>
-                                                    @if ($tglSt)
-                                                        <span class="text-[10px] text-gray-400 tabular-nums">
-                                                            {{ \Illuminate\Support\Carbon::parse($tglSt)->translatedFormat('d M Y') }}
-                                                        </span>
-                                                    @endif
-                                                </div>
+                                                                                            {{-- Badge status anggaran + tanggal --}}
+                                                                                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                                                                <span
+                                                                                                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border {{ $statusBadge($st) }}">
+                                                                                                    <span class="h-1.5 w-1.5 rounded-full {{ $statusDot($st) }}"></span>
+                                                                                                    {{ $statusLabel[$st] ?? $st }}
+                                                                                                </span>
+                                                                                                @if ($tglSt)
+                                                                                                    <span class="text-[10px] text-gray-400 tabular-nums">
+                                                                                                        {{ \Illuminate\Support\Carbon::parse($tglSt)->translatedFormat('d M Y') }}
+                                                                                                    </span>
+                                                                                                @endif
+                                                                                            </div>
 
-                                                {{-- Stepper progres 3 tahap dengan label --}}
-                                                @if ($idx !== null)
-                                                    <div class="w-full max-w-[12rem]" role="img"
-                                                        aria-label="Progres: {{ $statusLabel[$st] }}, tahap {{ $idx + 1 }} dari 3">
-                                                        <div class="flex gap-1">
-                                                            @foreach ([0, 1, 2] as $i)
-                                                                <span
-                                                                    class="h-1.5 flex-1 rounded-sm {{ $i <= $idx ? $statusBar($st) : 'bg-gray-200' }}"></span>
-                                                            @endforeach
-                                                        </div>
-                                                        <div class="mt-1 grid grid-cols-3 gap-1 text-[9px] leading-none">
-                                                            @foreach (['outstanding', 'sakti', 'sp2d'] as $i => $kode)
-                                                                <span
-                                                                    class="truncate {{ $i === $idx ? 'font-semibold text-gray-800' : ($i < $idx ? 'font-medium text-gray-500' : 'font-medium text-gray-300') }}">
-                                                                    {{ $statusLabel[$kode] }}
-                                                                </span>
-                                                            @endforeach
-                                                        </div>
-                                                    </div>
-                                                @endif
-                                            @endif
+                                                                                            {{-- Stepper progres 3 tahap dengan label --}}
+                                                                                            @if ($idx !== null)
+                                                                                                <div class="w-full max-w-[12rem]" role="img"
+                                                                                                    aria-label="Progres: {{ $statusLabel[$st] }}, tahap {{ $idx + 1 }} dari 3">
+                                                                                                    <div class="flex gap-1">
+                                                                                                        @foreach ([0, 1, 2] as $i)
+                                                                                                            <span
+                                                                                                                class="h-1.5 flex-1 rounded-sm {{ $i <= $idx ? $statusBar($st) : 'bg-gray-200' }}"></span>
+                                                                                                        @endforeach
+                                                                                                    </div>
+                                                                                                    <div class="mt-1 grid grid-cols-3 gap-1 text-[9px] leading-none">
+                                                                                                        @foreach (['outstanding', 'sakti', 'sp2d'] as $i => $kode)
+                                                                                                            <span
+                                                                                                                class="truncate {{ $i === $idx ? 'font-semibold text-gray-800' : ($i < $idx ? 'font-medium text-gray-500' : 'font-medium text-gray-300') }}">
+                                                                                                                {{ $statusLabel[$kode] }}
+                                                                                                            </span>
+                                                                                                        @endforeach
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            @endif
+                                                                                        @endif
 
                                             {{-- Tahap alur memo --}}
-                                            <p
-                                                class="inline-flex items-start gap-1.5 text-[11px] font-medium leading-snug {{ $tahapText($tahap) }}">
-                                                <span
-                                                    class="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full {{ $tahapDot($tahap) }}"></span>
-                                                <span class="min-w-0 break-words">{{ $tahapLabel[$tahap] ?? $tahap }}</span>
-                                            </p>
+                                            @unless ($legacy)
+                                                <p
+                                                    class="inline-flex items-start gap-1.5 text-[11px] font-medium leading-snug {{ $tahapText($tahap) }}">
+                                                    <span
+                                                        class="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full {{ $tahapDot($tahap) }}"></span>
+                                                    <span class="min-w-0 break-words">{{ $tahapLabel[$tahap] ?? $tahap }}</span>
+                                                </p>
+                                            @endunless
 
                                             {{-- SPP / SPBy yang diinput saat Input SAKTI --}}
                                             @if ($spp)

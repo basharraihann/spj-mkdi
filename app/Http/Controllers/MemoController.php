@@ -194,8 +194,15 @@ class MemoController extends Controller
             $m['bisa_ajukan'] = $milik && $p === null
                 && in_array($m['tahap'], ['dikirim', 'lolos_spk', 'sakti', 'otp_ppk'], true);
 
+            // Memo lama (pra-outstanding) tidak ikut alur Keuangan.
+            if (!empty($m['is_legacy'])) {
+                $m['bisa_kirim'] = false;
+                $m['bisa_ajukan'] = false;
+            }
+
             // Draft / dikembalikan milik unit lain belum "dikirim ke Keuangan": jangan tampil.
-            $m['sembunyi'] = !$milik && $bisaDiedit;
+// Memo lama dikecualikan, karena semuanya berstatus draft tapi bukan draft sungguhan.
+            $m['sembunyi'] = !$milik && $bisaDiedit && empty($m['is_legacy']);
 
             return $m;
         })->reject(fn($m) => $m['sembunyi'])->values();

@@ -15,6 +15,7 @@ use App\Models\MemoEntry;
  * - memo entry: satu baris per entry
  * - status kosong dianggap "outstanding"
  * - memo tanpa MAK tidak dihitung
+ * - memo lama (is_legacy = true, pra-outstanding) tidak dihitung
  *
  * Dipakai oleh halaman Anggaran (kolom Outstanding) dan Monitoring Memo.
  */
@@ -35,7 +36,7 @@ class MakOutstandingService
             $hasil[$mak] = ($hasil[$mak] ?? 0) + (int) $nominal;
         };
 
-        foreach (Agenda::query()->withoutGlobalScope('unit')->cursor() as $a) {
+        foreach (Agenda::query()->withoutGlobalScope('unit')->where('is_legacy', false)->cursor() as $a) {
             if (filled($a->nomor_memo_pns)) {
                 $tambah($a->mak, $a->nominal_memo_pns ?? $a->biaya_asn, $a->status_pns);
             }
@@ -44,7 +45,7 @@ class MakOutstandingService
             }
         }
 
-        foreach (MemoEntry::query()->withoutGlobalScope('unit')->cursor() as $e) {
+        foreach (MemoEntry::query()->withoutGlobalScope('unit')->where('is_legacy', false)->cursor() as $e) {
             $tambah($e->mak, $e->nominal, $e->status_anggaran);
         }
 

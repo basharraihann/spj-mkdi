@@ -18,6 +18,7 @@ use Illuminate\Validation\Rule;
  * dan riwayat lengkap tiap memo.
  *
  * Admin dan TU melihat memo semua unit. Akun lain hanya melihat unitnya sendiri.
+ * Memo lama (is_legacy = true, dibuat sebelum fitur outstanding) tidak ikut dibaca.
  *
  * Angka outstanding per MAK untuk halaman Anggaran ada di App\Services\MakOutstandingService.
  */
@@ -145,8 +146,9 @@ class MonitoringMemoController extends Controller
     {
         $rows = collect();
 
-        $agendas = Agenda::query();
-        $entries = MemoEntry::query();
+        // Memo lama (pra-outstanding) tidak ikut dipantau.
+        $agendas = Agenda::query()->where('is_legacy', false);
+        $entries = MemoEntry::query()->where('is_legacy', false);
 
         if ($lintasUnit) {
             $agendas->withoutGlobalScope('unit');

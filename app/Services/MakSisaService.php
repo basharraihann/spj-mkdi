@@ -13,6 +13,8 @@ class MakSisaService
      * (belum diinput di SAKTI). Master MAK ditarik dari SAKTI, jadi memo berstatus
      * sakti / sp2d sudah ada di realisasi dan tidak dihitung lagi. Memo batal juga tidak.
      *
+     * Memo lama (is_legacy = true, dibuat sebelum fitur outstanding) juga tidak dihitung.
+     *
      * $semuaUnit = true  -> hitung dari SEMUA unit (scope unit dilepas)
      * $semuaUnit = false -> hanya unit user yang login (perilaku lama)
      *
@@ -24,7 +26,9 @@ class MakSisaService
         bool $semuaUnit = false
     ): array {
         $entry = MemoEntry::query()
-            ->when($semuaUnit, fn($q) => $q->withoutGlobalScope('unit'))->where('status_anggaran', 'outstanding')
+            ->when($semuaUnit, fn($q) => $q->withoutGlobalScope('unit'))
+            ->where('status_anggaran', 'outstanding')
+            ->where('is_legacy', false)
             ->whereNotNull('mak')
             ->when($kecualiEntryId, fn($q) => $q->where('id', '!=', $kecualiEntryId))
             ->selectRaw('mak, SUM(nominal) as total')
@@ -32,7 +36,9 @@ class MakSisaService
             ->pluck('total', 'mak');
 
         $agenda = Agenda::query()
-            ->when($semuaUnit, fn($q) => $q->withoutGlobalScope('unit'))->with('pegawai')
+            ->when($semuaUnit, fn($q) => $q->withoutGlobalScope('unit'))
+            ->with('pegawai')
+            ->where('is_legacy', false)
             ->whereNotNull('mak')
             ->where(function ($q) {
                 $q->where(function ($w) {
