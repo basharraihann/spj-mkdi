@@ -77,7 +77,7 @@
     </style>
 
     <div class="pf-page">
-        <p class="pf-sub">Kelola data akun, email, dan password Anda.</p>
+        <p class="pf-sub">Kelola data akun dan email Anda. Password hanya bisa diubah oleh admin melalui User Manajemen.</p>
 
         <div class="pf-grid">
             {{-- Ringkasan akun --}}
@@ -129,10 +129,6 @@
             <div class="pf-stack">
                 <section class="pf-card">
                     @include('profile.partials.update-profile-information-form')
-                </section>
-
-                <section class="pf-card">
-                    @include('profile.partials.update-password-form')
                 </section>
             </div>
         </div>

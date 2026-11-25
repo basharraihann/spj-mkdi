@@ -6,6 +6,8 @@ use App\Http\Controllers\AnggaranController;
 use App\Http\Controllers\AnggaranPemetaanController;
 use App\Http\Controllers\BerkasFisikController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisposisiController;
+use App\Http\Controllers\KalenderDisposisiController;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\MemoNomorSettingController;
@@ -292,6 +294,54 @@ Route::middleware('auth')->group(function () {
             Route::post('/', 'store')->name('.store');
             Route::put('{pemetaan}', 'update')->name('.update');
             Route::delete('{pemetaan}', 'destroy')->name('.destroy');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Disposisi (Persuratan)
+    | - menu Disposisi (input, semua disposisi, teruskan, hapus): TU Unit, Eselon II (+ admin)
+    | - detail, berkas, lembar PDF, feedback, selesaikan: semua akun yang terlibat (dicek di controller)
+    |--------------------------------------------------------------------------
+    */
+    Route::controller(DisposisiController::class)
+        ->prefix('disposisi')
+        ->name('disposisi.')
+        ->group(function () {
+            Route::middleware('role:tu_unit,eselon2,admin,super_admin')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('surat/create', 'create')->name('create');
+                Route::post('surat', 'store')->name('store');
+                Route::delete('surat/{surat}', 'destroy')->whereNumber('surat')->name('destroy');
+                Route::post('{disposisi}/teruskan', 'teruskan')->whereNumber('disposisi')->name('teruskan');
+            });
+
+            Route::get('surat/{surat}', 'show')->whereNumber('surat')->name('show');
+            Route::get('surat/{surat}/berkas', 'berkas')->whereNumber('surat')->name('berkas');
+            Route::get('surat/{surat}/lembar', 'lembar')->whereNumber('surat')->name('lembar');
+            Route::post('surat/{surat}/feedback', 'feedback')->whereNumber('surat')->name('feedback');
+
+            Route::post('{disposisi}/selesai', 'selesai')->whereNumber('disposisi')->name('selesai');
+            Route::get('{disposisi}/laporan-berkas', 'berkasLaporan')->whereNumber('disposisi')->name('laporan-berkas');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Kalender Disposisi: semua akun
+    | + hubungkan Google Calendar per akun (notifikasi disposisi di Google Calendar)
+    |--------------------------------------------------------------------------
+    */
+    Route::controller(KalenderDisposisiController::class)
+        ->prefix('kalender')
+        ->name('kalender.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('events', 'events')->name('events');
+            Route::get('surat/{surat}', 'detail')->whereNumber('surat')->name('detail');
+
+            Route::get('google/hubungkan', 'googleHubungkan')->name('google.hubungkan');
+            Route::get('google/callback', 'googleCallback')->name('google.callback');
+            Route::post('google/sinkron', 'googleSinkron')->name('google.sinkron');
+            Route::post('google/putuskan', 'googlePutuskan')->name('google.putuskan');
         });
 
     /*

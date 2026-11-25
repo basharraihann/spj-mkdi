@@ -1,0 +1,123 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+/**
+ * Satu langkah disposisi: dari satu user kepada satu user.
+ * Diteruskan = membuat disposisi anak (parent_id = disposisi ini).
+ */
+class Disposisi extends Model
+{
+    protected $table = 'disposisi';
+
+    /** Pilihan instruksi (bisa dicentang lebih dari satu). */
+    public const INSTRUKSI = [
+        'tindak_lanjuti' => 'Tindak lanjuti',
+        'pelajari' => 'Pelajari / telaah',
+        'siapkan_bahan' => 'Siapkan bahan / jawaban',
+        'hadiri' => 'Hadiri / wakili',
+        'koordinasikan' => 'Koordinasikan',
+        'untuk_diketahui' => 'Untuk diketahui',
+        'edarkan' => 'Edarkan',
+        'arsipkan' => 'Arsipkan',
+    ];
+
+    public const STATUS = [
+        'baru' => 'Belum dibaca',
+        'dibaca' => 'Sudah dibaca',
+        'diteruskan' => 'Diteruskan',
+        'selesai' => 'Selesai',
+    ];
+
+    /** Status yang masih perlu tindakan penerima. */
+    public const TERBUKA = ['baru', 'dibaca'];
+
+    protected $fillable = [
+        'surat_id', 'parent_id', 'dari_user_id', 'kepada_user_id', 'instruksi', 'catatan', 'batas_waktu',
+        'status', 'dibaca_at', 'diteruskan_at', 'selesai_at', 'laporan', 'laporan_file_path', 'laporan_file_name',
+        'google_event_id',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'instruksi' => 'array',
+            'batas_waktu' => 'date',
+            'dibaca_at' => 'datetime',
+            'diteruskan_at' => 'datetime',
+            'selesai_at' => 'datetime',
+        ];
+    }
+
+    public function surat(): BelongsTo
+    {
+        return $this->belongsTo(DisposisiSurat::class, 'surat_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function anak(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('id');
+    }
+
+    public function dari(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dari_user_id');
+    }
+
+    public function kepada(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'kepada_user_id');
+    }
+
+    /**
+     * Tanggal disposisi di kalender:
+     * tanggal kegiatan surat -> batas waktu -> tanggal disposisi dikirim.
+     */
+    public function getTanggalKalenderAttribute()
+    {
+        return $this->surat?->tanggal_kegiatan ?? $this->batas_waktu ?? $this->created_at->copy()->startOfDay();
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return self::STATUS[$this->status] ?? $this->status;
+    }
+
+    /** Label instruksi yang dicentang. */
+    public function getInstruksiLabelAttribute(): array
+    {
+        return collect($this->instruksi ?? [])->map(fn($k) => self::INSTRUKSI[$k] ?? $k)->values()->all();
+    }
+
+    public function getTerlambatAttribute(): bool
+    {
+        return $this->batas_waktu
+            && in_array($this->status, self::TERBUKA, true)
+            && $this->batas_waktu->lt(now()->startOfDay());
+    }
+
+    /** Jumlah disposisi yang belum dibaca user (untuk badge menu). */
+    public static function jumlahBaru(?int $userId): int
+    {
+        if (!$userId) {
+            return 0;
+        }
+
+        // Dibungkus try: kalau migrasi disposisi belum dijalankan, menu tetap tampil (badge 0)
+        // dan halaman lain tidak ikut error.
+        try {
+            return static::where('kepada_user_id', $userId)->where('status', 'baru')->count();
+        } catch (\Illuminate\Database\QueryException) {
+            return 0;
+        }
+    }
+}

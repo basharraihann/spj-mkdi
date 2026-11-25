@@ -15,6 +15,10 @@ class PasswordController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        // Ganti password lewat halaman Profil dinonaktifkan:
+        // password hanya boleh diubah admin melalui User Manajemen.
+        abort(403, 'Password hanya bisa diubah oleh admin melalui User Manajemen.');
+
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
             'password' => ['required', Password::defaults(), 'confirmed'],

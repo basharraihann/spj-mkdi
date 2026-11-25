@@ -153,6 +153,27 @@ sidebarCollapsed ? 'lg:w-20' : 'lg:w-60'
                             ],
                         ],
                     ],
+                    [
+                        // Persuratan. Disposisi: TU Unit & Eselon II (+ admin). Kalender: semua akun.
+                        // Badge = disposisi masuk yang belum dibaca.
+                        'label' => 'Persuratan',
+                        'items' => [
+                            [
+                                'route' => 'disposisi.index',
+                                'roles' => ['tu_unit', 'eselon2', 'admin', 'super_admin'],
+                                'active' => request()->routeIs('disposisi.*'),
+                                'label' => __('Disposisi'),
+                                'icon' => 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+                            ],
+                            [
+                                'route' => 'kalender.index',
+                                'active' => request()->routeIs('kalender.*'),
+                                'label' => __('Kalender Disposisi'),
+                                'badge' => \App\Models\Disposisi::jumlahBaru(Auth::id()),
+                                'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+                            ],
+                        ],
+                    ],
                 ];
 
                 if (in_array(Auth::user()?->role, ['admin', 'super_admin'], true)) {
@@ -242,6 +263,10 @@ sidebarCollapsed ? 'lg:w-20' : 'lg:w-60'
                                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['icon'] }}" />
                                 </svg>
                                 <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
+                                @if (!empty($item['badge']))
+                                    <span x-show="sidebarOpen || !sidebarCollapsed" x-cloak
+                                        class="ml-auto inline-flex min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">{{ $item['badge'] > 99 ? '99+' : $item['badge'] }}</span>
+                                @endif
                             </a>
                         @endforeach
                     </div>
