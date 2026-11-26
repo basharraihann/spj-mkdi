@@ -37,6 +37,14 @@ class UserController extends Controller
     }
 
     /**
+     * Pilihan status kepegawaian. Nilainya harus sama dengan yang dipakai di tabel pegawai.
+     */
+    private function statusKepegawaian(): array
+    {
+        return ['PNS', 'Non PNS'];
+    }
+
+    /**
      * Pesan validasi khusus.
      */
     private function messages(): array
@@ -44,6 +52,8 @@ class UserController extends Controller
         return [
             'unit_id.required_if' => 'Unit wajib dipilih untuk role Staf, TU Unit, dan Eselon II.',
             'role.in' => 'Role yang dipilih tidak valid.',
+            'status_kepegawaian.required' => 'Status kepegawaian wajib dipilih.',
+            'status_kepegawaian.in' => 'Status kepegawaian yang dipilih tidak valid.',
         ];
     }
 
@@ -93,8 +103,9 @@ class UserController extends Controller
     public function create(): View
     {
         $units = Unit::orderBy('id')->get();
+        $statusOptions = $this->statusKepegawaian();
 
-        return view('users.create', compact('units'));
+        return view('users.create', compact('units', 'statusOptions'));
     }
 
     /**
@@ -108,6 +119,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'unit_id' => ['required_if:role,' . $this->unitRequiredRoles(), 'nullable', 'exists:units,id'],
             'role' => ['required', 'string', Rule::in($this->roles())],
+            'status_kepegawaian' => ['required', Rule::in($this->statusKepegawaian())],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], $this->messages());
 
@@ -117,6 +129,7 @@ class UserController extends Controller
             'email' => $validated['email'],
             'unit_id' => $validated['unit_id'] ?? null,
             'role' => $validated['role'],
+            'status_kepegawaian' => $validated['status_kepegawaian'],
             'password' => Hash::make($validated['password']),
         ]);
 
@@ -129,8 +142,9 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         $units = Unit::orderBy('id')->get();
+        $statusOptions = $this->statusKepegawaian();
 
-        return view('users.edit', compact('user', 'units'));
+        return view('users.edit', compact('user', 'units', 'statusOptions'));
     }
 
     /**
@@ -144,6 +158,7 @@ class UserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'unit_id' => ['required_if:role,' . $this->unitRequiredRoles(), 'nullable', 'exists:units,id'],
             'role' => ['required', 'string', Rule::in($this->roles())],
+            'status_kepegawaian' => ['required', Rule::in($this->statusKepegawaian())],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ], $this->messages());
 
@@ -159,6 +174,7 @@ class UserController extends Controller
         $user->email = $validated['email'];
         $user->unit_id = $validated['unit_id'] ?? null;
         $user->role = $validated['role'];
+        $user->status_kepegawaian = $validated['status_kepegawaian'];
 
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);

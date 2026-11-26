@@ -79,6 +79,9 @@
         // Role yang sedang tersimpan / terpilih. Role lama 'tu' sudah tidak ada di daftar baru.
         $roleTerpilih = old('role', $user->role);
         $roleLama = ! collect($roleOptions)->contains('value', $roleTerpilih);
+
+        // Status kepegawaian. Nilainya sama dengan kolom status_kepegawaian di tabel pegawai.
+        $statusOptions = ['PNS', 'Non PNS'];
     @endphp
 
     <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
@@ -155,6 +158,27 @@
                         <p class="text-xs text-gray-400 mt-1">Wajib untuk Staf, TU Unit, dan Eselon II, karena menentukan data
                             yang bisa dilihat. Boleh kosong untuk role lainnya.</p>
                         @error('unit_id')
+                            <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Status Kepegawaian -->
+                    <div>
+                        <label for="status_kepegawaian" class="block text-sm font-medium text-gray-700 mb-1">
+                            Status Kepegawaian
+                        </label>
+                        <select name="status_kepegawaian" id="status_kepegawaian"
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition @error('status_kepegawaian') border-rose-500 @enderror">
+                            <option value="">-- Belum diatur --</option>
+                            @foreach ($statusOptions as $status)
+                                <option value="{{ $status }}" @selected(old('status_kepegawaian', $user->status_kepegawaian) === $status)>
+                                    {{ $status }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">Dipakai untuk memisahkan PNS dan Non PNS saat memilih penerima
+                            disposisi. Yang belum diatur dianggap Non PNS.</p>
+                        @error('status_kepegawaian')
                             <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                         @enderror
                     </div>

@@ -1,312 +1,394 @@
 <x-app-layout title="Disposisi">
-
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Disposisi
-        </h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Disposisi</h2>
     </x-slot>
-    @include('disposisi._gaya')
 
     @php
-        $sifatKelas = [
-            'biasa' => 'kd-chip-gray',
-            'segera' => 'kd-chip-amber',
-            'sangat_segera' => 'kd-chip-red',
-            'rahasia' => 'kd-chip-violet',
+        $badgeSifat = [
+            'biasa' => 'bg-slate-100 text-slate-600 ring-slate-200',
+            'segera' => 'bg-amber-50 text-amber-800 ring-amber-200',
+            'sangat_segera' => 'bg-red-50 text-red-700 ring-red-200',
+            'rahasia' => 'bg-purple-50 text-purple-700 ring-purple-200',
         ];
-        $statusKelas = [
-            'baru' => 'kd-st-baru',
-            'dibaca' => 'kd-st-dibaca',
-            'diteruskan' => 'kd-st-diteruskan',
-            'selesai' => 'kd-st-selesai',
+        $labelSifat = [
+            'biasa' => 'Biasa',
+            'segera' => 'Segera',
+            'sangat_segera' => 'Sangat segera',
+            'rahasia' => 'Rahasia',
         ];
-        $tabs = [
-            'surat' => ['Semua Disposisi', 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-            'masuk' => ['Masuk', 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
-            'terkirim' => ['Terkirim', 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8'],
+        $labelStatus = [
+            'proses' => 'Proses',
+            'terlambat' => 'Terlambat',
+            'selesai' => 'Selesai',
         ];
+
+        // Filter aktif (dibaca langsung dari request supaya view mandiri)
+        $q = (string) request('q', '');
+        $filter = (string) request('status', '');
+        $fSifat = (string) request('sifat', '');
+        $fUnit = (string) request('unit', '');
+        $fDari = (string) request('dari', '');
+        $fSampai = (string) request('sampai', '');
+        $fUrut = (string) request('urut', 'terbaru');
+        $adaFilter = collect(['q', 'status', 'sifat', 'unit', 'dari', 'sampai'])->contains(fn($k) => request()->filled($k));
+        $adaFilterLanjut = collect(['status', 'sifat', 'unit', 'dari', 'sampai'])->contains(fn($k) => request()->filled($k)) || $fUrut !== 'terbaru';
+
         $tgl = fn($d) => $d ? \Illuminate\Support\Carbon::parse($d)->translatedFormat('d M Y') : '–';
-        $adaFilter = $q !== '' || $filter !== '';
+
+        // Ringkasan posisi, progres, dan batas waktu per surat
+        $info = function ($s) {
+            $posisi = $s->disposisi->filter(fn($d) => in_array($d->status, \App\Models\Disposisi::TERBUKA, true));
+            $total = $s->disposisi->count();
+            $selesai = $s->disposisi->where('status', 'selesai')->count();
+            return [
+                'posisi' => $posisi,
+                'total' => $total,
+                'selesai' => $selesai,
+                'persen' => $total > 0 ? (int) round($selesai / $total * 100) : 0,
+                'batas' => $posisi->pluck('batas_waktu')->filter()->sort()->first(),
+                'terlambat' => $posisi->contains(fn($d) => $d->terlambat),
+                'selesaiSurat' => $s->status === 'selesai',
+            ];
+        };
+
+        // Lampiran surat: link eksternal (link_berkas) atau file upload (file_path), sama seperti halaman detail
+        $berkas = function ($s) {
+            if ($s->link_berkas) {
+                $host = parse_url($s->link_berkas, PHP_URL_HOST) ?: 'Tautan';
+                return ['url' => $s->link_berkas, 'nama' => $host, 'ext' => 'LINK'];
+            }
+            if ($s->file_path) {
+                $nama = $s->file_name ?: basename($s->file_path);
+                return [
+                    'url' => route('disposisi.berkas', $s),
+                    'nama' => $nama,
+                    'ext' => strtoupper(pathinfo($nama, PATHINFO_EXTENSION)) ?: 'FILE',
+                ];
+            }
+            return null;
+        };
+
+        // Tempat kegiatan dan link meeting.
+        // Link diambil dari kolom link_meeting jika ada; jika tidak, dari kolom tempat yang berisi URL.
+        $lokasi = function ($s) {
+            $tempat = trim((string) ($s->tempat ?? ''));
+            $link = '';
+            foreach (['link_meeting', 'link_zoom', 'link_online', 'meeting_link', 'url_meeting', 'link_rapat', 'tautan'] as $kolom) {
+                if (! empty($s->{$kolom})) {
+                    $link = trim((string) $s->{$kolom});
+                    break;
+                }
+            }
+            if ($link === '') {
+                // Cadangan: kolom lain mana pun yang isinya URL, selain kolom lampiran
+                foreach ($s->getAttributes() as $kolom => $nilai) {
+                    if (in_array($kolom, ['link_berkas', 'file_path', 'file_name'], true)) {
+                        continue;
+                    }
+                    if (is_string($nilai) && preg_match('~^\s*https?://~i', $nilai)) {
+                        $link = trim($nilai);
+                        break;
+                    }
+                }
+            }
+            if ($link === '' && \Illuminate\Support\Str::startsWith($tempat, ['http://', 'https://'])) {
+                $link = $tempat;
+                $tempat = '';
+            }
+            if ($link === '') {
+                // tempat berisi teks dan URL, mis. "Online https://zoom.us/j/123"
+                if (preg_match('~https?://\S+~i', $tempat, $m)) {
+                    $link = $m[0];
+                    $tempat = trim(str_replace($m[0], '', $tempat));
+                }
+            }
+            return [
+                'tempat' => $tempat,
+                'link' => $link,
+                'online' => $link !== '' || strcasecmp($tempat, 'online') === 0,
+                'linkAman' => $link !== '' && \Illuminate\Support\Str::startsWith($link, ['http://', 'https://']),
+                'host' => $link !== '' ? (parse_url($link, PHP_URL_HOST) ?: $link) : '',
+            ];
+        };
+
+        // Gaya input dan tombol, sama dengan halaman form
+        $input = 'block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-none outline-none transition hover:border-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100';
+        $label = 'mb-1 block text-xs font-medium text-slate-500';
+
+        // Pola garis miring untuk kartu surat yang sudah selesai
+        $polaSelesai = 'background-image: repeating-linear-gradient(135deg, transparent 0 12px, rgba(148,163,184,.14) 12px 24px);';
     @endphp
 
-    <div class="kd-wrap min-h-full">
-        <div class="kd-container px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5">
+    <div class="mx-auto max-w-7xl space-y-5 px-4 py-8 sm:px-6 lg:px-8">
 
-            {{-- Judul + tab --}}
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                    <p class="text-base font-medium text-gray-700">Pencatatan &amp; pemantauan surat masuk</p>
-                    <p class="text-xs text-gray-400 mt-0.5">Catat surat masuk, kirim disposisi, dan pantau posisi surat</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <nav class="kd-tabs w-full sm:w-auto overflow-x-auto">
-                        @foreach ($tabs as $k => [$label, $ikon])
-                            <a href="{{ route('disposisi.index', ['tab' => $k]) }}" class="kd-tab flex-1 justify-center {{ $tab === $k ? 'aktif' : '' }}">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $ikon }}" />
-                                </svg>
-                                @if ($k === 'surat')
-                                    <span class="kd-hanya-desktop">{{ $label }}</span><span class="kd-hanya-hp">Semua</span>
-                                @else
-                                    {{ $label }}
-                                @endif
-                                @if ($k === 'masuk' && $ringkasan['baru'] > 0)
-                                    <span class="kd-dot">{{ $ringkasan['baru'] }}</span>
-                                @endif
-                            </a>
-                        @endforeach
-                    </nav>
-                    <a href="{{ route('kalender.index', ['tab' => 'kalender']) }}" class="kd-btn-outline flex-1 sm:flex-none">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Kalender
-                    </a>
-                    @if ($bolehCatat)
-                        <a href="{{ route('disposisi.create') }}" class="kd-btn-primary flex-1 sm:flex-none">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Input Disposisi
-                        </a>
-                    @endif
-                </div>
+        @if (session('success'))
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ session('success') }}</div>
+        @endif
+
+        @if ($bolehCatat)
+            <div class="flex justify-end">
+                <a href="{{ route('disposisi.create') }}"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Input disposisi
+                </a>
             </div>
+        @endif
 
-            {{-- Ringkasan disposisi saya --}}
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                @foreach ([
-                    ['Belum dibaca', $ringkasan['baru'], '#2563eb', 'baru'],
-                    ['Perlu tindakan', $ringkasan['perlu'], '#0369a1', 'perlu'],
-                    ['Lewat batas waktu', $ringkasan['terlambat'], '#dc2626', 'perlu'],
-                    ['Selesai', $ringkasan['selesai'], '#15803d', 'selesai'],
-                ] as [$label, $angka, $warna, $fs])
-                    <a href="{{ route('disposisi.index', ['tab' => 'masuk', 'status' => $fs]) }}" class="kd-card kd-stat hover:border-blue-200 transition">
-                        <p>{{ $label }}</p>
-                        <p style="color: {{ $warna }}">{{ $angka }}</p>
-                    </a>
-                @endforeach
-            </div>
+        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
 
-            <div class="kd-card overflow-hidden">
-                {{-- Filter --}}
-                <form method="GET" class="flex flex-col sm:flex-row gap-2 p-3 sm:p-4 border-b border-gray-100">
-                    <input type="hidden" name="tab" value="{{ $tab }}">
+            {{-- Filter --}}
+            <form method="GET" class="space-y-3 border-b border-slate-100 p-4">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div class="relative flex-1">
-                        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <label for="cari" class="sr-only">Cari disposisi</label>
+                        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
                         </svg>
-                        <input type="search" name="q" value="{{ $q }}" placeholder="Cari nomor surat, perihal, asal surat, nomor agenda…"
-                            class="kd-input" style="padding-left: 2.25rem;">
+                        <input id="cari" type="search" name="q" value="{{ $q }}"
+                            placeholder="Cari nomor surat, perihal, asal surat, nomor agenda, nama penerima…"
+                            class="{{ $input }} pl-9">
                     </div>
-                    <select name="status" class="kd-input kd-auto-sm" style="min-width: 11rem" onchange="this.form.submit()">
-                        <option value="">Semua status</option>
-                        @if ($tab === 'surat')
-                            <option value="proses" @selected($filter === 'proses')>Proses</option>
-                            <option value="selesai" @selected($filter === 'selesai')>Selesai</option>
-                        @else
-                            <option value="perlu" @selected($filter === 'perlu')>Perlu tindakan</option>
-                            @foreach (\App\Models\Disposisi::STATUS as $k => $v)
-                                <option value="{{ $k }}" @selected($filter === $k)>{{ $v }}</option>
-                            @endforeach
-                        @endif
-                    </select>
-                    <div class="flex gap-2">
-                        <button class="kd-btn-primary flex-1">Cari</button>
-                        @if ($adaFilter)
-                            <a href="{{ route('disposisi.index', ['tab' => $tab]) }}" class="kd-btn-ghost">Reset</a>
-                        @endif
-                    </div>
-                </form>
 
-                @if ($tab === 'surat')
-                    @if ($surat->isEmpty())
-                        <div class="px-6 py-16 text-center">
-                            <p class="font-semibold text-gray-800">Belum ada disposisi</p>
-                            <p class="text-sm text-gray-500">{{ $adaFilter ? 'Coba reset pencarian.' : 'Klik "Input Disposisi" untuk mencatat surat masuk.' }}</p>
+                    <div class="flex gap-2">
+                        <button class="inline-flex flex-1 items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:flex-none">Cari</button>
+                        @if ($adaFilter || $fUrut !== 'terbaru')
+                            <a href="{{ route('disposisi.index') }}"
+                                class="inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-200">Reset</a>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Filter lanjutan --}}
+                <details class="group" @if ($adaFilterLanjut) open @endif>
+                    <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900">
+                        <svg class="h-4 w-4 transition group-open:rotate-90" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                        Filter lanjutan
+                        @if ($adaFilterLanjut)
+                            <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                        @endif
+                    </summary>
+
+                    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                            <label for="status" class="{{ $label }}">Status</label>
+                            <select id="status" name="status" class="{{ $input }}" onchange="this.form.submit()">
+                                <option value="">Semua status</option>
+                                @foreach ($labelStatus as $k => $v)
+                                    <option value="{{ $k }}" @selected($filter === $k)>{{ $v }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                    @else
-                        {{-- Desktop --}}
-                        <div class="kd-hanya-desktop overflow-x-auto">
-                            <table class="kd-table w-full text-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Surat</th>
-                                        <th class="w-32">Diterima</th>
-                                        <th class="w-36">Jadwal</th>
-                                        <th class="w-56">Posisi sekarang</th>
-                                        <th class="w-28">Status</th>
-                                        <th class="w-20"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($surat as $s)
-                                        @php $posisi = $s->disposisi->filter(fn($d) => in_array($d->status, \App\Models\Disposisi::TERBUKA, true)); @endphp
-                                        <tr onclick="location.href='{{ route('disposisi.show', $s) }}'">
-                                            <td>
-                                                <div class="flex flex-wrap items-center gap-1.5">
-                                                    <span class="kd-chip {{ $sifatKelas[$s->sifat] ?? 'kd-chip-gray' }}">{{ $s->sifat_label }}</span>
-                                                    <span class="text-xs text-gray-400">{{ $s->nomor_surat }}</span>
-                                                </div>
-                                                <p class="mt-1 font-medium text-gray-900 line-clamp-2">{{ $s->perihal }}</p>
-                                                <p class="text-xs text-gray-500">Dari {{ $s->asal_surat }}@if ($s->nomor_agenda) · Agenda {{ $s->nomor_agenda }}@endif</p>
-                                            </td>
-                                            <td class="whitespace-nowrap text-gray-600">{{ $tgl($s->tanggal_terima) }}</td>
-                                            <td class="text-gray-600">
-                                                @if ($s->tanggal_kegiatan)
-                                                    <p class="whitespace-nowrap">{{ $tgl($s->tanggal_kegiatan) }}</p>
-                                                    <p class="text-[11px] text-gray-400">{{ $s->waktu_label }}</p>
-                                                @else
-                                                    <span class="text-gray-300">–</span>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                @forelse ($posisi->take(3) as $d)
-                                                    <p class="text-xs text-gray-800">{{ $d->kepada?->name ?? '-' }}
-                                                        <span class="text-gray-400">· {{ $d->kepada?->unit?->nama }}</span></p>
-                                                @empty
-                                                    <span class="text-xs text-gray-400">–</span>
-                                                @endforelse
-                                                @if ($posisi->count() > 3)
-                                                    <p class="text-xs text-gray-400">+{{ $posisi->count() - 3 }} lainnya</p>
-                                                @endif
-                                            </td>
-                                            <td><span class="kd-st {{ $s->status === 'selesai' ? 'kd-st-selesai' : 'kd-st-baru' }}">{{ $s->status === 'selesai' ? 'Selesai' : 'Proses' }}</span></td>
-                                            <td class="text-right"><a href="{{ route('disposisi.show', $s) }}" class="kd-btn-soft kd-kecil">Detail</a></td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+
+                        <div>
+                            <label for="sifat" class="{{ $label }}">Sifat surat</label>
+                            <select id="sifat" name="sifat" class="{{ $input }}" onchange="this.form.submit()">
+                                <option value="">Semua sifat</option>
+                                @foreach ($labelSifat as $k => $v)
+                                    <option value="{{ $k }}" @selected($fSifat === $k)>{{ $v }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                        {{-- HP --}}
-                        <ul class="kd-hanya-hp divide-y divide-gray-100">
-                            @foreach ($surat as $s)
-                                @php $posisi = $s->disposisi->filter(fn($d) => in_array($d->status, \App\Models\Disposisi::TERBUKA, true)); @endphp
-                                <li>
-                                    <a href="{{ route('disposisi.show', $s) }}" class="block px-4 py-3.5">
-                                        <div class="flex items-start justify-between gap-2">
-                                            <div class="flex flex-wrap items-center gap-1.5">
-                                                <span class="kd-chip {{ $sifatKelas[$s->sifat] ?? 'kd-chip-gray' }}">{{ $s->sifat_label }}</span>
-                                                <span class="text-[11px] text-gray-400">{{ $tgl($s->tanggal_terima) }}</span>
-                                            </div>
-                                            <span class="kd-st {{ $s->status === 'selesai' ? 'kd-st-selesai' : 'kd-st-baru' }}">{{ $s->status === 'selesai' ? 'Selesai' : 'Proses' }}</span>
-                                        </div>
-                                        <p class="mt-1.5 font-medium text-gray-900 line-clamp-2">{{ $s->perihal }}</p>
-                                        <p class="text-xs text-gray-500">{{ $s->nomor_surat }} · {{ $s->asal_surat }}</p>
-                                        @if ($posisi->isNotEmpty())
-                                            <p class="mt-1 text-[11px] text-blue-700">Di: {{ $posisi->pluck('kepada.name')->filter()->take(2)->implode(', ') }}{{ $posisi->count() > 2 ? ' +' . ($posisi->count() - 2) : '' }}</p>
+
+                        <div>
+                            <label for="unit" class="{{ $label }}">Posisi di unit</label>
+                            <select id="unit" name="unit" class="{{ $input }}" onchange="this.form.submit()">
+                                <option value="">Semua unit</option>
+                                @foreach ($daftarUnit ?? [] as $u)
+                                    <option value="{{ $u->id }}" @selected($fUnit === (string) $u->id)>{{ $u->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="dari" class="{{ $label }}">Diterima dari</label>
+                            <input id="dari" type="date" name="dari" value="{{ $fDari }}" max="{{ $fSampai ?: '' }}" class="{{ $input }}" onchange="this.form.submit()">
+                        </div>
+
+                        <div>
+                            <label for="sampai" class="{{ $label }}">Diterima sampai</label>
+                            <input id="sampai" type="date" name="sampai" value="{{ $fSampai }}" min="{{ $fDari ?: '' }}" class="{{ $input }}" onchange="this.form.submit()">
+                        </div>
+
+                        <div>
+                            <label for="urut" class="{{ $label }}">Urutkan</label>
+                            <select id="urut" name="urut" class="{{ $input }}" onchange="this.form.submit()">
+                                <option value="terbaru" @selected($fUrut === 'terbaru')>Terbaru diterima</option>
+                                <option value="terlama" @selected($fUrut === 'terlama')>Terlama diterima</option>
+                                <option value="batas" @selected($fUrut === 'batas')>Batas waktu terdekat</option>
+                                <option value="jadwal" @selected($fUrut === 'jadwal')>Jadwal kegiatan terdekat</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+            </form>
+
+            @if ($surat->isEmpty())
+                <div class="px-6 py-14 text-center">
+                    <div class="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 text-slate-500">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 3h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-900">Belum ada disposisi</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ $adaFilter ? 'Coba ubah atau reset pencarian.' : 'Klik "Input disposisi" untuk mencatat surat masuk.' }}</p>
+                </div>
+            @else
+                <ul class="space-y-2.5 p-3 sm:p-4">
+                    @foreach ($surat as $s)
+                        @php
+                            $i = $info($s);
+                            $posisi = $i['posisi'];
+                            $selesaiSurat = $i['selesaiSurat'];
+                            $file = $berkas($s);
+                            $lok = $lokasi($s);
+
+                            // Blok tanggal: tanggal kegiatan, atau tanggal diterima jika tidak ada kegiatan
+                            $adaKegiatan = (bool) $s->tanggal_kegiatan;
+                            $tglBlok = $adaKegiatan ? $s->tanggal_kegiatan : $s->tanggal_terima;
+                            $blok = $tglBlok ? \Illuminate\Support\Carbon::parse($tglBlok) : null;
+                            $hariIni = $blok?->isToday() ?? false; // warna oranye hanya untuk hari ini
+                        @endphp
+                        <li class="group relative flex flex-col gap-3 rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 hover:shadow-sm md:flex-row md:items-center md:gap-0 {{ $selesaiSurat ? 'bg-slate-50' : 'bg-white' }}"
+                            @if ($selesaiSurat) style="{{ $polaSelesai }}" @endif>
+
+                            {{-- Blok tanggal --}}
+                            <div class="flex flex-none items-baseline gap-2 md:w-16 md:flex-col md:items-center md:gap-0 md:text-center" title="{{ $adaKegiatan ? 'Tanggal kegiatan' : 'Tanggal diterima' }}">
+                                <span class="text-xs font-medium {{ $hariIni ? 'text-orange-600' : 'text-slate-500' }}">{{ $blok?->translatedFormat('D') ?? '–' }}</span>
+                                <span class="text-2xl font-semibold leading-none md:mt-0.5 {{ $hariIni ? 'text-orange-600' : 'text-slate-700' }}">{{ $blok?->format('d') ?? '–' }}</span>
+                                <span class="text-[11px] text-slate-400 md:mt-0.5">{{ $blok?->translatedFormat('M Y') }}</span>
+                                @unless ($adaKegiatan)
+                                    <span class="text-[10px] uppercase tracking-wide text-slate-300">Diterima</span>
+                                @endunless
+                            </div>
+
+                            <div class="hidden h-14 w-px flex-none bg-slate-200 md:mx-4 md:block"></div>
+
+                            {{-- Jam, dari siapa, tempat --}}
+                            <div class="space-y-1.5 text-xs text-slate-600 md:w-48 md:flex-none">
+                                <p class="flex items-center gap-1.5">
+                                    <svg class="h-3.5 w-3.5 flex-none text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    @if ($adaKegiatan)
+                                        <span class="min-w-0 truncate">{{ $s->waktu_label }}</span>
+                                    @else
+                                        <span class="text-slate-400">Tanpa jadwal</span>
+                                    @endif
+                                </p>
+
+                                <p class="flex items-center gap-1.5" title="Dari: {{ $s->asal_surat }}">
+                                    <svg class="h-3.5 w-3.5 flex-none text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                    <span class="min-w-0 truncate">{{ $s->asal_surat }}</span>
+                                </p>
+
+                                @if ($lok['tempat'] !== '' || $lok['online'])
+                                    @php
+                                        $labelTempat = $lok['tempat'] !== '' ? $lok['tempat'] : 'Online';
+                                        $ikonVideo = $lok['online'] && strcasecmp($labelTempat, 'online') === 0;
+                                    @endphp
+                                    <p class="flex items-center gap-1.5">
+                                        @if ($ikonVideo)
+                                            <svg class="h-3.5 w-3.5 flex-none text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                        @else
+                                            <svg class="h-3.5 w-3.5 flex-none text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17.66 16.66L13.41 20.9a2 2 0 01-2.82 0l-4.25-4.24a8 8 0 1111.32 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                         @endif
-                                    </a>
-                                </li>
-                            @endforeach
-                        </ul>
-                        <div class="px-4 py-4">{{ $surat->links() }}</div>
-                    @endif
-                @else
-                    @if ($disposisi->isEmpty())
-                        <div class="px-6 py-16 text-center">
-                            <p class="font-semibold text-gray-800">{{ $tab === 'masuk' ? 'Belum ada disposisi untuk Anda' : 'Belum ada disposisi yang Anda kirim' }}</p>
-                            @if ($adaFilter)
-                                <p class="text-sm text-gray-500">Coba reset pencarian.</p>
-                            @endif
-                        </div>
-                    @else
-                        {{-- Desktop --}}
-                        <div class="kd-hanya-desktop overflow-x-auto">
-                            <table class="kd-table w-full text-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Surat</th>
-                                        <th class="w-48">{{ $tab === 'masuk' ? 'Dari' : 'Kepada' }}</th>
-                                        <th class="w-56">Instruksi</th>
-                                        <th class="w-32">Batas waktu</th>
-                                        <th class="w-32">Status</th>
-                                        <th class="w-28"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($disposisi as $d)
-                                        @php
-                                            $orang = $tab === 'masuk' ? $d->dari : $d->kepada;
-                                            $baru = $tab === 'masuk' && $d->status === 'baru';
-                                        @endphp
-                                        <tr class="{{ $baru ? 'kd-baru-row' : '' }}" onclick="location.href='{{ route('disposisi.show', $d->surat_id) }}'">
-                                            <td>
-                                                <div class="flex flex-wrap items-center gap-1.5">
-                                                    @if ($baru)
-                                                        <span class="h-2 w-2 rounded-full bg-blue-600" title="Belum dibaca"></span>
-                                                    @endif
-                                                    @if ($d->surat)
-                                                        <span class="kd-chip {{ $sifatKelas[$d->surat->sifat] ?? 'kd-chip-gray' }}">{{ $d->surat->sifat_label }}</span>
-                                                    @endif
-                                                    <span class="text-xs text-gray-400">{{ $d->surat?->nomor_surat }}</span>
-                                                </div>
-                                                <p class="mt-1 line-clamp-2 {{ $baru ? 'font-semibold text-gray-900' : 'font-medium text-gray-800' }}">{{ $d->surat?->perihal }}</p>
-                                                <p class="text-xs text-gray-500">Dari {{ $d->surat?->asal_surat }} · {{ $d->created_at?->translatedFormat('d M Y H:i') }}</p>
-                                            </td>
-                                            <td>
-                                                <p class="text-gray-800">{{ $orang?->name ?? '-' }}</p>
-                                                <p class="text-xs text-gray-400">{{ $orang?->unit?->nama }}</p>
-                                            </td>
-                                            <td>
-                                                <div class="flex flex-wrap gap-1">
-                                                    @foreach ($d->instruksi_label as $ins)
-                                                        <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{{ $ins }}</span>
-                                                    @endforeach
-                                                </div>
-                                            </td>
-                                            <td class="whitespace-nowrap {{ $d->terlambat ? 'text-red-600 font-semibold' : 'text-gray-600' }}">
-                                                {{ $tgl($d->batas_waktu) }}
-                                                @if ($d->terlambat)
-                                                    <p class="text-[11px]">Terlambat</p>
-                                                @endif
-                                            </td>
-                                            <td><span class="kd-st {{ $statusKelas[$d->status] ?? 'kd-st-keluar' }}">{{ $d->status_label }}</span></td>
-                                            <td class="text-right">
-                                                <a href="{{ route('disposisi.show', $d->surat_id) }}" class="kd-btn-soft kd-kecil whitespace-nowrap">
-                                                    {{ $tab === 'masuk' && in_array($d->status, \App\Models\Disposisi::TERBUKA, true) ? 'Tindak lanjuti' : 'Detail' }}
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        {{-- HP --}}
-                        <ul class="kd-hanya-hp divide-y divide-gray-100">
-                            @foreach ($disposisi as $d)
-                                @php
-                                    $orang = $tab === 'masuk' ? $d->dari : $d->kepada;
-                                    $baru = $tab === 'masuk' && $d->status === 'baru';
-                                @endphp
-                                <li>
-                                    <a href="{{ route('disposisi.show', $d->surat_id) }}" class="block px-4 py-3.5 {{ $baru ? 'kd-baru-row' : '' }}">
-                                        <div class="flex items-start justify-between gap-2">
-                                            <div class="flex flex-wrap items-center gap-1.5">
-                                                @if ($d->surat)
-                                                    <span class="kd-chip {{ $sifatKelas[$d->surat->sifat] ?? 'kd-chip-gray' }}">{{ $d->surat->sifat_label }}</span>
-                                                @endif
-                                                <span class="text-[11px] text-gray-400">{{ $d->created_at?->translatedFormat('d M') }}</span>
-                                            </div>
-                                            <span class="kd-st {{ $statusKelas[$d->status] ?? 'kd-st-keluar' }}">{{ $d->status_label }}</span>
-                                        </div>
-                                        <p class="mt-1.5 line-clamp-2 {{ $baru ? 'font-semibold text-gray-900' : 'font-medium text-gray-800' }}">{{ $d->surat?->perihal }}</p>
-                                        <p class="text-xs text-gray-500">{{ $tab === 'masuk' ? 'Dari' : 'Ke' }} {{ $orang?->name ?? '-' }}
-                                            @if ($d->batas_waktu)
-                                                · <span class="{{ $d->terlambat ? 'text-red-600 font-semibold' : '' }}">batas {{ $d->batas_waktu->translatedFormat('d M') }}</span>
+                                        <span class="min-w-0 truncate" title="{{ $labelTempat }}">{{ $labelTempat }}</span>
+                                    </p>
+
+                                    {{-- Link zoom / meeting, tepat di bawah lokasi --}}
+                                    @if ($lok['link'] !== '')
+                                        <p class="flex items-center gap-1.5">
+                                            <svg class="h-3.5 w-3.5 flex-none text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.83 10.17a4 4 0 010 5.66l-3 3a4 4 0 01-5.66-5.66l1.5-1.5m6.66-1.34a4 4 0 010-5.66l3-3a4 4 0 115.66 5.66l-1.5 1.5" /></svg>
+                                            @if ($lok['linkAman'])
+                                                <a href="{{ $lok['link'] }}" target="_blank" rel="noopener noreferrer" title="{{ $lok['link'] }}"
+                                                    class="relative z-10 min-w-0 truncate font-medium text-blue-600 hover:underline">{{ $lok['host'] }}</a>
+                                            @else
+                                                <span class="min-w-0 truncate text-slate-500">{{ $lok['link'] }}</span>
                                             @endif
                                         </p>
-                                        @if ($d->instruksi_label)
-                                            <p class="mt-1 text-[11px] text-gray-500">{{ implode(', ', $d->instruksi_label) }}</p>
-                                        @endif
+                                    @endif
+                                @endif
+                            </div>
+
+                            {{-- Perihal dan penerima --}}
+                            <div class="min-w-0 flex-1 md:px-4">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="inline-flex rounded-full px-2 py-px text-[11px] font-medium ring-1 ring-inset {{ $badgeSifat[$s->sifat] ?? $badgeSifat['biasa'] }}">{{ $s->sifat_label }}</span>
+                                    <span class="text-[11px] text-slate-400">{{ $s->nomor_surat }}@if ($s->nomor_agenda) · Agenda {{ $s->nomor_agenda }}@endif</span>
+                                </div>
+                                <p class="mt-1 line-clamp-2 text-sm font-medium text-slate-900">{{ $s->perihal }}</p>
+
+                                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                                    @if ($posisi->isNotEmpty())
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <div class="flex flex-none -space-x-1.5">
+                                                @foreach ($posisi->take(4) as $d)
+                                                    <x-avatar :user="$d->kepada" class="h-6 w-6 text-[9px] ring-2 ring-white" />
+                                                @endforeach
+                                                @if ($posisi->count() > 4)
+                                                    <span class="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 ring-2 ring-white">+{{ $posisi->count() - 4 }}</span>
+                                                @endif
+                                            </div>
+                                            <p class="min-w-0 truncate text-xs text-slate-500">
+                                                {{ $posisi->pluck('kepada.name')->filter()->take(2)->implode(', ') }}@if ($posisi->count() > 2) +{{ $posisi->count() - 2 }} @endif
+                                            </p>
+                                        </div>
+                                    @else
+                                        <p class="text-xs text-slate-400">{{ $selesaiSurat ? 'Tidak ada yang menunggu tindakan' : 'Belum ada penerima aktif' }}</p>
+                                    @endif
+                                </div>
+                            </div>
+
+                            {{-- Lampiran surat, tepat sebelum status --}}
+                            <div class="{{ $file ? '' : 'hidden md:block' }} md:w-56 md:flex-none md:px-4">
+                                @if ($file)
+                                    <a href="{{ $file['url'] }}" target="_blank" rel="noopener noreferrer" title="Buka lampiran: {{ $file['nama'] }}"
+                                        class="relative z-10 inline-flex max-w-full items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 transition hover:border-blue-300 hover:text-blue-700">
+                                        <svg class="h-3 w-3 flex-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.17 7l-6.59 6.59a2 2 0 102.83 2.83l6.58-6.59a4 4 0 10-5.66-5.66L5.76 10.76a6 6 0 108.48 8.48L20 13.5" /></svg>
+                                        <span class="flex-none font-semibold">{{ $file['ext'] }}</span>
+                                        <span class="min-w-0 truncate">{{ $file['nama'] }}</span>
                                     </a>
-                                </li>
-                            @endforeach
-                        </ul>
-                        <div class="px-4 py-4">{{ $disposisi->links() }}</div>
-                    @endif
+                                @endif
+                            </div>
+
+                            {{-- Status, batas waktu, progres, aksi --}}
+                            <div class="flex items-center justify-between gap-3 border-t border-slate-100 pt-2.5 md:w-56 md:flex-none md:border-0 md:pl-4 md:pt-0">
+                                <div class="min-w-0 flex-1 space-y-1">
+                                    <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-px text-[11px] font-medium ring-1 ring-inset {{ $selesaiSurat ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-blue-50 text-blue-700 ring-blue-200' }}">
+                                        <span class="h-1.5 w-1.5 rounded-full {{ $selesaiSurat ? 'bg-emerald-500' : 'bg-blue-500' }}"></span>
+                                        {{ $selesaiSurat ? 'Selesai' : 'Proses' }}
+                                    </span>
+
+                                    @if ($i['batas'] && ! $selesaiSurat)
+                                        <p class="text-[11px] {{ $i['terlambat'] ? 'font-semibold text-red-600' : 'text-slate-500' }}">
+                                            Batas {{ $tgl($i['batas']) }}{{ $i['terlambat'] ? ' · Terlambat' : '' }}
+                                        </p>
+                                    @endif
+
+                                    @if ($i['total'] > 0)
+                                        <div class="flex items-center gap-2">
+                                            <div class="h-1 w-14 overflow-hidden rounded-full bg-slate-200/70" role="progressbar" aria-valuenow="{{ $i['persen'] }}" aria-valuemin="0" aria-valuemax="100">
+                                                <div class="h-full rounded-full {{ $i['persen'] === 100 ? 'bg-emerald-500' : 'bg-blue-500' }}" style="width: {{ $i['persen'] }}%"></div>
+                                            </div>
+                                            <span class="text-[11px] text-slate-500">{{ $i['selesai'] }}/{{ $i['total'] }}</span>
+                                        </div>
+                                    @else
+                                        <p class="text-[11px] text-slate-400">Belum didisposisikan</p>
+                                    @endif
+                                </div>
+
+                                <span class="inline-flex flex-none items-center justify-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition group-hover:bg-slate-50">Detail</span>
+                            </div>
+
+                            {{-- Seluruh kartu bisa diklik; tautan lampiran dan meeting berada di atasnya (z-10) --}}
+                            <a href="{{ route('disposisi.show', $s) }}" class="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-100" aria-label="Detail disposisi {{ $s->perihal }}"></a>
+                        </li>
+                    @endforeach
+                </ul>
+
+                @if ($surat->hasPages())
+                    <div class="border-t border-slate-100 px-6 py-4">{{ $surat->links() }}</div>
                 @endif
-            </div>
-        </div>
+            @endif
+        </section>
     </div>
 </x-app-layout>

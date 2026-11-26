@@ -73,7 +73,7 @@
         $unitRequiredRoles = collect($roleOptions)->where('unit', true)->pluck('value')->values();
     @endphp
 
-    <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+        <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
 
         <!-- Subjudul (judul halaman ada di header) -->
         <p class="text-sm text-gray-500">Buat akun pengguna baru dan tentukan hak akses peran (role)</p>

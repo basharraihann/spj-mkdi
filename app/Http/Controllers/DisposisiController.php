@@ -234,8 +234,18 @@ class DisposisiController extends Controller
 
         // Hanya kalau ada yang tampil di event Google
         $memengaruhiEvent = array_intersect($berubah, [
-            'nomor_surat', 'asal_surat', 'perihal', 'isi_ringkas', 'sifat', 'tanggal_kegiatan',
-            'waktu_mulai', 'waktu_selesai', 'tempat', 'jenis', 'link_daring', 'link_berkas',
+            'nomor_surat',
+            'asal_surat',
+            'perihal',
+            'isi_ringkas',
+            'sifat',
+            'tanggal_kegiatan',
+            'waktu_mulai',
+            'waktu_selesai',
+            'tempat',
+            'jenis',
+            'link_daring',
+            'link_berkas',
         ]);
 
         $pesan = 'Perubahan surat disimpan.';
@@ -303,14 +313,16 @@ class DisposisiController extends Controller
             return back()->with('error', 'Disposisi ini sudah selesai, tidak bisa diteruskan lagi.');
         }
 
-        $data = $request->validate($this->aturanTujuan($user));
-
-        $baru = DB::transaction(function () use ($disposisi, $user, $data) {
+        $data = $request->validate($this->aturanTujuan($user) + [
+            'ikut' => ['nullable', 'boolean'],
+        ]);
+        $baru = DB::transaction(function () use ($request, $disposisi, $user, $data) {
             $baru = $this->kirim($disposisi->surat, $disposisi, $user, $data);
             $disposisi->update([
                 'status' => 'diteruskan',
                 'diteruskan_at' => now(),
                 'dibaca_at' => $disposisi->dibaca_at ?? now(),
+                'ikut' => $user->role === User::ROLE_ESELON2 && $request->boolean('ikut'),
             ]);
             $disposisi->surat->perbaruiStatus();
 
@@ -632,13 +644,18 @@ class DisposisiController extends Controller
             ->with('unit')
             ->whereKeyNot($user->id)
             ->orderBy('name')
-            ->get(['id', 'name', 'role', 'unit_id'])
-            ->map(fn($u) => [
-                'id' => $u->id,
-                'nama' => $u->name,
-                'role' => User::ROLE_LABELS[$u->role] ?? $u->role,
-                'unit' => $u->unit?->nama ?? $u->unit?->kode ?? 'Tanpa unit',
-            ])
+            ->get()
+            ->map(function ($u) {
+                $status = strtoupper(trim((string) $u->status_kepegawaian));
+                return [
+                    'id' => $u->id,
+                    'nama' => $u->name,
+                    'role' => User::ROLE_LABELS[$u->role] ?? $u->role,
+                    'unit' => $u->unit?->nama ?? $u->unit?->kode ?? 'Tanpa unit',
+                    'status' => in_array($status, ['PNS', 'CPNS'], true) ? 'pns' : 'non_pns',
+                    'user' => $u,
+                ];
+            })
             ->sortBy([['unit', 'asc'], ['nama', 'asc']])
             ->values();
     }

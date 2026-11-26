@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             SbmFlatRateSeeder::class,
             PengRiilRateSeeder::class,
             AnggaranPemetaanSeeder::class,
+            UserSeeder::class,
         ]);
     }
 }

@@ -63,6 +63,7 @@ class User extends Authenticatable
         'password',
         'avatar_style',
         'avatar_seed',
+        'status_kepegawaian',
     ];
 
     /**
