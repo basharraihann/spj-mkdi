@@ -21,9 +21,30 @@ class DisposisiSurat extends Model
     ];
 
     protected $fillable = [
-        'unit_id', 'nomor_agenda', 'nomor_surat', 'tanggal_surat', 'tanggal_terima', 'asal_surat',
-        'perihal', 'sifat', 'lampiran', 'file_path', 'file_name', 'status', 'selesai_at', 'dibuat_oleh',
-        'tanggal_kegiatan', 'waktu_mulai', 'waktu_selesai', 'tempat',
+        'unit_id',
+        'nomor_agenda',
+        'nomor_surat',
+        'tanggal_surat',
+        'tanggal_terima',
+        'asal_surat',
+        'perihal',
+        'sifat',
+        'lampiran',
+        'file_path',
+        'file_name',
+        'status',
+        'selesai_at',
+        'dibuat_oleh',
+        'tanggal_kegiatan',
+        'waktu_mulai',
+        'waktu_selesai',
+        'tempat',
+        'tanggal_kegiatan',
+        'waktu_mulai',
+        'waktu_selesai',
+        'tempat',
+        'jenis',
+        'link_daring',
     ];
 
     /** Role yang boleh memakai menu Disposisi (input & semua disposisi). */

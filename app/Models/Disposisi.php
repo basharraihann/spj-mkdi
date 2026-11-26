@@ -37,8 +37,20 @@ class Disposisi extends Model
     public const TERBUKA = ['baru', 'dibaca'];
 
     protected $fillable = [
-        'surat_id', 'parent_id', 'dari_user_id', 'kepada_user_id', 'instruksi', 'catatan', 'batas_waktu',
-        'status', 'dibaca_at', 'diteruskan_at', 'selesai_at', 'laporan', 'laporan_file_path', 'laporan_file_name',
+        'surat_id',
+        'parent_id',
+        'dari_user_id',
+        'kepada_user_id',
+        'instruksi',
+        'catatan',
+        'batas_waktu',
+        'status',
+        'dibaca_at',
+        'diteruskan_at',
+        'selesai_at',
+        'laporan',
+        'laporan_file_path',
+        'laporan_file_name',
         'google_event_id',
     ];
 
@@ -95,7 +107,15 @@ class Disposisi extends Model
     /** Label instruksi yang dicentang. */
     public function getInstruksiLabelAttribute(): array
     {
-        return collect($this->instruksi ?? [])->map(fn($k) => self::INSTRUKSI[$k] ?? $k)->values()->all();
+        $label = collect($this->instruksi ?? [])
+            ->map(fn($k) => self::INSTRUKSI[$k] ?? $k)->values()->all();
+
+        // Disposisi pertama dari TU belum berisi instruksi
+        if (!$label && $this->parent_id === null) {
+            return ['Mohon disposisi'];
+        }
+
+        return $label;
     }
 
     public function getTerlambatAttribute(): bool

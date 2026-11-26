@@ -123,21 +123,51 @@
                 </div>
             </div>
 
-            {{-- Disposisi pertama --}}
-            <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-4">
-                <div>
-                    <h3 class="text-base font-semibold text-gray-900">3. Disposisi ke</h3>
-                    <p class="text-xs text-gray-500">Penerima mendapat badge di Kalender Disposisi, dan notifikasi Google Calendar kalau akunnya sudah terhubung.</p>
-                </div>
-                @include('disposisi._tujuan', ['idForm' => 'baru'])
-            </div>
+{{-- Diteruskan ke Eselon II --}}
+<div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-4">
+    <div>
+        <h3 class="text-base font-semibold text-gray-900">3. Diteruskan ke Eselon II</h3>
+        <p class="text-xs text-gray-500">Surat masuk ke Eselon II untuk didisposisikan. Instruksi dan penerima berikutnya ditentukan oleh Eselon II.</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="sm:col-span-2">
+            <label for="kepada" class="{{ $lbl }}">Ditujukan ke <span class="text-red-400">*</span></label>
+            <select id="kepada" name="kepada[]" required class="{{ $input }}">
+                @php
+                    $satuUnit = $es2->where('satu_unit', true);
+                    $awal = $satuUnit->count() === 1 ? [$satuUnit->first()['id']] : [];
+                    $terpilih = array_map('intval', (array) old('kepada', $awal));
+                @endphp
+                @forelse ($es2 as $p)
+                    <option value="{{ $p['id'] }}" @selected(in_array($p['id'], $terpilih, true))>
+                        {{ $p['nama'] }} · {{ $p['unit'] }}
+                    </option>
+                @empty
+                    <option value="" disabled selected>Belum ada user berperan Eselon II</option>
+                @endforelse
+            </select>
+            @error('kepada') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+            @error('kepada.*') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+        </div>
+        <div>
+            <label for="batas_waktu" class="{{ $lbl }}">Batas waktu <span class="font-normal text-gray-400">(jika ada di surat)</span></label>
+            <input id="batas_waktu" type="date" name="batas_waktu" value="{{ old('batas_waktu') }}" class="{{ $input }}">
+            @error('batas_waktu') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+        </div>
+    </div>
+    <div>
+        <label for="catatan" class="{{ $lbl }}">Catatan untuk Eselon II</label>
+        <textarea id="catatan" name="catatan" rows="2" class="{{ $input }}" placeholder="Opsional">{{ old('catatan') }}</textarea>
+        @error('catatan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+    </div>
+</div>
 
             <div class="flex items-center justify-end gap-2">
                 <a href="{{ route('disposisi.index', ['tab' => 'surat']) }}"
                     class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Batal</a>
                 <button type="submit"
                     class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-                    Simpan &amp; Kirim Disposisi
+                    Simpan &amp; Kirim ke Eselon II
                 </button>
             </div>
         </form>

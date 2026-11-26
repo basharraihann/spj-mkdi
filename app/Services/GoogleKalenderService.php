@@ -244,6 +244,7 @@ class GoogleKalenderService
         $tanggal = Carbon::parse($d->tanggal_kalender)->toDateString();
         $selesai = $d->status === 'selesai';
 
+
         if ($s?->tanggal_kegiatan && $s->waktu_mulai) {
             $mulai = Carbon::parse($tanggal . ' ' . substr((string) $s->waktu_mulai, 0, 5), $tz);
             $akhir = $s->waktu_selesai
@@ -267,6 +268,7 @@ class GoogleKalenderService
             'Dari: ' . ($d->dari?->name ?? '-'),
             $s ? 'Nomor surat: ' . $s->nomor_surat : null,
             $s ? 'Asal surat: ' . $s->asal_surat : null,
+            $s?->link_daring ? 'Link daring: ' . $s->link_daring : null,
             'Instruksi: ' . (implode(', ', $d->instruksi_label) ?: '-'),
             $d->catatan ? 'Catatan: ' . $d->catatan : null,
             $d->batas_waktu ? 'Batas waktu: ' . $d->batas_waktu->format('d/m/Y') : null,

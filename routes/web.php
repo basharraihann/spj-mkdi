@@ -20,6 +20,7 @@ use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UnduhMassalController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\JadwalPegawaiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
@@ -343,7 +344,7 @@ Route::middleware('auth')->group(function () {
             Route::post('google/sinkron', 'googleSinkron')->name('google.sinkron');
             Route::post('google/putuskan', 'googlePutuskan')->name('google.putuskan');
         });
-
+    Route::get('kalender/jadwal', [JadwalPegawaiController::class, 'index'])->name('kalender.jadwal');
     /*
     |--------------------------------------------------------------------------
     | User manajemen: admin saja

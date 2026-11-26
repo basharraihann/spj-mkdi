@@ -18,9 +18,9 @@ use Illuminate\Validation\Rule;
  * Modul Disposisi (Persuratan).
  *
  * Alur:
- * 1. TU (TU Unit / TU Sekretariat) atau admin mencatat surat masuk + disposisi pertama
- *    (biasanya ke Eselon II / pimpinan).
- * 2. Penerima membuka disposisi (otomatis "Sudah dibaca"), lalu:
+ * 1. TU (TU Unit / TU Sekretariat) atau admin HANYA MENCATAT surat masuk dan memilih Eselon II tujuan.
+ *    Sistem membuat disposisi pertama "TU -> Eselon II" tanpa instruksi (label: "Mohon disposisi").
+ * 2. Eselon II membuka disposisi (otomatis "Sudah dibaca"), lalu:
  *    - Teruskan ke bawahan dengan instruksi, catatan, batas waktu, atau
  *    - Selesaikan dengan laporan tindak lanjut (+ lampiran opsional).
  * 3. Surat otomatis "Selesai" kalau semua cabang disposisinya tuntas.
@@ -28,7 +28,7 @@ use Illuminate\Validation\Rule;
  * Tidak memakai global scope unit, akses dicek lewat DisposisiSurat::scopeTerlihatOleh().
  *
  * Hak akses:
- * - Menu Disposisi (input, semua disposisi, teruskan, hapus): TU Unit, Eselon II (+ admin).
+ * - Menu Disposisi (catat surat, semua disposisi, teruskan, hapus): TU Unit, Eselon II (+ admin).
  * - Semua akun yang terlibat: lihat detail, beri feedback, selesaikan (lewat Kalender Disposisi).
  * - Penerima yang sudah menghubungkan Google Calendar otomatis dapat event + notifikasi.
  */
@@ -99,7 +99,7 @@ class DisposisiController extends Controller
         abort_unless($this->bolehCatat($request->user()), 403);
 
         return view('disposisi.create', [
-            'penerima' => $this->daftarPenerima($request->user()),
+            'es2' => $this->daftarEs2($request->user()),
         ]);
     }
 
@@ -122,9 +122,11 @@ class DisposisiController extends Controller
             'waktu_selesai' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'tempat' => ['nullable', 'string', 'max:255'],
             'file' => self::FILE_RULE,
-        ] + $this->aturanTujuan($user));
+            'jenis' => ['nullable', Rule::in(array_keys(JadwalPegawaiController::JENIS))],
+            'link_daring' => ['nullable', 'url', 'starts_with:http://,https://', 'max:500'],
+        ] + $this->aturanCatat($user));
 
-        $surat = DB::transaction(function () use ($request, $data, $user) {
+        [$surat, $baru] = DB::transaction(function () use ($request, $data, $user) {
             $surat = DisposisiSurat::create([
                 'unit_id' => $user->unit_id,
                 'nomor_agenda' => $data['nomor_agenda'] ?? null,
@@ -141,6 +143,8 @@ class DisposisiController extends Controller
                 'tempat' => $data['tempat'] ?? null,
                 'status' => 'proses',
                 'dibuat_oleh' => $user->id,
+                'jenis' => $data['jenis'] ?? 'surat_masuk',
+                'link_daring' => $data['link_daring'] ?? null,
             ]);
 
             if ($request->hasFile('file')) {
@@ -151,16 +155,16 @@ class DisposisiController extends Controller
                 ]);
             }
 
+            // Disposisi pertama TU -> Eselon II (tanpa instruksi)
             $baru = $this->kirim($surat, null, $user, $data);
 
             return [$surat, $baru];
         });
-        [$surat, $baru] = $surat;
 
         $g = $this->sinkronGoogle($baru);
 
         return redirect()->route('disposisi.show', $surat)
-            ->with('success', 'Surat dicatat dan disposisi dikirim ke ' . count($data['kepada']) . ' penerima.' . $g);
+            ->with('success', 'Surat dicatat dan diteruskan ke Eselon II untuk didisposisikan.' . $g);
     }
 
     // ================================================================ detail
@@ -320,8 +324,11 @@ class DisposisiController extends Controller
     /** Hapus surat beserta alurnya (pencatat / admin, selama belum ditindaklanjuti). */
     public function destroy(Request $request, DisposisiSurat $surat)
     {
-        abort_unless($this->bolehHapus($request->user(), $surat), 403,
-            'Surat tidak bisa dihapus karena disposisinya sudah dibaca atau ditindaklanjuti.');
+        abort_unless(
+            $this->bolehHapus($request->user(), $surat),
+            403,
+            'Surat tidak bisa dihapus karena disposisinya sudah dibaca atau ditindaklanjuti.'
+        );
 
         $folder = "disposisi/{$surat->id}";
         $surat->disposisi()->whereNotNull('google_event_id')->get()->each(fn($d) => GoogleKalenderService::hapus($d));
@@ -412,7 +419,7 @@ class DisposisiController extends Controller
             && !$surat->disposisi()->where('status', '!=', 'baru')->exists();
     }
 
-    /** Validasi tujuan + instruksi (dipakai saat catat surat dan saat meneruskan). */
+    /** Validasi saat MENERUSKAN disposisi: tujuan bebas + instruksi wajib. */
     private function aturanTujuan(User $user): array
     {
         return [
@@ -425,8 +432,25 @@ class DisposisiController extends Controller
         ];
     }
 
+    /** Validasi saat TU MENCATAT surat: tujuan hanya Eselon II, tanpa instruksi. */
+    private function aturanCatat(User $user): array
+    {
+        return [
+            'kepada' => ['required', 'array', 'min:1', 'max:5'],
+            'kepada.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('users', 'id')->where('role', User::ROLE_ESELON2),
+                Rule::notIn([$user->id]),
+            ],
+            'catatan' => ['nullable', 'string', 'max:2000'],
+            'batas_waktu' => ['nullable', 'date'],
+        ];
+    }
+
     /**
      * Buat satu disposisi untuk tiap penerima.
+     * Instruksi boleh kosong (disposisi pertama dari TU ke Eselon II).
      *
      * @return Disposisi[]
      */
@@ -439,7 +463,7 @@ class DisposisiController extends Controller
                 'parent_id' => $induk?->id,
                 'dari_user_id' => $dari->id,
                 'kepada_user_id' => (int) $kepada,
-                'instruksi' => array_values($data['instruksi']),
+                'instruksi' => array_values($data['instruksi'] ?? []),
                 'catatan' => $data['catatan'] ?? null,
                 'batas_waktu' => $data['batas_waktu'] ?? null,
                 'status' => 'baru',
@@ -453,7 +477,25 @@ class DisposisiController extends Controller
         return $baru;
     }
 
-    /** Penerima yang bisa dipilih: semua user selain diri sendiri, dikelompokkan per unit. */
+    /** Daftar Eselon II untuk tujuan surat; yang satu unit dengan pencatat ditaruh paling atas. */
+    private function daftarEs2(User $user): Collection
+    {
+        return User::query()
+            ->with('unit')
+            ->where('role', User::ROLE_ESELON2)
+            ->whereKeyNot($user->id)
+            ->orderByRaw('CASE WHEN unit_id = ? THEN 0 ELSE 1 END', [$user->unit_id])
+            ->orderBy('name')
+            ->get(['id', 'name', 'unit_id'])
+            ->map(fn($u) => [
+                'id' => $u->id,
+                'nama' => $u->name,
+                'unit' => $u->unit?->nama ?? $u->unit?->kode ?? 'Tanpa unit',
+                'satu_unit' => $u->unit_id === $user->unit_id,
+            ]);
+    }
+
+    /** Penerima yang bisa dipilih saat meneruskan: semua user selain diri sendiri, dikelompokkan per unit. */
     private function daftarPenerima(User $user): Collection
     {
         return User::query()
