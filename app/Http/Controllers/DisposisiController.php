@@ -115,13 +115,14 @@ class DisposisiController extends Controller
             'tanggal_terima' => ['required', 'date'],
             'asal_surat' => ['required', 'string', 'max:255'],
             'perihal' => ['required', 'string', 'max:2000'],
+            'isi_ringkas' => ['nullable', 'string', 'max:5000'],
             'sifat' => ['required', Rule::in(array_keys(DisposisiSurat::SIFAT))],
             'lampiran' => ['nullable', 'string', 'max:150'],
             'tanggal_kegiatan' => ['nullable', 'date'],
             'waktu_mulai' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'waktu_selesai' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'tempat' => ['nullable', 'string', 'max:255'],
-            'file' => self::FILE_RULE,
+            'link_berkas' => ['nullable', 'url', 'starts_with:http://,https://', 'max:500'],
             'jenis' => ['nullable', Rule::in(array_keys(JadwalPegawaiController::JENIS))],
             'link_daring' => ['nullable', 'url', 'starts_with:http://,https://', 'max:500'],
         ] + $this->aturanCatat($user));
@@ -135,6 +136,7 @@ class DisposisiController extends Controller
                 'tanggal_terima' => $data['tanggal_terima'],
                 'asal_surat' => $data['asal_surat'],
                 'perihal' => $data['perihal'],
+                'isi_ringkas' => $data['isi_ringkas'] ?? null,
                 'sifat' => $data['sifat'],
                 'lampiran' => $data['lampiran'] ?? null,
                 'tanggal_kegiatan' => $data['tanggal_kegiatan'] ?? null,
@@ -145,15 +147,8 @@ class DisposisiController extends Controller
                 'dibuat_oleh' => $user->id,
                 'jenis' => $data['jenis'] ?? 'surat_masuk',
                 'link_daring' => $data['link_daring'] ?? null,
+                'link_berkas' => $data['link_berkas'] ?? null,
             ]);
-
-            if ($request->hasFile('file')) {
-                $f = $request->file('file');
-                $surat->update([
-                    'file_path' => $f->store("disposisi/{$surat->id}", 'local'),
-                    'file_name' => $f->getClientOriginalName(),
-                ]);
-            }
 
             // Disposisi pertama TU -> Eselon II (tanpa instruksi)
             $baru = $this->kirim($surat, null, $user, $data);
@@ -165,6 +160,104 @@ class DisposisiController extends Controller
 
         return redirect()->route('disposisi.show', $surat)
             ->with('success', 'Surat dicatat dan diteruskan ke Eselon II untuk didisposisikan.' . $g);
+    }
+
+    // ================================================================ ubah surat
+
+    public function edit(Request $request, DisposisiSurat $surat)
+    {
+        abort_unless($this->bolehUbah($request->user(), $surat), 403, 'Anda tidak berhak mengubah surat ini.');
+
+        return view('disposisi.edit', compact('surat'));
+    }
+
+    /**
+     * Ubah data surat / jadwal kegiatan. Penerima disposisi tidak diubah di sini.
+     * Perubahan yang memengaruhi event (jadwal, tempat, link, judul, isi, sifat, jenis)
+     * otomatis diteruskan ke Google Calendar: event unit dan event tiap penerima.
+     */
+    public function update(Request $request, DisposisiSurat $surat)
+    {
+        abort_unless($this->bolehUbah($request->user(), $surat), 403, 'Anda tidak berhak mengubah surat ini.');
+
+        $data = $request->validate([
+            'nomor_surat' => ['required', 'string', 'max:150'],
+            'tanggal_surat' => ['nullable', 'date'],
+            'tanggal_terima' => ['required', 'date'],
+            'asal_surat' => ['required', 'string', 'max:255'],
+            'perihal' => ['required', 'string', 'max:2000'],
+            'isi_ringkas' => ['nullable', 'string', 'max:5000'],
+            'sifat' => ['required', Rule::in(array_keys(DisposisiSurat::SIFAT))],
+            'lampiran' => ['nullable', 'string', 'max:150'],
+            'tanggal_kegiatan' => ['nullable', 'date'],
+            'waktu_mulai' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+            'waktu_selesai' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+            'tempat' => ['nullable', 'string', 'max:255'],
+            'link_berkas' => ['nullable', 'url', 'starts_with:http://,https://', 'max:500'],
+            'jenis' => ['nullable', Rule::in(array_keys(JadwalPegawaiController::JENIS))],
+            'link_daring' => ['nullable', 'url', 'starts_with:http://,https://', 'max:500'],
+        ]);
+
+        // Jam disimpan "HH:MM:SS" (sama dengan isi database) supaya perubahan terdeteksi dengan benar
+        $jam = fn($v) => $v ? substr((string) $v, 0, 5) . ':00' : null;
+        $berjadwal = !empty($data['tanggal_kegiatan']);
+
+        $isi = [
+            'nomor_surat' => $data['nomor_surat'],
+            'tanggal_surat' => $data['tanggal_surat'] ?? null,
+            'tanggal_terima' => $data['tanggal_terima'],
+            'asal_surat' => $data['asal_surat'],
+            'perihal' => $data['perihal'],
+            'isi_ringkas' => $data['isi_ringkas'] ?? null,
+            'sifat' => $data['sifat'],
+            'lampiran' => $data['lampiran'] ?? null,
+            'tanggal_kegiatan' => $data['tanggal_kegiatan'] ?? null,
+            'waktu_mulai' => $berjadwal ? $jam($data['waktu_mulai'] ?? null) : null,
+            'waktu_selesai' => $berjadwal ? $jam($data['waktu_selesai'] ?? null) : null,
+            'tempat' => $data['tempat'] ?? null,
+            'jenis' => $data['jenis'] ?? 'surat_masuk',
+            'link_daring' => $data['link_daring'] ?? null,
+            'link_berkas' => $data['link_berkas'] ?? null,
+        ];
+
+        $berubah = DB::transaction(function () use ($surat, $isi) {
+            $surat->fill($isi);
+            $kunci = array_keys($surat->getDirty());
+            $surat->save();
+
+            return $kunci;
+        });
+
+        if (!$berubah) {
+            return redirect()->route('disposisi.show', $surat)->with('success', 'Tidak ada perubahan.');
+        }
+
+        // Hanya kalau ada yang tampil di event Google
+        $memengaruhiEvent = array_intersect($berubah, [
+            'nomor_surat', 'asal_surat', 'perihal', 'isi_ringkas', 'sifat', 'tanggal_kegiatan',
+            'waktu_mulai', 'waktu_selesai', 'tempat', 'jenis', 'link_daring', 'link_berkas',
+        ]);
+
+        $pesan = 'Perubahan surat disimpan.';
+        if ($memengaruhiEvent && GoogleKalenderService::aktif()) {
+            $g = GoogleKalenderService::perbaruiSurat($surat);
+
+            $bagian = [];
+            if ($g['unit']) {
+                $bagian[] = 'event unit ' . $g['unit'];
+            }
+            if ($g['disposisi']) {
+                $bagian[] = "{$g['disposisi']} event penerima diperbarui";
+            }
+            if ($bagian) {
+                $pesan .= ' Google Calendar: ' . implode(', ', $bagian) . '.';
+            }
+            if ($g['gagal']) {
+                $pesan .= " {$g['gagal']} event Google gagal diperbarui, coba simpan ulang atau cek log.";
+            }
+        }
+
+        return redirect()->route('disposisi.show', $surat)->with('success', $pesan);
     }
 
     // ================================================================ detail
@@ -193,6 +286,7 @@ class DisposisiController extends Controller
             'milikSaya' => $milikSaya,
             'penerima' => $milikSaya->isNotEmpty() && DisposisiSurat::bolehKelola($user) ? $this->daftarPenerima($user) : collect(),
             'bolehHapus' => $this->bolehHapus($user, $surat),
+            'bolehUbah' => $this->bolehUbah($user, $surat),
             'bolehTeruskan' => DisposisiSurat::bolehKelola($user),
         ]);
     }
@@ -330,12 +424,36 @@ class DisposisiController extends Controller
             'Surat tidak bisa dihapus karena disposisinya sudah dibaca atau ditindaklanjuti.'
         );
 
+        // Hapus semua event Google dulu (penerima dapat email pembatalan dari Google).
+        // Yang gagal dicatat lengkap dengan id event-nya supaya bisa dihapus manual.
+        $gagal = [];
+        foreach ($surat->disposisi()->whereNotNull('google_event_id')->get() as $d) {
+            if (!GoogleKalenderService::hapus($d)) {
+                $gagal[] = $d->google_event_id;
+            }
+        }
+        if (!GoogleKalenderService::hapusUnit($surat)) {
+            $gagal[] = $surat->google_event_id_unit;
+        }
+        // Sudah ditangani di atas: kosongkan di memori supaya hook deleting tidak memanggil Google lagi
+        $surat->google_event_id_unit = null;
+
+        if ($gagal) {
+            \Illuminate\Support\Facades\Log::warning(
+                "Surat #{$surat->id} dihapus tapi event Google belum terhapus, hapus manual di kalender akun pusat: " . implode(', ', $gagal)
+            );
+        }
+
         $folder = "disposisi/{$surat->id}";
-        $surat->disposisi()->whereNotNull('google_event_id')->get()->each(fn($d) => GoogleKalenderService::hapus($d));
         $surat->delete();
         Storage::disk('local')->deleteDirectory($folder);
 
-        return redirect()->route('disposisi.index', ['tab' => 'surat'])->with('success', 'Surat dihapus.');
+        $pesan = 'Surat dihapus.';
+        if ($gagal) {
+            $pesan .= ' Peringatan: ' . count($gagal) . ' event Google Calendar belum terhapus (id tercatat di log), penerimanya mungkin belum dapat email pembatalan.';
+        }
+
+        return redirect()->route('disposisi.index', ['tab' => 'surat'])->with('success', $pesan);
     }
 
     // ================================================================ berkas & PDF
@@ -407,6 +525,18 @@ class DisposisiController extends Controller
         }
 
         return redirect()->route('disposisi.show', $suratId)->with('success', $pesan);
+    }
+
+    /** Ubah surat: admin, pencatat, atau TU Unit di unit yang sama. Boleh kapan saja (jadwal bisa berubah setelah dibaca). */
+    private function bolehUbah(User $user, DisposisiSurat $surat): bool
+    {
+        if (!$this->bolehCatat($user)) {
+            return false;
+        }
+
+        return $user->isAdmin()
+            || (int) $surat->dibuat_oleh === (int) $user->id
+            || ($user->role === User::ROLE_TU_UNIT && $user->unit_id && (int) $user->unit_id === (int) $surat->unit_id);
     }
 
     private function bolehHapus(User $user, DisposisiSurat $surat): bool

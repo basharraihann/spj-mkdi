@@ -2,28 +2,24 @@
 
 /*
 |--------------------------------------------------------------------------
-| Integrasi Google Calendar (modul Disposisi)
+| Integrasi Google Calendar (modul Disposisi) - lewat Google Apps Script
 |--------------------------------------------------------------------------
 | Isi di .env:
-|   GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
-|   GOOGLE_CLIENT_SECRET=xxxx
-|   GOOGLE_REDIRECT_URI=https://domain-anda/kalender/google/callback
-| Kosong = tombol "Hubungkan Google Calendar" dinonaktifkan, fitur lain tetap jalan.
+|   GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/xxxx/exec
+|   GOOGLE_SCRIPT_RAHASIA=teks-acak-yang-sama-dengan-RAHASIA-di-script
+|   GOOGLE_AKUN_PUSAT=basharraihann@gmail.com        (hanya label di halaman admin)
+|   GOOGLE_EMAIL_UJI=uji1@gmail.com,uji2@gmail.com   (kosongkan saat produksi)
+|
+| GOOGLE_EMAIL_UJI diisi  = undangan HANYA dikirim ke email di daftar ini (mode uji).
+| GOOGLE_EMAIL_UJI kosong = undangan dikirim ke semua penerima disposisi.
+| GOOGLE_SCRIPT_URL kosong = integrasi nonaktif, fitur lain tetap jalan.
 */
 return [
-    'client_id' => env('GOOGLE_CLIENT_ID'),
-    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-    'redirect' => env('GOOGLE_REDIRECT_URI'),
+    'script_url' => env('GOOGLE_SCRIPT_URL'),
+    'script_rahasia' => env('GOOGLE_SCRIPT_RAHASIA'),
+
+    'akun_pusat' => env('GOOGLE_AKUN_PUSAT'),
+    'email_uji' => env('GOOGLE_EMAIL_UJI'),
 
     'timezone' => env('GOOGLE_CALENDAR_TIMEZONE', 'Asia/Jakarta'),
-
-    // Pengingat (menit sebelum acara)
-    'pengingat_berjam' => [1440, 60],   // acara berjam: H-1 dan 1 jam sebelum
-    'pengingat_seharian' => [960],      // acara seharian: jam 08.00 H-1
-
-    'scopes' => [
-        'openid',
-        'email',
-        'https://www.googleapis.com/auth/calendar.events',
-    ],
 ];

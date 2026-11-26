@@ -132,7 +132,7 @@ class KalenderDisposisiController extends Controller
             'tempat' => $surat->tempat,
             'url_detail' => route('disposisi.show', $surat),
             'url_feedback' => route('disposisi.feedback', $surat),
-            'url_berkas' => $surat->file_path ? route('disposisi.berkas', $surat) : null,
+            'url_berkas' => $surat->link_berkas ?: ($surat->file_path ? route('disposisi.berkas', $surat) : null),
             'disposisi' => $surat->disposisi->map(fn($d) => [
                 'dari' => $d->dari?->name,
                 'kepada' => $d->kepada?->name,

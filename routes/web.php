@@ -312,6 +312,8 @@ Route::middleware('auth')->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('surat/create', 'create')->name('create');
                 Route::post('surat', 'store')->name('store');
+                Route::get('surat/{surat}/edit', 'edit')->whereNumber('surat')->name('edit');
+                Route::put('surat/{surat}', 'update')->whereNumber('surat')->name('update');
                 Route::delete('surat/{surat}', 'destroy')->whereNumber('surat')->name('destroy');
                 Route::post('{disposisi}/teruskan', 'teruskan')->whereNumber('disposisi')->name('teruskan');
             });

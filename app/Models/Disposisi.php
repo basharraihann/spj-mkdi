@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\GoogleKalenderService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Satu langkah disposisi: dari satu user kepada satu user.
@@ -53,6 +55,17 @@ class Disposisi extends Model
         'laporan_file_name',
         'google_event_id',
     ];
+
+    protected static function booted(): void
+    {
+        // Disposisi diteruskan -> event di Google Calendar ditandai "→ diteruskan".
+        // Dijalankan setelah transaksi commit supaya panggilan HTTP tidak menahan database.
+        static::updated(function (Disposisi $d) {
+            if ($d->wasChanged('status') && $d->status === 'diteruskan' && $d->google_event_id) {
+                DB::afterCommit(fn() => GoogleKalenderService::sinkron($d->fresh()));
+            }
+        });
+    }
 
     protected function casts(): array
     {

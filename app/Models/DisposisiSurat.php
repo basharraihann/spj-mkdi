@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\GoogleKalenderService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Surat masuk yang didisposisikan. Dicatat oleh TU (TU Unit / TU Sekretariat) atau admin.
@@ -28,6 +30,7 @@ class DisposisiSurat extends Model
         'tanggal_terima',
         'asal_surat',
         'perihal',
+        'isi_ringkas',
         'sifat',
         'lampiran',
         'file_path',
@@ -39,16 +42,30 @@ class DisposisiSurat extends Model
         'waktu_mulai',
         'waktu_selesai',
         'tempat',
-        'tanggal_kegiatan',
-        'waktu_mulai',
-        'waktu_selesai',
-        'tempat',
         'jenis',
         'link_daring',
+        'link_berkas',
+        'google_event_id_unit',
     ];
 
     /** Role yang boleh memakai menu Disposisi (input & semua disposisi). */
     public const ROLE_PENGELOLA = [User::ROLE_TU_UNIT, User::ROLE_ESELON2, User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN];
+
+    protected static function booted(): void
+    {
+        // Surat masuk berjadwal -> event di Google Calendar seluruh staf di unit pencatat.
+        // Dijalankan setelah transaksi commit supaya panggilan HTTP tidak menahan database.
+        static::created(function (DisposisiSurat $s) {
+            if ($s->jenis === 'surat_masuk' && $s->tanggal_kegiatan) {
+                DB::afterCommit(fn() => GoogleKalenderService::sinkronUnit($s->fresh()));
+            }
+        });
+
+        // Surat dihapus -> event unit ikut dihapus.
+        static::deleting(function (DisposisiSurat $s) {
+            GoogleKalenderService::hapusUnit($s);
+        });
+    }
 
     public static function bolehKelola(?User $user): bool
     {
