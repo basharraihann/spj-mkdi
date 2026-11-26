@@ -55,7 +55,7 @@ Route::middleware('auth')->group(function () {
             Route::patch('/', 'update')->name('update');
             Route::delete('/', 'destroy')->name('destroy');
         });
-
+    Route::patch('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
     /*
     |--------------------------------------------------------------------------
     | Unduh massal: semua role

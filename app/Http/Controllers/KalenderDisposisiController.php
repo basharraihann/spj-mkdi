@@ -54,6 +54,8 @@ class KalenderDisposisiController extends Controller
             'view' => $view,
             'hari' => $hari,
             'daftarHari' => $daftarHari,
+            // Daftar rapat hari ini untuk sidebar tab Kalender (urut jam, dari atas ke bawah)
+            'rapatHariIni' => $tab === 'kalender' ? $this->rapatHariIni($user->id) : collect(),
             'bukaSurat' => (int) $request->query('buka') ?: null,
             'bolehKelola' => DisposisiSurat::bolehKelola($user),
             'google' => [
@@ -83,16 +85,21 @@ class KalenderDisposisiController extends Controller
             ->join('disposisi_surat', 'disposisi_surat.id', '=', 'disposisi.surat_id')
             ->whereRaw(self::TGL . ' >= ?', [$start])
             ->whereRaw(self::TGL . ' < ?', [$end])
-            ->with(['surat', 'dari', 'kepada']);
+            ->with(['surat.disposisi.kepada', 'dari', 'kepada']);
         $this->terapkan($q, $f);
 
-        // 1. Diterima saya: satu event per disposisi
+        // 1. Diterima saya: satu event per disposisi (avatar = penerima disposisi terakhir)
         $masuk = $f['arah'] === 'keluar' ? collect() : (clone $q)->where('disposisi.kepada_user_id', $user->id)->get()
-            ->map(fn($d) => $this->event($d, 'masuk', $d->status,
+            ->map(fn($d) => $this->event(
+                $d,
+                'masuk',
+                $d->status,
                 ($d->status === 'selesai' ? '✓ ' : '') . Str::limit($d->surat?->perihal ?? 'Surat', 60),
-                'Dari ' . ($d->dari?->name ?? '-')));
+                'Dari ' . ($d->dari?->name ?? '-'),
+                $this->penerimaAkhir($d->surat)
+            ));
 
-        // 2. Dikirim saya: satu event per surat (penerima digabung)
+        // 2. Dikirim saya: satu event per surat (penerima digabung, avatar = semua penerima)
         $keluar = $f['arah'] === 'masuk' ? collect() : (clone $q)->where('disposisi.dari_user_id', $user->id)->get()
             ->groupBy('surat_id')
             ->map(function ($grup) {
@@ -100,9 +107,14 @@ class KalenderDisposisiController extends Controller
                 $selesai = $grup->every(fn($x) => $x->status === 'selesai');
                 $nama = $grup->map(fn($x) => $x->kepada?->name)->filter()->unique()->values();
 
-                return $this->event($d, 'keluar', $selesai ? 'selesai' : 'keluar',
+                return $this->event(
+                    $d,
+                    'keluar',
+                    $selesai ? 'selesai' : 'keluar',
                     '↗ ' . Str::limit($d->surat?->perihal ?? 'Surat', 55),
-                    'Ke ' . $nama->take(3)->implode(', ') . ($nama->count() > 3 ? ' +' . ($nama->count() - 3) : ''));
+                    'Ke ' . $nama->take(3)->implode(', ') . ($nama->count() > 3 ? ' +' . ($nama->count() - 3) : ''),
+                    $this->penerimaAkhir($d->surat)
+                );
             })
             ->values();
 
@@ -147,6 +159,7 @@ class KalenderDisposisiController extends Controller
             ])->values(),
             'feedback' => $surat->feedback->map(fn($f) => [
                 'nama' => $f->user?->name ?? '-',
+                'foto' => $this->orang($f->user)['foto'] ?? null,
                 'unit' => $f->user?->unit?->nama,
                 'isi' => $f->isi,
                 'waktu' => $f->created_at?->translatedFormat('d M Y H:i'),
@@ -193,9 +206,11 @@ class KalenderDisposisiController extends Controller
 
         $n = GoogleKalenderService::sinkronSemuaMilik($request->user());
 
-        return redirect()->route('kalender.index')->with('success',
+        return redirect()->route('kalender.index')->with(
+            'success',
             'Google Calendar terhubung' . ($akun->google_email ? " ({$akun->google_email})" : '') . '.'
-            . ($n ? " {$n} disposisi aktif sudah masuk ke kalender Google Anda." : ''));
+            . ($n ? " {$n} disposisi aktif sudah masuk ke kalender Google Anda." : '')
+        );
     }
 
     public function googleSinkron(Request $request)
@@ -203,8 +218,10 @@ class KalenderDisposisiController extends Controller
         $n = GoogleKalenderService::sinkronSemuaMilik($request->user());
         $err = GoogleKalenderAkun::where('user_id', $request->user()->id)->value('error_terakhir');
 
-        return redirect()->route('kalender.index')->with($err ? 'error' : 'success',
-            $err ?: "{$n} disposisi aktif disinkronkan ke Google Calendar.");
+        return redirect()->route('kalender.index')->with(
+            $err ? 'error' : 'success',
+            $err ?: "{$n} disposisi aktif disinkronkan ke Google Calendar."
+        );
     }
 
     public function googlePutuskan(Request $request)
@@ -259,6 +276,59 @@ class KalenderDisposisiController extends Controller
     }
 
     /**
+     * Data satu orang untuk avatar: nama + URL foto (kalau ada).
+     * SESUAIKAN baris $foto di bawah dengan nama kolom foto di tabel users kamu.
+     */
+    private function orang($u): ?array
+    {
+        if (!$u) {
+            return null;
+        }
+
+        $foto = $u->profile_photo_url ?? $u->avatar_url ?? $u->avatar ?? $u->foto ?? null;
+        if ($foto && !preg_match('#^(https?:)?//|^/#', $foto)) {
+            $foto = asset('storage/' . ltrim($foto, '/'));
+        }
+
+        return ['nama' => $u->name, 'foto' => $foto ?: null];
+    }
+
+    /** Kumpulan user -> array avatar (tanpa duplikat). */
+    private function daftarOrang($users): array
+    {
+        return collect($users)->filter()->unique('id')->values()
+            ->map(fn($u) => $this->orang($u))->all();
+    }
+
+    /**
+     * Penerima disposisi TERAKHIR pada satu surat = orang yang menerima disposisi
+     * tetapi tidak meneruskannya lagi ke orang lain (ujung rantai disposisi).
+     * Contoh: Pimpinan -> Achmad -> (Albi, Bashar, Tria)  =>  Albi, Bashar, Tria.
+     */
+    private function penerimaAkhir($surat): array
+    {
+        $semua = $surat?->disposisi ?? collect();
+        $peneruslah = $semua->pluck('dari_user_id')->filter()->unique();
+
+        $akhir = $semua->reject(fn($x) => $peneruslah->contains($x->kepada_user_id));
+        if ($akhir->isEmpty()) {
+            $akhir = $semua;   // jaga-jaga kalau rantainya aneh
+        }
+
+        return $this->daftarOrang($akhir->map(fn($x) => $x->kepada));
+    }
+
+    /** Rapat / kegiatan yang dijadwalkan HARI INI (masuk + keluar), urut jam. */
+    private function rapatHariIni(int $userId)
+    {
+        $tanpaFilter = ['arah' => 'semua', 'status' => '', 'sifat' => '', 'q' => ''];
+
+        return $this->daftarHari($userId, now()->toDateString(), false, $tanpaFilter)
+            ->sortBy(fn($r) => (string) ($r['surat']?->waktu_mulai ?? '99'))
+            ->values();
+    }
+
+    /**
      * Isi tab "Disposisi Hari Ini" untuk satu tanggal.
      * Masuk: yang dijadwalkan pada tanggal itu (+ semua yang belum dibaca kalau tanggalnya hari ini).
      * Keluar: surat yang saya disposisikan dan dijadwalkan pada tanggal itu.
@@ -268,7 +338,7 @@ class KalenderDisposisiController extends Controller
         $hasil = collect();
 
         if ($f['arah'] !== 'keluar') {
-            $q = $this->milikSaya($userId)->with(['surat', 'dari.unit']);
+            $q = $this->milikSaya($userId)->with(['surat.disposisi.kepada', 'dari.unit']);
             $q->where(function ($w) use ($hari, $hariIni, $f) {
                 $w->whereRaw(self::TGL . ' = ?', [$hari]);
                 if ($hariIni && $f['status'] === '') {
@@ -284,6 +354,7 @@ class KalenderDisposisiController extends Controller
                     'surat' => $d->surat,
                     'orang' => $d->dari?->name ?? '-',
                     'orang_unit' => $d->dari?->unit?->nama,
+                    'orang_users' => $this->penerimaAkhir($d->surat),
                     'instruksi' => $d->instruksi_label,
                     'status' => $d->status,
                     'status_label' => $d->status_label,
@@ -299,7 +370,7 @@ class KalenderDisposisiController extends Controller
                 ->join('disposisi_surat', 'disposisi_surat.id', '=', 'disposisi.surat_id')
                 ->where('disposisi.dari_user_id', $userId)
                 ->whereRaw(self::TGL . ' = ?', [$hari])
-                ->with(['surat', 'kepada']);
+                ->with(['surat.disposisi.kepada', 'kepada']);
             $this->terapkan($q, $f);
 
             foreach ($q->get()->groupBy('surat_id') as $grup) {
@@ -312,6 +383,7 @@ class KalenderDisposisiController extends Controller
                     'surat' => $d->surat,
                     'orang' => $nama->take(2)->implode(', ') . ($nama->count() > 2 ? ' +' . ($nama->count() - 2) : ''),
                     'orang_unit' => $nama->count() . ' penerima',
+                    'orang_users' => $this->penerimaAkhir($d->surat),
                     'instruksi' => $d->instruksi_label,
                     'status' => $selesai ? 'selesai' : 'keluar',
                     'status_label' => $selesai ? 'Selesai' : $grup->where('status', 'selesai')->count() . '/' . $grup->count() . ' selesai',
@@ -337,7 +409,7 @@ class KalenderDisposisiController extends Controller
             ->where('disposisi.kepada_user_id', $userId);
     }
 
-    private function event(Disposisi $d, string $arah, string $kelas, string $judul, string $sub): array
+    private function event(Disposisi $d, string $arah, string $kelas, string $judul, string $sub, array $orang = []): array
     {
         $s = $d->surat;
         $tgl = Carbon::parse($d->tgl_kal)->toDateString();
@@ -352,6 +424,7 @@ class KalenderDisposisiController extends Controller
                 'sub' => $sub,
                 'tempat' => $s?->tempat,
                 'sifat' => $s?->sifat,
+                'orang' => $orang,   // [{nama, foto}] -> dipakai untuk avatar di event
             ],
         ];
 

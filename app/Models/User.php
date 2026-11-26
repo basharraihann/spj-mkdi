@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class User extends Authenticatable
 {
@@ -37,6 +38,17 @@ class User extends Authenticatable
         self::ROLE_SUPER_ADMIN => 'Super Admin',
     ];
 
+    public const AVATAR_STYLES = [
+        'initials' => 'Inisial',
+        'thumbs' => 'Jempol',
+        'bottts' => 'Robot',
+        'avataaars' => 'Kartun',
+        'lorelei' => 'Lorelei',
+        'notionists' => 'Notion',
+        'adventurer' => 'Petualang',
+        'fun-emoji' => 'Emoji',
+        'shapes' => 'Bentuk',
+    ];
     /**
      * The attributes that are mass assignable.
      *
@@ -49,6 +61,8 @@ class User extends Authenticatable
         'role',
         'unit_id',
         'password',
+        'avatar_style',
+        'avatar_seed',
     ];
 
     /**
@@ -72,6 +86,28 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * URL avatar dari DiceBear. Seed pakai username supaya tidak berubah kalau nama diganti.
+     */
+    protected function avatarUrl(): Attribute
+    {
+        return Attribute::get(function () {
+            $style = array_key_exists($this->avatar_style, self::AVATAR_STYLES)
+                ? $this->avatar_style
+                : 'initials';
+
+            $base = $this->username ?: $this->name;
+            $seed = $style === 'initials' ? $base : ($this->avatar_seed ?: $base);
+
+            $params = ['seed' => $seed, 'backgroundColor' => 'e0e7ff', 'radius' => 50];
+            if ($style === 'initials') {
+                $params['textColor'] = '4f46e5';
+            }
+
+            return "https://api.dicebear.com/9.x/{$style}/svg?" . http_build_query($params);
+        });
     }
 
     // ===== Relasi =====

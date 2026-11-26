@@ -36,37 +36,60 @@
     @include('disposisi._gaya')
 
     <style>
-        /* Mini kalender */
-        .mini { user-select: none; }
-        .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
-        .mini-grid .h { font-size: .65rem; font-weight: 600; color: #94a3b8; padding: .25rem 0; }
-        .mini-grid button { position: relative; height: 2rem; border-radius: 999px; font-size: .75rem; color: #334155; }
-        .mini-grid button:hover { background: #eff6ff; color: #1d4ed8; }
-        .mini-grid button.lain { color: #cbd5e1; }
-        .mini-grid button.today { background: #2563eb; color: #fff; font-weight: 700; }
-        .mini-grid button.pilih:not(.today) { box-shadow: inset 0 0 0 1.5px #2563eb; color: #1d4ed8; font-weight: 600; }
-        .mini-grid button.ada::after { content: ""; position: absolute; bottom: 3px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 999px; background: #60a5fa; }
-        .mini-grid button.today.ada::after { background: #fff; }
+        /* ====== Layout tab Kalender: sidebar kecil (kiri) + kalender besar (kanan) ====== */
+        .kal-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+        @media (min-width: 1024px) {
+            .kal-layout { grid-template-columns: 290px minmax(0, 1fr); align-items: start; }
+            .kal-side { position: sticky; top: 1rem; }
+        }
+        @if ($tab === 'kalender')
+        /* Halaman dilebarkan supaya kalender lebih lega */
+        .kd-container { max-width: 1760px; }
+        @endif
+
+        /* ====== Sidebar: Rapat Hari Ini ====== */
+        .rp-list { display: flex; flex-direction: column; gap: .6rem; }
+        .rp-item { width: 100%; text-align: left; border-radius: .75rem; border: 1px solid #e8eef7; background: #fff;
+            padding: .65rem .75rem .65rem .85rem; border-left-width: 4px; transition: background .15s, border-color .15s; }
+        .rp-item:hover { background: #f8fbff; border-color: #bfdbfe; }
+        .rp-baru { border-left-color: #2563eb; }
+        .rp-dibaca { border-left-color: #60a5fa; }
+        .rp-diteruskan { border-left-color: #a5b4fc; }
+        .rp-selesai { border-left-color: #4ade80; }
+        .rp-keluar { border-left-color: #94a3b8; }
+        .rp-jam { font-size: .72rem; font-weight: 700; color: #1d4ed8; font-variant-numeric: tabular-nums; }
+        .rp-judul { margin-top: .15rem; font-size: .8rem; font-weight: 600; color: #0f172a; line-height: 1.25;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .rp-tempat { margin-top: .1rem; font-size: .68rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* ====== Avatar (dipakai di sidebar & di event kalender) ====== */
+        .av { width: 22px; height: 22px; border-radius: 999px; border: 2px solid #fff; margin-left: -7px; object-fit: cover;
+            background: #e2e8f0; color: #334155; font-size: .6rem; font-weight: 700; display: inline-flex;
+            align-items: center; justify-content: center; flex: none; line-height: 1; }
+        .av:first-child { margin-left: 0; }
+        .av-n { background: #0f172a; color: #fff; }
+        .av-row { display: flex; align-items: center; margin-top: .3rem; }
 
         /* FullCalendar */
         #kal { --fc-border-color: #edf1f7; --fc-today-bg-color: #f5f9ff; --fc-page-bg-color: #fff; --fc-neutral-bg-color: #f8fafc;
-            --fc-now-indicator-color: #2563eb; font-size: 12.5px; }
+            --fc-now-indicator-color: #2563eb; font-size: 13px; }
         #kal .fc-scrollgrid { border-radius: .75rem; overflow: hidden; }
-        #kal .fc-col-header-cell-cushion { padding: .8rem .25rem; font-weight: 600; color: #0f172a; font-size: .8rem; }
+        #kal .fc-col-header-cell-cushion { padding: .8rem .25rem; font-weight: 600; color: #0f172a; font-size: .85rem; }
         #kal .fc-col-header-cell.fc-day-today { box-shadow: inset 0 -3px 0 #2563eb; }
         #kal .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion { color: #2563eb; }
-        #kal .fc-daygrid-day-frame { min-height: 104px; }
+        #kal .fc-daygrid-day-frame { min-height: 150px; }
         #kal .fc-daygrid-day-top { justify-content: center; }
         #kal .fc-daygrid-day-number { font-size: 1.25rem; font-weight: 600; color: #1e293b; padding: .55rem 0 .2rem; font-variant-numeric: tabular-nums; }
         #kal .fc-day-other .fc-daygrid-day-number { color: #cbd5e1; }
         #kal .fc-day-today .fc-daygrid-day-number { color: #2563eb; }
         #kal .fc-daygrid-day.fc-day-today { background: #f5f9ff; box-shadow: inset 0 3px 0 #2563eb; }
-        #kal .fc-daygrid-event { margin: 2px 8px 0; border-radius: 5px; border: 0; padding: 2px 6px; font-size: .68rem; font-weight: 500; justify-content: center; }
-        #kal .fc-daygrid-event .fc-event-title { text-align: center; overflow: hidden; text-overflow: ellipsis; }
+        #kal .fc-daygrid-event { margin: 3px 6px 0; border-radius: 8px; border: 0; padding: 4px 7px; font-size: .72rem; font-weight: 500;
+            justify-content: flex-start; white-space: normal; }
         #kal .fc-daygrid-dot-event .fc-daygrid-event-dot { display: none; }
-        #kal .fc-daygrid-more-link { font-size: .68rem; color: #2563eb; font-weight: 600; margin: 2px 8px; }
+        #kal .fc-daygrid-more-link { font-size: .72rem; color: #2563eb; font-weight: 600; margin: 3px 8px; }
         #kal .fc-event { cursor: pointer; }
-        #kal .fc-timegrid-event { border-radius: 6px; border: 0; padding: 2px 4px; }
+        #kal .fc-timegrid-event { border-radius: 8px; border: 0; padding: 3px 5px; }
+        #kal .fc-timegrid-slot { height: 2.6rem; }
         #kal .fc-timegrid-slot-label-cushion, #kal .fc-timegrid-axis-cushion { font-size: .7rem; color: #94a3b8; }
         #kal .fc-list-day-cushion { background: #f5f9ff; }
         #kal .fc-list-event:hover td { background: #f8fbff; }
@@ -74,6 +97,12 @@
         #kal .fc-multimonth .fc-daygrid-day-number { font-size: .72rem; padding: .2rem 0; }
         #kal .fc-multimonth .fc-daygrid-day-frame { min-height: 0; }
         #kal .fc-multimonth .fc-daygrid-day.fc-day-today { box-shadow: none; }
+        #kal a.fc-daygrid-day-number, #kal a.fc-col-header-cell-cushion { text-decoration: none; }
+
+        /* Isi event (judul + avatar) */
+        #kal .ev-in { width: 100%; min-width: 0; overflow: hidden; }
+        #kal .ev-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+        #kal .ev-t b { font-variant-numeric: tabular-nums; margin-right: .25rem; }
 
         /* Warna event per status (biru) */
         #kal .ev-baru { background: #2563eb !important; color: #fff !important; }
@@ -88,13 +117,13 @@
         #kal .fc-list-event.ev-diteruskan .fc-list-event-dot { border-color: #818cf8; }
         #kal .fc-list-event.ev-selesai .fc-list-event-dot { border-color: #22c55e; }
         #kal .fc-list-event.ev-keluar .fc-list-event-dot { border-color: #94a3b8; }
-        .kd-leg { display: inline-block; width: .7rem; height: .7rem; border-radius: 3px; vertical-align: middle; margin-right: .35rem; }
 
         @media (max-width: 767px) {
-            #kal .fc-daygrid-day-frame { min-height: 64px; }
+            #kal .fc-daygrid-day-frame { min-height: 72px; }
             #kal .fc-daygrid-day-number { font-size: .9rem; padding: .35rem 0 .1rem; }
-            #kal .fc-daygrid-event { margin: 1px 2px 0; padding: 1px 3px; font-size: .6rem; }
+            #kal .fc-daygrid-event { margin: 1px 2px 0; padding: 2px 4px; font-size: .62rem; }
             #kal .fc-col-header-cell-cushion { font-size: .68rem; padding: .55rem 0; }
+            #kal .av { width: 16px; height: 16px; font-size: .5rem; margin-left: -5px; }
         }
 
         #modal-dispo[hidden] { display: none; }
@@ -373,9 +402,70 @@
 
             {{-- ================= TAB: KALENDER ================= --}}
             @if ($tab === 'kalender')
-                <div class="kd-layout">
-                    {{-- Kalender utama --}}
-                    <div class="kd-card kd-utama p-3 sm:p-5 min-w-0">
+                <div class="kal-layout">
+
+                    {{-- Kiri: Rapat Hari Ini (atas ke bawah) --}}
+                    <aside class="kal-side">
+                        <div class="kd-card p-4">
+                            <div class="flex items-start justify-between gap-2 mb-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-800">Rapat Hari Ini</p>
+                                    <p class="text-[11px] text-gray-400">{{ now()->translatedFormat('l, d F Y') }}</p>
+                                </div>
+                                <span class="kd-chip kd-chip-gray">{{ $rapatHariIni->count() }}</span>
+                            </div>
+
+                            @if ($rapatHariIni->isEmpty())
+                                <div class="rounded-xl bg-slate-50 px-3 py-6 text-center text-xs text-gray-400">
+                                    Tidak ada rapat hari ini.
+                                </div>
+                            @else
+                                <ol class="rp-list">
+                                    @foreach ($rapatHariIni as $r)
+                                        @php
+                                            $s = $r['surat'];
+                                            $orangRapat = $r['orang_users'] ?? [];
+                                        @endphp
+                                        <li>
+                                            <button type="button" data-buka="{{ $r['surat_id'] }}" class="rp-item rp-{{ $r['status'] }}">
+                                                <div class="flex items-center justify-between gap-2">
+                                                    <span class="rp-jam">
+                                                        @if ($s?->waktu_mulai)
+                                                            {{ substr((string) $s->waktu_mulai, 0, 5) }}{{ $s->waktu_selesai ? ' – ' . substr((string) $s->waktu_selesai, 0, 5) : '' }}
+                                                        @else
+                                                            Seharian
+                                                        @endif
+                                                    </span>
+                                                    <span class="kd-st {{ $statusKelas[$r['status']] ?? 'kd-st-keluar' }}">{{ $r['status_label'] }}</span>
+                                                </div>
+                                                <p class="rp-judul">{{ $s?->perihal }}</p>
+                                                @if ($s?->tempat)
+                                                    <p class="rp-tempat">{{ $s->tempat }}</p>
+                                                @endif
+                                                @if (count($orangRapat))
+                                                    <div class="av-row">
+                                                        @foreach (array_slice($orangRapat, 0, 5) as $o)
+                                                            @if (!empty($o['foto']))
+                                                                <img class="av" src="{{ $o['foto'] }}" alt="{{ $o['nama'] }}" title="{{ $o['nama'] }}">
+                                                            @else
+                                                                <span class="av" title="{{ $o['nama'] }}">{{ mb_strtoupper(mb_substr(trim($o['nama']), 0, 1)) }}</span>
+                                                            @endif
+                                                        @endforeach
+                                                        @if (count($orangRapat) > 5)
+                                                            <span class="av av-n">+{{ count($orangRapat) - 5 }}</span>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ol>
+                            @endif
+                        </div>
+                    </aside>
+
+                    {{-- Kanan: kalender utama (lebih besar) --}}
+                    <div class="kd-card p-3 sm:p-5 min-w-0">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                             <div class="flex items-center gap-2">
                                 <button type="button" id="k-prev" class="kd-btn-ghost kd-ikon" aria-label="Sebelumnya">
@@ -400,37 +490,6 @@
                             Tab "Disposisi Hari Ini" tetap bisa dipakai.</p>
                     </div>
 
-                    {{-- Samping: mini kalender, keterangan, Google --}}
-                    <aside class="space-y-5">
-                        <div class="kd-card p-4 mini">
-                            <div class="flex items-center justify-between mb-2">
-                                <p id="mini-judul" class="text-sm font-semibold text-gray-800 capitalize"></p>
-                                <div class="flex gap-1">
-                                    <button type="button" id="mini-prev" class="kd-btn-ghost kd-ikon" aria-label="Bulan sebelumnya">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                                    </button>
-                                    <button type="button" id="mini-next" class="kd-btn-ghost kd-ikon" aria-label="Bulan berikutnya">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="mini-grid" class="mini-grid"></div>
-                            <p class="mt-2 text-[11px] text-gray-400">Klik tanggal untuk melihat jadwal hari itu.</p>
-                        </div>
-
-                        <div class="kd-card p-4">
-                            <p class="text-sm font-semibold text-gray-800 mb-2">Keterangan</p>
-                            <ul class="space-y-1.5 text-xs text-gray-600">
-                                <li><span class="kd-leg" style="background:#2563eb"></span>Belum dibaca</li>
-                                <li><span class="kd-leg" style="background:#60a5fa"></span>Sudah dibaca</li>
-                                <li><span class="kd-leg" style="background:#c7d2fe"></span>Diteruskan</li>
-                                <li><span class="kd-leg" style="background:#bbf7d0"></span>Selesai</li>
-                                <li><span class="kd-leg" style="background:#fff; box-shadow: inset 0 0 0 1px #93c5fd"></span>↗ Yang Anda kirim</li>
-                            </ul>
-                        </div>
-
-                        @include('kalender._google', ['google' => $google])
-                    </aside>
                 </div>
             @endif
         </div>
@@ -545,7 +604,9 @@
 
                 const fb = s.feedback.length ? s.feedback.map((f) => `
                     <li class="flex gap-2.5 ${f.saya ? 'flex-row-reverse text-right' : ''}">
-                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${f.saya ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'} text-[11px] font-bold">${esc((f.nama || '?').trim().charAt(0).toUpperCase())}</span>
+                        ${f.foto
+                            ? `<img src="${esc(f.foto)}" alt="${esc(f.nama)}" title="${esc(f.nama)}" class="h-8 w-8 shrink-0 rounded-full object-cover">`
+                            : `<span title="${esc(f.nama)}" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${f.saya ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'} text-[11px] font-bold">${esc((f.nama || '?').trim().charAt(0).toUpperCase())}</span>`}
                         <div class="max-w-[85%] rounded-2xl ${f.saya ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'} px-3.5 py-2">
                             <p class="text-[11px] ${f.saya ? 'text-blue-100' : 'text-slate-500'}">${esc(f.nama)} · ${esc(f.waktu)}</p>
                             <p class="whitespace-pre-line text-left">${esc(f.isi)}</p>
@@ -567,7 +628,14 @@
             if (!$('kal')) return;
             if (typeof FullCalendar === 'undefined') { $('kal-gagal').classList.remove('hidden'); return; }
 
+            // Avatar satu orang: foto kalau ada, kalau tidak huruf depan nama
+            const avatar = (o) => o.foto
+                ? `<img class="av" src="${esc(o.foto)}" alt="${esc(o.nama)}" title="${esc(o.nama)}">`
+                : `<span class="av" title="${esc(o.nama)}">${esc((o.nama || '?').trim().charAt(0).toUpperCase())}</span>`;
+
             const mobile = window.matchMedia('(max-width: 767px)').matches;
+            const maxAvatar = mobile ? 3 : 5;
+
             const cal = new FullCalendar.Calendar($('kal'), {
                 locale: 'id',
                 initialView: VIEW || (mobile ? 'listWeek' : 'dayGridMonth'),
@@ -576,6 +644,7 @@
                 height: 'auto',
                 dayMaxEvents: mobile ? 2 : 3,
                 nowIndicator: true,
+                navLinks: true,                 // klik angka tanggal -> buka tampilan Hari
                 slotMinTime: '06:00:00',
                 slotMaxTime: '20:00:00',
                 allDayText: 'Seharian',
@@ -583,62 +652,43 @@
                 eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                 multiMonthMaxColumns: 3,
                 events: { url: URL_EVENTS, failure: () => $('kal-gagal').classList.remove('hidden') },
+
+                // Isi event: judul + deretan avatar orang yang didispo / mengirim
+                eventContent: (arg) => {
+                    const t = arg.view.type;
+                    if (t === 'multiMonthYear' || t === 'listWeek') return true;   // pakai tampilan bawaan
+
+                    const orang = arg.event.extendedProps.orang || [];
+                    const tampil = orang.slice(0, maxAvatar).map(avatar).join('');
+                    const sisa = orang.length - maxAvatar;
+                    const lebih = sisa > 0 ? `<span class="av av-n">+${sisa}</span>` : '';
+                    const jam = arg.timeText ? `<b>${esc(arg.timeText)}</b>` : '';
+
+                    return {
+                        html: `<div class="ev-in">
+                            <div class="ev-t">${jam}${esc(arg.event.title)}</div>
+                            ${orang.length ? `<div class="av-row">${tampil}${lebih}</div>` : ''}
+                        </div>`,
+                    };
+                },
+
                 eventDidMount: (info) => {
                     const p = info.event.extendedProps;
                     info.el.title = info.event.title + '\n' + (p.sub || '') + (p.tempat ? '\n' + p.tempat : '');
                 },
                 eventClick: (info) => { info.jsEvent.preventDefault(); buka(info.event.extendedProps.surat_id); },
-                dateClick: undefined,
                 datesSet: (info) => {
                     $('k-judul').textContent = info.view.title;
                     document.querySelectorAll('#k-view button').forEach((b) => b.classList.toggle('aktif', b.dataset.v === info.view.type));
                     const awal = ymd(cal.getDate());
                     $('f-tanggal').value = awal; $('f-view').value = info.view.type; $('m-tanggal').value = awal;
-                    mini.tampil(cal.getDate());
                 },
-                eventsSet: (events) => { mini.tandai(events); },
             });
 
             $('k-prev').onclick = () => cal.prev();
             $('k-next').onclick = () => cal.next();
             $('k-today').onclick = () => cal.today();
             document.querySelectorAll('#k-view button').forEach((b) => b.onclick = () => cal.changeView(b.dataset.v));
-
-            // ---------------- Mini kalender ----------------
-            const mini = (() => {
-                let bulan = new Date(TANGGAL + 'T00:00:00'); bulan.setDate(1);
-                let ada = new Set();
-                const hariIni = ymd(new Date());
-                const namaHari = ['S', 'S', 'R', 'K', 'J', 'S', 'M'];   // mulai Senin, sama dengan kalender utama
-                function gambar() {
-                    if (!$('mini-grid')) return;
-                    $('mini-judul').textContent = bulan.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-                    const pilih = ymd(cal.getDate());
-                    const mulai = new Date(bulan); mulai.setDate(1 - ((mulai.getDay() + 6) % 7));
-                    let html = namaHari.map((h) => `<div class="h">${h}</div>`).join('');
-                    for (let i = 0; i < 42; i++) {
-                        const d = new Date(mulai); d.setDate(mulai.getDate() + i);
-                        const k = ymd(d);
-                        const kelas = [d.getMonth() !== bulan.getMonth() ? 'lain' : '', k === hariIni ? 'today' : '',
-                            k === pilih ? 'pilih' : '', ada.has(k) ? 'ada' : ''].join(' ');
-                        html += `<button type="button" class="${kelas}" data-tgl="${k}">${d.getDate()}</button>`;
-                    }
-                    $('mini-grid').innerHTML = html;
-                }
-                $('mini-prev').onclick = () => { bulan.setMonth(bulan.getMonth() - 1); gambar(); };
-                $('mini-next').onclick = () => { bulan.setMonth(bulan.getMonth() + 1); gambar(); };
-                $('mini-grid').addEventListener('click', (e) => {
-                    const b = e.target.closest('button[data-tgl]');
-                    if (b) cal.changeView('timeGridDay', b.dataset.tgl);
-                });
-                return {
-                    tampil(d) { bulan = new Date(d.getFullYear(), d.getMonth(), 1); gambar(); },
-                    tandai(events) {
-                        ada = new Set(events.map((e) => ymd(e.start)));
-                        gambar();
-                    },
-                };
-            })();
 
             cal.render();
         })();

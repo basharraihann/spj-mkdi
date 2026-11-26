@@ -63,8 +63,8 @@
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
                             <button type="button" class="spj-user" aria-label="Menu pengguna">
-                                <span
-                                    class="spj-avatar">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(Auth::user()->name, 0, 1)) }}</span>
+                                <img src="{{ Auth::user()->avatar_url }}" alt="{{ Auth::user()->name }}"
+                                    class="spj-avatar" style="object-fit:cover;background:transparent;">
                                 <span class="spj-user-name">{{ Auth::user()->name }}</span>
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
                                     style="width:16px;height:16px">
