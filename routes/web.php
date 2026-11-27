@@ -300,7 +300,9 @@ Route::middleware('auth')->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Disposisi (Persuratan)
-    | - menu Disposisi (input, semua disposisi, teruskan, hapus): TU Unit, Eselon II (+ admin)
+    | - halaman Disposisi (/disposisi): semua akun. Tab Daftar hanya untuk TU Unit, Eselon II
+    |   (+ admin); akun lain otomatis masuk ke tab Kalender (dibatasi di DisposisiController@index)
+    | - input, ubah, hapus, teruskan, batalkan: TU Unit, Eselon II (+ admin)
     | - detail, berkas, lembar PDF, feedback, selesaikan: semua akun yang terlibat (dicek di controller)
     |--------------------------------------------------------------------------
     */
@@ -308,14 +310,17 @@ Route::middleware('auth')->group(function () {
         ->prefix('disposisi')
         ->name('disposisi.')
         ->group(function () {
+            Route::get('/', 'index')->name('index');
+
             Route::middleware('role:tu_unit,eselon2,admin,super_admin')->group(function () {
-                Route::get('/', 'index')->name('index');
                 Route::get('surat/create', 'create')->name('create');
                 Route::post('surat', 'store')->name('store');
                 Route::get('surat/{surat}/edit', 'edit')->whereNumber('surat')->name('edit');
                 Route::put('surat/{surat}', 'update')->whereNumber('surat')->name('update');
                 Route::delete('surat/{surat}', 'destroy')->whereNumber('surat')->name('destroy');
                 Route::post('{disposisi}/teruskan', 'teruskan')->whereNumber('disposisi')->name('teruskan');
+                Route::delete('{disposisi}/batalkan', 'batalkan')->whereNumber('disposisi')->name('batalkan');
+                Route::put('{disposisi}/teruskan', 'ubahTeruskan')->whereNumber('disposisi')->name('teruskan.ubah');
             });
 
             Route::get('surat/{surat}', 'show')->whereNumber('surat')->name('show');
@@ -330,6 +335,8 @@ Route::middleware('auth')->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Kalender Disposisi: semua akun
+    | (tab Kalender sudah pindah ke /disposisi?tampil=kalender; /kalender?tab=kalender
+    |  di-redirect ke sana oleh KalenderDisposisiController@index)
     | + hubungkan Google Calendar per akun (notifikasi disposisi di Google Calendar)
     |--------------------------------------------------------------------------
     */

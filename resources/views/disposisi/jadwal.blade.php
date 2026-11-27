@@ -1,8 +1,8 @@
-<x-app-layout title="Jadwal Pegawai">
+<x-app-layout title="Disposisi">
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Kotak Tugas &amp; Kalender
+            Disposisi
         </h2>
     </x-slot>
 
@@ -10,6 +10,7 @@
         $C = \Illuminate\Support\Carbon::class;
         // Parameter yang ikut di setiap link
         $param = array_filter([
+            'tampil' => 'jadwal',
             'pegawai' => $pegawai->id,
             'dari' => $dari,
             'sampai' => $sampai,
@@ -112,22 +113,12 @@
     <div class="kd-wrap min-h-full">
         <div class="jp-wrap">
 
-            {{-- Judul + tab --}}
-            <div class="jp-atas">
-                <div>
-                    <p class="jp-judul-hal">Jadwal disposisi per pegawai</p>
-                    <p class="jp-sub">Tanggal mengikuti jadwal kegiatan / batas waktu · klik kartu untuk membuka detail surat</p>
-                </div>
-                <nav class="kd-tabs">
-                    <a href="{{ route('kalender.index', ['tab' => 'hari-ini']) }}" class="kd-tab">Disposisi Hari Ini</a>
-                    <a href="{{ route('kalender.index', ['tab' => 'kalender']) }}" class="kd-tab">Kalender</a>
-                    <a href="{{ route('kalender.jadwal') }}" class="kd-tab aktif">Jadwal Pegawai</a>
-                </nav>
-            </div>
+            @include('disposisi.kalender._tab', ['tampil' => 'jadwal'])
 
             {{-- Filter --}}
-            <form method="GET" action="{{ route('kalender.jadwal') }}" class="kd-card jp-filter">
-                <input type="hidden" name="tampil" value="{{ $tampil }}">
+            <form method="GET" action="{{ route('disposisi.index') }}" class="kd-card jp-filter">
+                <input type="hidden" name="tampil" value="jadwal">
+                <input type="hidden" name="mode" value="{{ $mode }}">
                 <div class="jp-filter-grid">
                     @if ($bisaTim)
                         <div>
@@ -145,7 +136,7 @@
                         <label class="kd-label" for="j-dari">Dari tanggal</label>
                         <input id="j-dari" type="date" name="dari" value="{{ $dari }}" class="kd-input">
                     </div>
-                    @if ($tampil === 'agenda')
+                    @if ($mode === 'agenda')
                         <div>
                             <label class="kd-label" for="j-sampai">Sampai tanggal</label>
                             <input id="j-sampai" type="date" name="sampai" value="{{ $sampai }}" class="kd-input">
@@ -189,14 +180,14 @@
 
                 <div class="jp-filter-aksi">
                     <div class="kd-seg">
-                        <a href="{{ route('kalender.jadwal', $param + ['tampil' => 'agenda']) }}" class="kd-btn-{{ $tampil === 'agenda' ? 'primary' : 'soft' }} kd-kecil">Agenda</a>
+                        <a href="{{ route('disposisi.index', $param + ['mode' => 'agenda']) }}" class="kd-btn-{{ $mode === 'agenda' ? 'primary' : 'soft' }} kd-kecil">Agenda</a>
                         @if ($bisaTim)
-                            <a href="{{ route('kalender.jadwal', $param + ['tampil' => 'matriks']) }}" class="kd-btn-{{ $tampil === 'matriks' ? 'primary' : 'soft' }} kd-kecil">Matriks tim</a>
+                            <a href="{{ route('disposisi.index', $param + ['mode' => 'matriks']) }}" class="kd-btn-{{ $mode === 'matriks' ? 'primary' : 'soft' }} kd-kecil">Matriks tim</a>
                         @endif
                     </div>
                     <div style="display:flex; gap:.5rem; align-items:center">
                         @if ($jumlahFilter)
-                            <a href="{{ route('kalender.jadwal', ['pegawai' => $pegawai->id, 'tampil' => $tampil, 'dari' => $dari, 'sampai' => $sampai]) }}" class="kd-btn-ghost kd-kecil">Reset filter</a>
+                            <a href="{{ route('disposisi.index', ['pegawai' => $pegawai->id, 'tampil' => 'jadwal', 'mode' => $mode, 'dari' => $dari, 'sampai' => $sampai]) }}" class="kd-btn-ghost kd-kecil">Reset filter</a>
                         @endif
                         <button class="kd-btn-primary kd-kecil">Terapkan</button>
                     </div>
@@ -204,7 +195,7 @@
             </form>
 
             {{-- ================= TAMPILAN AGENDA ================= --}}
-            @if ($tampil === 'agenda')
+            @if ($mode === 'agenda')
 
                 <div class="jp-orang">
                     <div class="jp-avatar">
@@ -241,7 +232,7 @@
                         <div class="jp-seksi-judul">Telat · {{ count($telat) }} disposisi melewati batas waktu</div>
                         <div class="jp-daftar">
                             @foreach ($telat as $k)
-                                @include('kalender._kartu-jadwal', ['k' => $k])
+                                @include('disposisi._kartu-jadwal', ['k' => $k])
                             @endforeach
                         </div>
                     </section>
@@ -266,7 +257,7 @@
                         </header>
                         <div class="jp-daftar">
                             @foreach ($h['kartu'] as $k)
-                                @include('kalender._kartu-jadwal', ['k' => $k])
+                                @include('disposisi._kartu-jadwal', ['k' => $k])
                             @endforeach
                         </div>
                     </section>
@@ -285,7 +276,7 @@
                         <div class="jp-seksi-judul">Belum terjadwal · {{ count($belum) }} disposisi tanpa tanggal kegiatan / batas waktu</div>
                         <div class="jp-daftar">
                             @foreach ($belum as $k)
-                                @include('kalender._kartu-jadwal', ['k' => $k])
+                                @include('disposisi._kartu-jadwal', ['k' => $k])
                             @endforeach
                         </div>
                     </section>
@@ -312,7 +303,7 @@
                                 @foreach ($baris as $p)
                                     <tr>
                                         <td class="jp-nm">
-                                            <a href="{{ route('kalender.jadwal', $param + ['pegawai' => $p->id, 'tampil' => 'agenda']) }}">{{ $p->name }}</a>
+                                            <a href="{{ route('disposisi.index', ['pegawai' => $p->id, 'mode' => 'agenda'] + $param) }}">{{ $p->name }}</a>
                                             <small>{{ $p->unit?->kode ?? $p->unit?->nama }}</small>
                                         </td>
                                         @foreach ($hariKolom as $h)

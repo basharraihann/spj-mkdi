@@ -38,8 +38,9 @@
         // Ringkasan posisi, progres, dan batas waktu per surat
         $info = function ($s) {
             $posisi = $s->disposisi->filter(fn($d) => in_array($d->status, \App\Models\Disposisi::TERBUKA, true));
-            $total = $s->disposisi->count();
-            $selesai = $s->disposisi->where('status', 'selesai')->count();
+$pekerja = $s->disposisi->where('status', '!=', 'diteruskan');
+$total = $pekerja->count();
+$selesai = $pekerja->where('status', 'selesai')->count();            $selesai = $s->disposisi->where('status', 'selesai')->count();
             return [
                 'posisi' => $posisi,
                 'total' => $total,
@@ -125,6 +126,7 @@
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ session('success') }}</div>
         @endif
 
+        @include('disposisi.kalender._tab')
         @if ($bolehCatat)
             <div class="flex justify-end">
                 <a href="{{ route('disposisi.create') }}"
@@ -338,8 +340,12 @@
                                 </div>
                             </div>
 
-                            {{-- Lampiran surat, tepat sebelum status --}}
-                            <div class="{{ $file ? '' : 'hidden md:block' }} md:w-56 md:flex-none md:px-4">
+                            {{-- Lampiran surat + waktu, tepat sebelum status --}}
+                            @php
+                                // Waktu disposisi terakhir dibuat pada surat ini
+                                $terakhir = $s->disposisi->sortByDesc('created_at')->first()?->created_at;
+                            @endphp
+                            <div class="space-y-1.5 md:w-56 md:flex-none md:px-4">
                                 @if ($file)
                                     <a href="{{ $file['url'] }}" target="_blank" rel="noopener noreferrer" title="Buka lampiran: {{ $file['nama'] }}"
                                         class="relative z-10 inline-flex max-w-full items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600 transition hover:border-blue-300 hover:text-blue-700">
@@ -347,6 +353,13 @@
                                         <span class="flex-none font-semibold">{{ $file['ext'] }}</span>
                                         <span class="min-w-0 truncate">{{ $file['nama'] }}</span>
                                     </a>
+                                @endif
+
+                                @if ($terakhir)
+                                    <p class="flex items-center gap-1.5 text-[11px] text-slate-500" title="Waktu disposisi terakhir dibuat">
+                                        <svg class="h-3 w-3 flex-none text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <span class="min-w-0 truncate">Didisposisi {{ $terakhir->translatedFormat('d M Y, H:i') }}</span>
+                                    </p>
                                 @endif
                             </div>
 

@@ -3,19 +3,25 @@
     Dipakai di form teruskan (show), dan form catat surat bila memanggilnya.
 
     Variabel:
-      $penerima : collection of array
-                  wajib : id, nama, unit
-                  opsional : role, user (model User, untuk avatar), status ('pns' | 'non_pns')
-                  Bila tidak ada satu pun item yang punya 'status', daftar tampil tanpa pemisahan PNS / Non-PNS.
-      $idForm   : string unik per form
+      $penerima   : collection of array
+                    wajib : id, nama, unit
+                    opsional : role, user (model User, untuk avatar), status ('pns' | 'non_pns')
+                    Bila tidak ada satu pun item yang punya 'status', daftar tampil tanpa pemisahan PNS / Non-PNS.
+      $idForm     : string unik per form
+      $sudahDapat : (opsional) array id user yang sudah mendapat disposisi untuk surat ini.
+                    Mereka tampil tercentang dan terkunci, tidak ikut terkirim.
 --}}
 @php
     $idForm = $idForm ?? 'tujuan';
-    $dipilih = collect(old('kepada', []))->map(fn($v) => (int) $v)->all();
-    $instruksiLama = old('instruksi', []);
+$awal = $awal ?? [];
+$adaOld = session()->hasOldInput();
+$dipilih = collect($adaOld ? old('kepada', []) : ($awal['kepada'] ?? []))->map(fn($v) => (int) $v)->all();
+$instruksiLama = $adaOld ? old('instruksi', []) : ($awal['instruksi'] ?? []);
+    $sudahDapat = collect($sudahDapat ?? [])->map(fn($v) => (int) $v)->all();
 
     $daftar = collect($penerima);
     $adaStatus = $daftar->contains(fn($p) => array_key_exists('status', $p));
+    $jumlahSudah = $daftar->filter(fn($p) => in_array((int) $p['id'], $sudahDapat, true))->count();
 
     $perBagian = $daftar->groupBy(fn($p) => $adaStatus ? ($p['status'] ?? 'non_pns') : 'semua');
     $bagian = $adaStatus ? ['pns' => 'PNS', 'non_pns' => 'Non-PNS'] : ['semua' => 'Semua'];
@@ -63,6 +69,12 @@
             </label>
             <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700" x-text="pilih.length + ' dipilih'">0 dipilih</span>
         </div>
+
+        @if ($jumlahSudah > 0)
+            <p class="mb-2 text-xs text-slate-500">
+                {{ $jumlahSudah }} orang sudah mendapat disposisi untuk surat ini, jadi tercentang dan tidak bisa dipilih lagi.
+            </p>
+        @endif
 
         {{-- Yang sudah dipilih --}}
         <div x-show="pilih.length" x-cloak class="mb-2 flex flex-wrap gap-1.5">
@@ -130,14 +142,25 @@
 
                                 <div class="divide-y divide-slate-100">
                                     @foreach ($anggota as $p)
+                                        @php $terkunci = in_array((int) $p['id'], $sudahDapat, true); @endphp
                                         <label data-cari="{{ strtolower($p['nama'] . ' ' . ($p['role'] ?? '') . ' ' . $unit) }}"
                                             x-show="cocok($el)"
-                                            class="flex cursor-pointer items-center gap-3 px-3 py-2 transition hover:bg-slate-50 has-[:checked]:bg-blue-50/60">
-                                            <input type="checkbox" name="kepada[]" value="{{ $p['id'] }}" data-orang data-nama="{{ $p['nama'] }}"
-                                                @checked(in_array($p['id'], $dipilih, true))
-                                                class="h-4 w-4 flex-none rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                            @class([
+                                                'flex items-center gap-3 px-3 py-2 transition',
+                                                'cursor-not-allowed bg-slate-50/70' => $terkunci,
+                                                'cursor-pointer hover:bg-slate-50 has-[:checked]:bg-blue-50/60' => !$terkunci,
+                                            ])>
+                                            @if ($terkunci)
+                                                {{-- Sudah didisposisi: tercentang, terkunci, tidak ikut terkirim, tidak masuk hitungan --}}
+                                                <input type="checkbox" checked disabled aria-label="{{ $p['nama'] }} sudah mendapat disposisi"
+                                                    class="h-4 w-4 flex-none cursor-not-allowed rounded border-slate-300 text-slate-400">
+                                            @else
+                                                <input type="checkbox" name="kepada[]" value="{{ $p['id'] }}" data-orang data-nama="{{ $p['nama'] }}"
+                                                    @checked(in_array($p['id'], $dipilih, true))
+                                                    class="h-4 w-4 flex-none rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                            @endif
 
-                                            <span data-av class="flex-none">
+                                            <span data-av @class(['flex-none', 'opacity-60' => $terkunci])>
                                                 @if (!empty($p['user']))
                                                     <x-avatar :user="$p['user']" class="h-8 w-8 text-[10px]" />
                                                 @else
@@ -146,11 +169,15 @@
                                             </span>
 
                                             <span class="min-w-0 flex-1">
-                                                <span class="block truncate text-sm font-medium text-slate-900">{{ $p['nama'] }}</span>
+                                                <span @class(['block truncate text-sm font-medium', 'text-slate-900' => !$terkunci, 'text-slate-500' => $terkunci])>{{ $p['nama'] }}</span>
                                                 @if (!empty($p['role']))
                                                     <span class="block truncate text-xs text-slate-400">{{ $p['role'] }}</span>
                                                 @endif
                                             </span>
+
+                                            @if ($terkunci)
+                                                <span class="flex-none rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">Sudah didisposisi</span>
+                                            @endif
                                         </label>
                                     @endforeach
                                 </div>
@@ -191,14 +218,14 @@
         <div class="sm:col-span-2">
             <label for="{{ $idForm }}-catatan" class="{{ $lbl }}">Catatan <span class="font-normal text-slate-400">(opsional)</span></label>
             <textarea id="{{ $idForm }}-catatan" name="catatan" rows="2" maxlength="2000" placeholder="Arahan tambahan"
-                class="{{ $dasar }} {{ $errors->has('catatan') ? $salah : $normal }}">{{ old('catatan') }}</textarea>
+                class="{{ $dasar }} {{ $errors->has('catatan') ? $salah : $normal }}">{{ old('catatan', $awal['catatan'] ?? '') }}</textarea>
             @error('catatan')
                 <p class="{{ $galat }}">{{ $message }}</p>
             @enderror
         </div>
         <div>
             <label for="{{ $idForm }}-batas" class="{{ $lbl }}">Batas waktu <span class="font-normal text-slate-400">(opsional)</span></label>
-            <input id="{{ $idForm }}-batas" type="date" name="batas_waktu" value="{{ old('batas_waktu') }}"
+            <input id="{{ $idForm }}-batas" type="date" name="batas_waktu" value="{{ old('batas_waktu', $awal['batas_waktu'] ?? '') }}"
                 class="{{ $dasar }} {{ $errors->has('batas_waktu') ? $salah : $normal }}">
             @error('batas_waktu')
                 <p class="{{ $galat }}">{{ $message }}</p>

@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Tab "Jadwal Pegawai" di Kotak Tugas & Kalender.
+ * Tab "Jadwal Pegawai" di halaman Disposisi (?tampil=jadwal).
  *
- * Tampilan:
+ * Mode (parameter ?mode=):
  * - agenda  : jadwal disposisi SATU pegawai, dikelompokkan per tanggal (default)
  * - matriks : beban banyak pegawai x 14 hari (hanya kalau boleh melihat > 1 pegawai)
  *
@@ -43,7 +43,14 @@ class JadwalPegawaiController extends Controller
 
     private ?bool $adaJenis = null;
 
+    /** Link lama (/kalender/jadwal) diarahkan ke tab di halaman Disposisi. */
     public function index(Request $request)
+    {
+        return redirect()->route('disposisi.index', ['tampil' => 'jadwal'] + $request->query());
+    }
+
+    /** Data tab Jadwal Pegawai (dipanggil DisposisiController@index). */
+    public function data(Request $request): array
     {
         $user = $request->user();
         $hariIni = now()->toDateString();
@@ -64,14 +71,15 @@ class JadwalPegawaiController extends Controller
             $sampai = $batas;
         }
 
-        $tampil = ($request->query('tampil') === 'matriks' && $daftar->count() > 1) ? 'matriks' : 'agenda';
+        $mode = ($request->query('mode') === 'matriks' && $daftar->count() > 1) ? 'matriks' : 'agenda';
 
-        $data = $tampil === 'matriks'
+        $data = $mode === 'matriks'
             ? $this->dataMatriks($daftar, $dari, $f, $hariIni)
             : $this->dataAgenda($pegawai, $dari, $sampai, $f, $hariIni);
 
-        return view('kalender.jadwal', [
-            'tampil' => $tampil,
+        return [
+            'tampil' => 'jadwal',
+            'mode' => $mode,
             'daftar' => $daftar,
             'pegawai' => $pegawai,
             'f' => $f,
@@ -80,7 +88,7 @@ class JadwalPegawaiController extends Controller
             'hariIni' => $hariIni,
             'jenisList' => self::JENIS,
             'adaJenis' => $this->adaJenis(),
-        ] + $data);
+        ] + $data;
     }
 
     // ================================================================ data
@@ -281,7 +289,7 @@ class JadwalPegawaiController extends Controller
             'mulai' => $mulai,
             'akhir' => $akhir,
             'bentrok' => false,
-            'url' => route('kalender.index', ['tanggal' => $tgl, 'buka' => $d->surat_id]),
+            'url' => route('disposisi.index', ['tampil' => 'kalender', 'tanggal' => $tgl, 'buka' => $d->surat_id]),
         ];
     }
 

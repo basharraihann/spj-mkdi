@@ -232,7 +232,7 @@ class GoogleKalenderService
 
         [$start, $end] = self::waktuEvent($s, $tanggal, $tz);
 
-        $url = function_exists('route') ? route('kalender.index', ['tanggal' => $tanggal, 'buka' => $d->surat_id]) : null;
+        $url = function_exists('route') ? route('disposisi.index', ['tampil' => 'kalender', 'tanggal' => $tanggal, 'buka' => $d->surat_id]) : null;
 
         $desk = array_filter([
             ...self::barisWaktu($s),

@@ -12,11 +12,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Kalender Disposisi: untuk SEMUA akun.
- * - Disposisi hari ini
- * - Kalender bulanan / mingguan / daftar
- * - Feedback disposisi (form di popup, dikirim ke DisposisiController@feedback)
- * - Hubungkan akun Google Calendar (notifikasi di HP / email lewat Google Calendar)
+ * Pendukung tab Hari Ini dan Kalender di halaman Disposisi, untuk SEMUA akun.
+ * - Data tab Hari Ini dan tab Kalender (dipanggil DisposisiController@index)
+ * - Sumber event FullCalendar dan detail popup (JSON)
+ * - Hubungkan / sinkronkan akun Google Calendar
  *
  * Yang tampil: disposisi yang DITERIMA user dan yang DIKIRIM user.
  * Tanggal di kalender = tanggal kegiatan surat -> batas waktu -> tanggal disposisi dikirim.
@@ -26,50 +25,53 @@ class KalenderDisposisiController extends Controller
     /** Ekspresi SQL tanggal kalender (MySQL & SQLite sama-sama punya COALESCE dan DATE). */
     private const TGL = 'DATE(COALESCE(disposisi_surat.tanggal_kegiatan, disposisi.batas_waktu, disposisi.created_at))';
 
+    /** Link lama (/kalender) diarahkan ke tab di halaman Disposisi. */
     public function index(Request $request)
+    {
+        $tampil = $request->query('tab') === 'kalender' ? 'kalender' : 'hari-ini';
+
+        return redirect()->route('disposisi.index', ['tampil' => $tampil] + $request->except(['tab']));
+    }
+
+    /** Data untuk tab Hari Ini di halaman Disposisi (dipanggil DisposisiController@index). */
+    public function dataHariIni(Request $request): array
     {
         $user = $request->user();
         $hariIni = now()->toDateString();
         $f = $this->filter($request);
+        $hari = $this->tgl($request->query('hari')) ?? $hariIni;
 
-        $tab = $request->query('tab') === 'kalender' ? 'kalender' : 'hari-ini';
+        return [
+            'f' => $f,
+            'hari' => $hari,
+            'daftarHari' => $this->daftarHari($user->id, $hari, $hari === $hariIni, $f),
+            'bukaSurat' => (int) $request->query('buka') ?: null,
+            'google' => [
+                'aktif' => GoogleKalenderService::aktif(),
+                'akun' => GoogleKalenderAkun::where('user_id', $user->id)->first(),
+            ],
+            'ringkasan' => [
+                'baru' => Disposisi::where('kepada_user_id', $user->id)->where('status', 'baru')->count(),
+            ],
+        ];
+    }
 
-        // Tanggal awal kalender & view terakhir (dipertahankan saat filter diganti)
-        $tanggal = $this->tgl($request->query('tanggal')) ?? $hariIni;
+    /** Data untuk tab Kalender di halaman Disposisi (dipanggil DisposisiController@index). */
+    public function dataKalender(Request $request): array
+    {
+        $user = $request->user();
+        $f = $this->filter($request);
+
         $view = in_array($request->query('view'), ['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'multiMonthYear', 'listWeek'], true)
             ? $request->query('view') : null;
 
-        // Tab "Disposisi Hari Ini": bisa geser ke hari lain
-        $hari = $this->tgl($request->query('hari')) ?? $hariIni;
-        $daftarHari = $this->daftarHari($user->id, $hari, $hari === $hariIni, $f);
-
-        $akun = GoogleKalenderAkun::where('user_id', $user->id)->first();
-
-        $masuk = Disposisi::where('kepada_user_id', $user->id);
-
-        return view('kalender.index', [
-            'tab' => $tab,
+        return [
             'f' => $f,
-            'tanggal' => $tanggal,
+            'tanggal' => $this->tgl($request->query('tanggal')) ?? now()->toDateString(),
             'view' => $view,
-            'hari' => $hari,
-            'daftarHari' => $daftarHari,
-            // Daftar rapat hari ini untuk sidebar tab Kalender (urut jam, dari atas ke bawah)
-            'rapatHariIni' => $tab === 'kalender' ? $this->rapatHariIni($user->id) : collect(),
+            'rapatHariIni' => $this->rapatHariIni($user->id),
             'bukaSurat' => (int) $request->query('buka') ?: null,
-            'bolehKelola' => DisposisiSurat::bolehKelola($user),
-            'google' => [
-                'aktif' => GoogleKalenderService::aktif(),
-                'akun' => $akun,
-            ],
-            'ringkasan' => [
-                'baru' => (clone $masuk)->where('status', 'baru')->count(),
-                'perlu' => (clone $masuk)->whereIn('status', Disposisi::TERBUKA)->count(),
-                'terlambat' => (clone $masuk)->whereIn('status', Disposisi::TERBUKA)
-                    ->whereNotNull('batas_waktu')->whereDate('batas_waktu', '<', $hariIni)->count(),
-                'hari_ini' => $this->milikSaya($user->id)->whereRaw(self::TGL . ' = ?', [$hariIni])->count(),
-            ],
-        ]);
+        ];
     }
 
     /** Sumber event FullCalendar: ?start=...&end=... (+ filter yang sama dengan halaman) */
@@ -172,10 +174,15 @@ class KalenderDisposisiController extends Controller
 
     // ================================================================ Google Calendar
 
+    private function kembali(): string
+    {
+        return route('disposisi.index', ['tampil' => 'hari-ini']);
+    }
+
     public function googleHubungkan(Request $request)
     {
         if (!GoogleKalenderService::aktif()) {
-            return redirect()->route('kalender.index')
+            return redirect($this->kembali())
                 ->with('error', 'Integrasi Google Calendar belum diatur admin (GOOGLE_CLIENT_ID / SECRET di .env).');
         }
 
@@ -190,10 +197,10 @@ class KalenderDisposisiController extends Controller
         $state = $request->session()->pull('google_kalender_state');
 
         if ($request->filled('error')) {
-            return redirect()->route('kalender.index')->with('error', 'Izin Google Calendar dibatalkan.');
+            return redirect($this->kembali())->with('error', 'Izin Google Calendar dibatalkan.');
         }
         if (!$state || !hash_equals($state, (string) $request->query('state')) || !$request->filled('code')) {
-            return redirect()->route('kalender.index')->with('error', 'Sesi menghubungkan Google kedaluwarsa. Coba lagi.');
+            return redirect($this->kembali())->with('error', 'Sesi menghubungkan Google kedaluwarsa. Coba lagi.');
         }
 
         try {
@@ -201,12 +208,12 @@ class KalenderDisposisiController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return redirect()->route('kalender.index')->with('error', 'Gagal menghubungkan Google Calendar: ' . $e->getMessage());
+            return redirect($this->kembali())->with('error', 'Gagal menghubungkan Google Calendar: ' . $e->getMessage());
         }
 
         $n = GoogleKalenderService::sinkronSemuaMilik($request->user());
 
-        return redirect()->route('kalender.index')->with(
+        return redirect($this->kembali())->with(
             'success',
             'Google Calendar terhubung' . ($akun->google_email ? " ({$akun->google_email})" : '') . '.'
             . ($n ? " {$n} disposisi aktif sudah masuk ke kalender Google Anda." : '')
@@ -218,7 +225,7 @@ class KalenderDisposisiController extends Controller
         $n = GoogleKalenderService::sinkronSemuaMilik($request->user());
         $err = GoogleKalenderAkun::where('user_id', $request->user()->id)->value('error_terakhir');
 
-        return redirect()->route('kalender.index')->with(
+        return redirect($this->kembali())->with(
             $err ? 'error' : 'success',
             $err ?: "{$n} disposisi aktif disinkronkan ke Google Calendar."
         );
@@ -231,7 +238,7 @@ class KalenderDisposisiController extends Controller
             GoogleKalenderService::putuskan($akun);
         }
 
-        return redirect()->route('kalender.index')->with('success', 'Google Calendar diputuskan. Event yang sudah ada di Google tidak dihapus.');
+        return redirect($this->kembali())->with('success', 'Google Calendar diputuskan. Event yang sudah ada di Google tidak dihapus.');
     }
 
     // ================================================================ helper

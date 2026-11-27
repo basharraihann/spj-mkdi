@@ -27,27 +27,64 @@ use Illuminate\Validation\Rule;
  *
  * Tidak memakai global scope unit, akses dicek lewat DisposisiSurat::scopeTerlihatOleh().
  *
+ * Halaman Disposisi punya empat tab (?tampil=): daftar, hari-ini, kalender, jadwal.
+ * - Daftar: hanya untuk pengelola (TU Unit, Eselon II, admin).
+ * - Hari Ini, Kalender, Jadwal Pegawai: semua akun yang terlibat.
+ *
  * Hak akses:
- * - Menu Disposisi (catat surat, semua disposisi, teruskan, hapus): TU Unit, Eselon II (+ admin).
- * - Semua akun yang terlibat: lihat detail, beri feedback, selesaikan (lewat Kalender Disposisi).
+ * - Catat surat, semua disposisi, teruskan, hapus: TU Unit, Eselon II (+ admin).
+ * - Semua akun yang terlibat: lihat detail, beri feedback, selesaikan (lewat popup di tab Hari Ini / Kalender).
  * - Penerima yang sudah menghubungkan Google Calendar otomatis dapat event + notifikasi.
  */
 class DisposisiController extends Controller
 {
     private const FILE_RULE = ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx'];
 
-    // ================================================================ daftar
+    // ================================================================ halaman (4 tab)
 
     public function index(Request $request)
     {
         $user = $request->user();
         $bolehCatat = $this->bolehCatat($user);
-        $tab = $request->query('tab', 'surat');
-        if (!in_array($tab, ['masuk', 'terkirim', 'surat'], true)) {
-            $tab = 'surat';
+        $pengelola = DisposisiSurat::bolehKelola($user);
+
+        $tampil = (string) $request->query('tampil', $pengelola ? 'daftar' : 'hari-ini');
+        if (!in_array($tampil, ['daftar', 'hari-ini', 'kalender', 'jadwal'], true)) {
+            $tampil = 'daftar';
         }
+        // Akun non-pengelola tidak punya tab Daftar
+        if ($tampil === 'daftar' && !$pengelola) {
+            return redirect()->route('disposisi.index', ['tampil' => 'hari-ini']);
+        }
+
+        if ($tampil === 'hari-ini') {
+            $data = app(KalenderDisposisiController::class)->dataHariIni($request);
+
+            return view('disposisi.hari-ini', $data + [
+                'bolehKelola' => $pengelola,
+                'bolehCatat' => $bolehCatat,
+            ]);
+        }
+
+        if ($tampil === 'kalender') {
+            $data = app(KalenderDisposisiController::class)->dataKalender($request);
+
+            return view('disposisi.kalender', $data + [
+                'tampil' => 'kalender',
+                'bolehKelola' => $pengelola,
+                'bolehCatat' => $bolehCatat,
+            ]);
+        }
+
+        if ($tampil === 'jadwal') {
+            $data = app(JadwalPegawaiController::class)->data($request);
+
+            return view('disposisi.jadwal', $data);
+        }
+
+        // ---- tab Daftar ----
         $q = trim((string) $request->query('q', ''));
-        $filter = $request->query('status', '');
+        $filter = (string) $request->query('status', '');
 
         $cariSurat = function ($w) use ($q) {
             $w->where('nomor_surat', 'like', "%{$q}%")
@@ -56,40 +93,15 @@ class DisposisiController extends Controller
                 ->orWhere('nomor_agenda', 'like', "%{$q}%");
         };
 
-        $ringkasan = [
-            'baru' => Disposisi::where('kepada_user_id', $user->id)->where('status', 'baru')->count(),
-            'perlu' => Disposisi::where('kepada_user_id', $user->id)->whereIn('status', Disposisi::TERBUKA)->count(),
-            'terlambat' => Disposisi::where('kepada_user_id', $user->id)->whereIn('status', Disposisi::TERBUKA)
-                ->whereNotNull('batas_waktu')->whereDate('batas_waktu', '<', now()->toDateString())->count(),
-            'selesai' => Disposisi::where('kepada_user_id', $user->id)->where('status', 'selesai')->count(),
-        ];
+        $surat = DisposisiSurat::query()
+            ->terlihatOleh($user)
+            ->with(['unit', 'disposisi.kepada.unit'])
+            ->when($q !== '', fn($x) => $x->where($cariSurat))
+            ->when(in_array($filter, ['proses', 'selesai'], true), fn($x) => $x->where('status', $filter))
+            ->latest('tanggal_terima')->latest('id')
+            ->paginate(15)->withQueryString();
 
-        $disposisi = collect();
-        $surat = collect();
-
-        if ($tab === 'surat') {
-            $surat = DisposisiSurat::query()
-                ->terlihatOleh($user)
-                ->with(['unit', 'disposisi.kepada.unit'])
-                ->when($q !== '', fn($x) => $x->where($cariSurat))
-                ->when(in_array($filter, ['proses', 'selesai'], true), fn($x) => $x->where('status', $filter))
-                ->latest('tanggal_terima')->latest('id')
-                ->paginate(15)->withQueryString();
-        } else {
-            $kolom = $tab === 'masuk' ? 'kepada_user_id' : 'dari_user_id';
-            $disposisi = Disposisi::query()
-                ->where($kolom, $user->id)
-                ->with(['surat', 'dari.unit', 'kepada.unit'])
-                ->when($q !== '', fn($x) => $x->whereHas('surat', $cariSurat))
-                ->when($filter === 'perlu', fn($x) => $x->whereIn('status', Disposisi::TERBUKA))
-                ->when(array_key_exists($filter, Disposisi::STATUS), fn($x) => $x->where('status', $filter))
-                // Belum dibaca di atas, lalu yang terbaru
-                ->orderByRaw("CASE WHEN status = 'baru' THEN 0 WHEN status = 'dibaca' THEN 1 ELSE 2 END")
-                ->latest('id')
-                ->paginate(15)->withQueryString();
-        }
-
-        return view('disposisi.index', compact('tab', 'q', 'filter', 'ringkasan', 'disposisi', 'surat', 'bolehCatat'));
+        return view('disposisi.index', compact('q', 'filter', 'surat', 'bolehCatat') + ['tampil' => 'daftar']);
     }
 
     // ================================================================ catat surat
@@ -313,9 +325,30 @@ class DisposisiController extends Controller
             return back()->with('error', 'Disposisi ini sudah selesai, tidak bisa diteruskan lagi.');
         }
 
-        $data = $request->validate($this->aturanTujuan($user) + [
-            'ikut' => ['nullable', 'boolean'],
-        ]);
+        // Yang sudah diteruskan diubah lewat ubahTeruskan(), bukan dikirim ulang.
+        if ($disposisi->status === 'diteruskan') {
+            return back()->with('error', 'Disposisi ini sudah diteruskan. Gunakan tombol Ubah disposisi.');
+        }
+
+        $data = $request->validate(
+            $this->aturanTujuan($user) + ['ikut' => ['nullable', 'boolean']],
+            [
+                'kepada.required' => 'Pilih minimal satu penerima.',
+                'instruksi.required' => 'Pilih minimal satu instruksi.',
+            ]
+        );
+
+        // Buang penerima yang sudah punya disposisi di surat ini (pengaman server)
+        $sudah = Disposisi::where('surat_id', $disposisi->surat_id)
+            ->pluck('kepada_user_id')
+            ->map(fn($i) => (int) $i)
+            ->all();
+        $data['kepada'] = array_values(array_diff(array_map('intval', $data['kepada']), $sudah));
+
+        if (empty($data['kepada'])) {
+            return back()->withInput()->with('error', 'Semua penerima yang dipilih sudah mendapat disposisi untuk surat ini.');
+        }
+
         $baru = DB::transaction(function () use ($request, $disposisi, $user, $data) {
             $baru = $this->kirim($disposisi->surat, $disposisi, $user, $data);
             $disposisi->update([
@@ -333,6 +366,79 @@ class DisposisiController extends Controller
 
         return redirect()->route('disposisi.show', $disposisi->surat_id)
             ->with('success', 'Disposisi diteruskan ke ' . count($data['kepada']) . ' penerima.' . $g);
+    }
+
+    /**
+     * Ubah disposisi yang sudah saya teruskan:
+     * tambah atau tarik penerima, ganti instruksi/catatan/batas waktu, dan tanda "ikut".
+     *
+     * Penerima yang sudah meneruskan atau menyelesaikan tidak disentuh.
+     */
+    public function ubahTeruskan(Request $request, Disposisi $disposisi)
+    {
+        $user = $request->user();
+        abort_unless((int) $disposisi->kepada_user_id === (int) $user->id, 403);
+
+        if ($disposisi->status !== 'diteruskan') {
+            return back()->with('error', 'Disposisi ini belum diteruskan, gunakan tombol Teruskan.');
+        }
+
+        // Penerima boleh kosong: mis. hanya mengubah tanda "ikut" atau menarik semua penerima.
+        $data = $request->validate(
+            array_merge($this->aturanTujuan($user), ['kepada' => ['nullable', 'array']]),
+            ['instruksi.required' => 'Pilih minimal satu instruksi.']
+        );
+
+        $minta = collect($data['kepada'] ?? [])->map(fn($i) => (int) $i)->unique()->values();
+        $surat = $disposisi->surat;
+        $ikut = $user->role === User::ROLE_ESELON2 && $request->boolean('ikut');
+
+        $baru = DB::transaction(function () use ($disposisi, $surat, $user, $data, $minta, $ikut) {
+            $bisaUbah = Disposisi::where('parent_id', $disposisi->id)
+                ->whereIn('status', ['baru', 'dibaca'])
+                ->get();
+
+            foreach ($bisaUbah as $a) {
+                if ($minta->contains((int) $a->kepada_user_id)) {
+                    // Tetap: perbarui isinya
+                    $a->forceFill([
+                        'instruksi' => $data['instruksi'] ?? [],
+                        'catatan' => $data['catatan'] ?? null,
+                        'batas_waktu' => $data['batas_waktu'] ?? null,
+                    ])->save();
+                } else {
+                    // Dilepas: tarik kembali
+                    $a->delete();
+                }
+            }
+
+            // Tambah penerima baru, yang belum punya disposisi di surat ini
+            $sudah = Disposisi::where('surat_id', $surat->id)
+                ->pluck('kepada_user_id')
+                ->map(fn($i) => (int) $i);
+            $tambah = $minta->diff($sudah)->values()->all();
+
+            $baru = $tambah
+                ? $this->kirim($surat, $disposisi, $user, array_merge($data, ['kepada' => $tambah]))
+                : null;
+
+            // Tanda ikut + status disposisi saya
+            $masihAda = Disposisi::where('parent_id', $disposisi->id)->exists();
+            $disposisi->forceFill([
+                'ikut' => $ikut,
+                'status' => $masihAda ? 'diteruskan' : 'dibaca',
+                'diteruskan_at' => $masihAda ? $disposisi->diteruskan_at : null,
+            ])->save();
+
+            $surat->perbaruiStatus();
+
+            return $baru;
+        });
+
+        $g = $baru ? $this->sinkronGoogle($baru) : '';
+
+        return redirect()->route('disposisi.show', $disposisi->surat_id)
+            ->with('success', 'Disposisi diperbarui.' . $g);
     }
 
     /** Selesaikan disposisi saya dengan laporan tindak lanjut. */
@@ -370,6 +476,34 @@ class DisposisiController extends Controller
         GoogleKalenderService::sinkron($disposisi->fresh());
 
         return $this->kembali($request, $disposisi->surat_id, 'Disposisi ditandai selesai.');
+    }
+
+    /** Tarik kembali disposisi yang saya kirim, selama belum diteruskan atau diselesaikan penerima. */
+    public function batalkan(Request $request, Disposisi $disposisi)
+    {
+        $user = $request->user();
+        abort_unless((int) $disposisi->dari_user_id === (int) $user->id, 403);
+
+        if (!in_array($disposisi->status, ['baru', 'dibaca'], true)) {
+            return back()->with('error', 'Penerima sudah meneruskan atau menyelesaikan, disposisi tidak bisa dibatalkan.');
+        }
+
+        $nama = $disposisi->kepada?->name ?? 'penerima';
+        $surat = $disposisi->surat;
+        $induk = $disposisi->parent_id ? Disposisi::find($disposisi->parent_id) : null;
+
+        DB::transaction(function () use ($disposisi, $induk, $surat) {
+            $disposisi->delete();
+
+            // Semua anak sudah ditarik: disposisi pengirim kembali terbuka
+            if ($induk && !Disposisi::where('parent_id', $induk->id)->exists()) {
+                $induk->update(['status' => 'dibaca', 'diteruskan_at' => null, 'ikut' => false]);
+            }
+
+            $surat->perbaruiStatus();
+        });
+
+        return back()->with('success', "Disposisi ke {$nama} dibatalkan.");
     }
 
     /**
@@ -465,7 +599,7 @@ class DisposisiController extends Controller
             $pesan .= ' Peringatan: ' . count($gagal) . ' event Google Calendar belum terhapus (id tercatat di log), penerimanya mungkin belum dapat email pembatalan.';
         }
 
-        return redirect()->route('disposisi.index', ['tab' => 'surat'])->with('success', $pesan);
+        return redirect()->route('disposisi.index')->with('success', $pesan);
     }
 
     // ================================================================ berkas & PDF
@@ -527,13 +661,20 @@ class DisposisiController extends Controller
         return $n ? " {$n} penerima mendapat notifikasi di Google Calendar." : '';
     }
 
-    /** Setelah aksi dari halaman Kalender, kembali ke kalender; selain itu ke detail surat. */
+    /**
+     * Setelah aksi dari popup (tab Hari Ini / Kalender), kembali ke tab asalnya;
+     * selain itu ke detail surat.
+     */
     private function kembali(Request $request, int $suratId, string $pesan)
     {
         if ($request->input('_dari') === 'kalender') {
-            return redirect()->route('kalender.index', array_filter([
-                'tanggal' => $request->input('_tanggal'),
-            ]))->with('success', $pesan);
+            if ($request->input('_tampil') === 'hari-ini') {
+                $param = ['tampil' => 'hari-ini', 'hari' => $request->input('_tanggal')];
+            } else {
+                $param = ['tampil' => 'kalender', 'tanggal' => $request->input('_tanggal')];
+            }
+
+            return redirect()->route('disposisi.index', array_filter($param))->with('success', $pesan);
         }
 
         return redirect()->route('disposisi.show', $suratId)->with('success', $pesan);
