@@ -27,20 +27,20 @@ use Illuminate\Validation\Rule;
  *
  * Tidak memakai global scope unit, akses dicek lewat DisposisiSurat::scopeTerlihatOleh().
  *
- * Halaman Disposisi punya empat tab (?tampil=): daftar, hari-ini, kalender, jadwal.
+ * Halaman Disposisi punya tiga tab (?tampil=): daftar, kalender, jadwal.
  * - Daftar: hanya untuk pengelola (TU Unit, Eselon II, admin).
- * - Hari Ini, Kalender, Jadwal Pegawai: semua akun yang terlibat.
+ * - Kalender, Jadwal Pegawai: semua akun yang terlibat.
  *
  * Hak akses:
  * - Catat surat, semua disposisi, teruskan, hapus: TU Unit, Eselon II (+ admin).
- * - Semua akun yang terlibat: lihat detail, beri feedback, selesaikan (lewat popup di tab Hari Ini / Kalender).
+ * - Semua akun yang terlibat: lihat detail, beri feedback, selesaikan (lewat popup di tab Kalender).
  * - Penerima yang sudah menghubungkan Google Calendar otomatis dapat event + notifikasi.
  */
 class DisposisiController extends Controller
 {
     private const FILE_RULE = ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx'];
 
-    // ================================================================ halaman (4 tab)
+    // ================================================================ halaman (3 tab)
 
     public function index(Request $request)
     {
@@ -48,22 +48,16 @@ class DisposisiController extends Controller
         $bolehCatat = $this->bolehCatat($user);
         $pengelola = DisposisiSurat::bolehKelola($user);
 
-        $tampil = (string) $request->query('tampil', $pengelola ? 'daftar' : 'hari-ini');
-        if (!in_array($tampil, ['daftar', 'hari-ini', 'kalender', 'jadwal'], true)) {
+        $tampil = (string) $request->query('tampil', $pengelola ? 'daftar' : 'kalender');
+        if ($tampil === 'hari-ini') {
+            $tampil = 'kalender';   // tab Hari Ini sudah dihapus; link lama masuk ke Kalender
+        }
+        if (!in_array($tampil, ['daftar', 'kalender', 'jadwal'], true)) {
             $tampil = 'daftar';
         }
         // Akun non-pengelola tidak punya tab Daftar
         if ($tampil === 'daftar' && !$pengelola) {
-            return redirect()->route('disposisi.index', ['tampil' => 'hari-ini']);
-        }
-
-        if ($tampil === 'hari-ini') {
-            $data = app(KalenderDisposisiController::class)->dataHariIni($request);
-
-            return view('disposisi.hari-ini', $data + [
-                'bolehKelola' => $pengelola,
-                'bolehCatat' => $bolehCatat,
-            ]);
+            return redirect()->route('disposisi.index', ['tampil' => 'kalender']);
         }
 
         if ($tampil === 'kalender') {
@@ -661,20 +655,14 @@ class DisposisiController extends Controller
         return $n ? " {$n} penerima mendapat notifikasi di Google Calendar." : '';
     }
 
-    /**
-     * Setelah aksi dari popup (tab Hari Ini / Kalender), kembali ke tab asalnya;
-     * selain itu ke detail surat.
-     */
+    /** Setelah aksi dari popup (tab Kalender), kembali ke kalender; selain itu ke detail surat. */
     private function kembali(Request $request, int $suratId, string $pesan)
     {
         if ($request->input('_dari') === 'kalender') {
-            if ($request->input('_tampil') === 'hari-ini') {
-                $param = ['tampil' => 'hari-ini', 'hari' => $request->input('_tanggal')];
-            } else {
-                $param = ['tampil' => 'kalender', 'tanggal' => $request->input('_tanggal')];
-            }
-
-            return redirect()->route('disposisi.index', array_filter($param))->with('success', $pesan);
+            return redirect()->route('disposisi.index', array_filter([
+                'tampil' => 'kalender',
+                'tanggal' => $request->input('_tanggal'),
+            ]))->with('success', $pesan);
         }
 
         return redirect()->route('disposisi.show', $suratId)->with('success', $pesan);

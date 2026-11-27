@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Pendukung tab Hari Ini dan Kalender di halaman Disposisi, untuk SEMUA akun.
- * - Data tab Hari Ini dan tab Kalender (dipanggil DisposisiController@index)
+ * Pendukung tab Kalender di halaman Disposisi, untuk SEMUA akun.
+ * - Data tab Kalender (dipanggil DisposisiController@index)
  * - Sumber event FullCalendar dan detail popup (JSON)
  * - Hubungkan / sinkronkan akun Google Calendar
  *
@@ -28,32 +28,7 @@ class KalenderDisposisiController extends Controller
     /** Link lama (/kalender) diarahkan ke tab di halaman Disposisi. */
     public function index(Request $request)
     {
-        $tampil = $request->query('tab') === 'kalender' ? 'kalender' : 'hari-ini';
-
-        return redirect()->route('disposisi.index', ['tampil' => $tampil] + $request->except(['tab']));
-    }
-
-    /** Data untuk tab Hari Ini di halaman Disposisi (dipanggil DisposisiController@index). */
-    public function dataHariIni(Request $request): array
-    {
-        $user = $request->user();
-        $hariIni = now()->toDateString();
-        $f = $this->filter($request);
-        $hari = $this->tgl($request->query('hari')) ?? $hariIni;
-
-        return [
-            'f' => $f,
-            'hari' => $hari,
-            'daftarHari' => $this->daftarHari($user->id, $hari, $hari === $hariIni, $f),
-            'bukaSurat' => (int) $request->query('buka') ?: null,
-            'google' => [
-                'aktif' => GoogleKalenderService::aktif(),
-                'akun' => GoogleKalenderAkun::where('user_id', $user->id)->first(),
-            ],
-            'ringkasan' => [
-                'baru' => Disposisi::where('kepada_user_id', $user->id)->where('status', 'baru')->count(),
-            ],
-        ];
+        return redirect()->route('disposisi.index', ['tampil' => 'kalender'] + $request->except(['tab', 'hari']));
     }
 
     /** Data untuk tab Kalender di halaman Disposisi (dipanggil DisposisiController@index). */
@@ -176,7 +151,7 @@ class KalenderDisposisiController extends Controller
 
     private function kembali(): string
     {
-        return route('disposisi.index', ['tampil' => 'hari-ini']);
+        return route('disposisi.index', ['tampil' => 'kalender']);
     }
 
     public function googleHubungkan(Request $request)
