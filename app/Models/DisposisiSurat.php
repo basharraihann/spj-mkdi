@@ -170,8 +170,9 @@ class DisposisiSurat extends Model
         });
     }
 
-    public function bolehDilihat(User $user): bool
+    public function bolehDilihat(?User $user): bool
     {
-        return static::query()->whereKey($this->id)->terlihatOleh($user)->exists();
+        // semua akun yang login boleh membuka Detail (hanya baca)
+        return $user !== null;
     }
 }

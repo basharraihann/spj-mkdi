@@ -48,16 +48,12 @@ class DisposisiController extends Controller
         $bolehCatat = $this->bolehCatat($user);
         $pengelola = DisposisiSurat::bolehKelola($user);
 
-        $tampil = (string) $request->query('tampil', $pengelola ? 'daftar' : 'kalender');
+        $tampil = (string) $request->query('tampil', 'daftar');
         if ($tampil === 'hari-ini') {
             $tampil = 'kalender';   // tab Hari Ini sudah dihapus; link lama masuk ke Kalender
         }
         if (!in_array($tampil, ['daftar', 'kalender', 'jadwal'], true)) {
             $tampil = 'daftar';
-        }
-        // Akun non-pengelola tidak punya tab Daftar
-        if ($tampil === 'daftar' && !$pengelola) {
-            return redirect()->route('disposisi.index', ['tampil' => 'kalender']);
         }
 
         if ($tampil === 'kalender') {
@@ -76,26 +72,53 @@ class DisposisiController extends Controller
             return view('disposisi.jadwal', $data);
         }
 
-        // ---- tab Daftar ----
+        // ---- tab Daftar (semua akun melihat semua surat)  ----
         $q = trim((string) $request->query('q', ''));
         $filter = (string) $request->query('status', '');
+        $fSifat = (string) $request->query('sifat', '');
+        $fUnit = (int) $request->query('unit', 0);
+        $fDari = (string) $request->query('dari', '');
+        $fSampai = (string) $request->query('sampai', '');
+        $fUrut = (string) $request->query('urut', 'terbaru');
+        $polaTgl = '/^\d{4}-\d{2}-\d{2}$/';
 
         $cariSurat = function ($w) use ($q) {
             $w->where('nomor_surat', 'like', "%{$q}%")
                 ->orWhere('perihal', 'like', "%{$q}%")
                 ->orWhere('asal_surat', 'like', "%{$q}%")
-                ->orWhere('nomor_agenda', 'like', "%{$q}%");
+                ->orWhere('nomor_agenda', 'like', "%{$q}%")
+                ->orWhereHas('disposisi.kepada', fn($k) => $k->where('name', 'like', "%{$q}%"));
         };
 
-        $surat = DisposisiSurat::query()
-            ->terlihatOleh($user)
+        $query = DisposisiSurat::query()
             ->with(['unit', 'disposisi.kepada.unit'])
             ->when($q !== '', fn($x) => $x->where($cariSurat))
+            ->when($filter === 'terlambat', fn($x) => $x->where('status', 'proses')
+                ->whereHas('disposisi', fn($d) => $d->whereIn('status', Disposisi::TERBUKA)
+                    ->whereNotNull('batas_waktu')->whereDate('batas_waktu', '<', today())))
             ->when(in_array($filter, ['proses', 'selesai'], true), fn($x) => $x->where('status', $filter))
-            ->latest('tanggal_terima')->latest('id')
-            ->paginate(15)->withQueryString();
+            ->when(array_key_exists($fSifat, DisposisiSurat::SIFAT), fn($x) => $x->where('sifat', $fSifat))
+            ->when($fUnit > 0, fn($x) => $x->whereHas('disposisi', fn($d) => $d->whereIn('status', Disposisi::TERBUKA)
+                ->whereHas('kepada', fn($k) => $k->where('unit_id', $fUnit))))
+            ->when(preg_match($polaTgl, $fDari), fn($x) => $x->whereDate('tanggal_terima', '>=', $fDari))
+            ->when(preg_match($polaTgl, $fSampai), fn($x) => $x->whereDate('tanggal_terima', '<=', $fSampai));
 
-        return view('disposisi.index', compact('q', 'filter', 'surat', 'bolehCatat') + ['tampil' => 'daftar']);
+        match ($fUrut) {
+            'terlama' => $query->oldest('tanggal_terima')->oldest('id'),
+            'batas' => $query
+                ->withMin(['disposisi as batas_terdekat' => fn($d) => $d->whereIn('status', Disposisi::TERBUKA)], 'batas_waktu')
+                ->orderByRaw('batas_terdekat IS NULL')->orderBy('batas_terdekat')->latest('id'),
+            'jadwal' => $query
+                ->orderByRaw('tanggal_kegiatan IS NULL')
+                ->orderByRaw('tanggal_kegiatan < ?', [today()->toDateString()])
+                ->orderBy('tanggal_kegiatan')->latest('id'),
+            default => $query->latest('tanggal_terima')->latest('id'),
+        };
+
+        $surat = $query->paginate(15)->withQueryString();
+        $daftarUnit = \App\Models\Unit::orderBy('nama')->get(['id', 'nama']);
+
+        return view('disposisi.index', compact('q', 'filter', 'surat', 'bolehCatat', 'daftarUnit') + ['tampil' => 'daftar']);
     }
 
     // ================================================================ catat surat

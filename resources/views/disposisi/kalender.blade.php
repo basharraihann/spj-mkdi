@@ -4,6 +4,7 @@
     </x-slot>
 
     @php
+        // Kelas badge status (warna badge ada di disposisi/_gaya)
         $statusKelas = [
             'baru' => 'kd-st-baru',
             'dibaca' => 'kd-st-dibaca',
@@ -25,156 +26,32 @@
         $resetUrl = $jumlahFilter
             ? route('disposisi.index', array_filter(['tampil' => 'kalender', 'tanggal' => $tanggal, 'view' => $view]))
             : null;
+
+        // Controller sudah mengirim satu baris per surat, lengkap dengan 'kelas' warna
+        $rapatTampil = $rapatHariIni;
     @endphp
 
     @include('disposisi._gaya')
-
-    <style>
-        /* ====== Layout: sidebar kecil (kiri) + kalender besar (kanan) ====== */
-        .kal-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
-        @media (min-width: 1024px) {
-            .kal-layout { grid-template-columns: 290px minmax(0, 1fr); align-items: start; }
-            .kal-side { position: sticky; top: 1rem; }
-        }
-        /* Halaman dilebarkan supaya kalender lebih lega */
-        .kd-container { max-width: 1760px; }
-
-        /* ====== Sidebar: Rapat Hari Ini ====== */
-        .rp-list { display: flex; flex-direction: column; gap: .6rem; }
-        .rp-item {
-            width: 100%; text-align: left; border-radius: .75rem; border: 1px solid #e8eef7; background: #fff;
-            padding: .65rem .75rem .65rem .85rem; border-left-width: 4px;
-            transition: background .15s, border-color .15s;
-        }
-        .rp-item:hover { background: #f8fbff; border-color: #bfdbfe; }
-        .rp-baru { border-left-color: #2563eb; }
-        .rp-dibaca { border-left-color: #60a5fa; }
-        .rp-diteruskan { border-left-color: #a5b4fc; }
-        .rp-selesai { border-left-color: #4ade80; }
-        .rp-keluar { border-left-color: #94a3b8; }
-        .rp-jam { font-size: .72rem; font-weight: 700; color: #1d4ed8; font-variant-numeric: tabular-nums; }
-        .rp-judul {
-            margin-top: .15rem; font-size: .8rem; font-weight: 600; color: #0f172a; line-height: 1.25;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-        }
-        .rp-tempat {
-            margin-top: .1rem; font-size: .68rem; color: #94a3b8;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
-        /* ====== Avatar (dipakai di sidebar & di event kalender) ====== */
-        .av {
-            width: 22px; height: 22px; border-radius: 999px; border: 2px solid #fff; margin-left: -7px;
-            object-fit: cover; background: #e2e8f0; color: #334155; font-size: .6rem; font-weight: 700;
-            display: inline-flex; align-items: center; justify-content: center; flex: none; line-height: 1;
-        }
-        .av:first-child { margin-left: 0; }
-        .av-n { background: #0f172a; color: #fff; }
-        .av-row { display: flex; align-items: center; margin-top: .3rem; }
-
-        /* ====== FullCalendar: dasar ====== */
-        #kal {
-            --fc-border-color: #edf1f7;
-            --fc-today-bg-color: #f5f9ff;
-            --fc-page-bg-color: #fff;
-            --fc-neutral-bg-color: #f8fafc;
-            --fc-now-indicator-color: #2563eb;
-            font-size: 13px;
-        }
-        #kal .fc-scrollgrid { border-radius: .75rem; overflow: hidden; }
-        #kal .fc-event { cursor: pointer; }
-        #kal a.fc-daygrid-day-number,
-        #kal a.fc-col-header-cell-cushion { text-decoration: none; }
-
-        /* Header kolom */
-        #kal .fc-col-header-cell-cushion { padding: .8rem .25rem; font-weight: 600; color: #0f172a; font-size: .85rem; }
-        #kal .fc-col-header-cell.fc-day-today { box-shadow: inset 0 -3px 0 #2563eb; }
-        #kal .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion { color: #2563eb; }
-
-        /* Tampilan Bulan */
-        #kal .fc-daygrid-day-frame { min-height: 150px; }
-        #kal .fc-daygrid-day-top { justify-content: center; }
-        #kal .fc-daygrid-day-number {
-            font-size: 1.25rem; font-weight: 600; color: #1e293b; padding: .55rem 0 .2rem;
-            font-variant-numeric: tabular-nums;
-        }
-        #kal .fc-day-other .fc-daygrid-day-number { color: #cbd5e1; }
-        #kal .fc-day-today .fc-daygrid-day-number { color: #2563eb; }
-        #kal .fc-daygrid-day.fc-day-today { background: #f5f9ff; box-shadow: inset 0 3px 0 #2563eb; }
-        #kal .fc-daygrid-event {
-            margin: 3px 6px 0; border-radius: 8px; border: 0; padding: 4px 7px;
-            font-size: .72rem; font-weight: 500; justify-content: flex-start; white-space: normal;
-        }
-        #kal .fc-daygrid-dot-event .fc-daygrid-event-dot { display: none; }
-        #kal .fc-daygrid-more-link { font-size: .72rem; color: #2563eb; font-weight: 600; margin: 3px 8px; }
-
-        /* Tampilan Hari / Minggu */
-        #kal .fc-timegrid-event { border-radius: 8px; border: 0; padding: 3px 5px; }
-        #kal .fc-timegrid-slot { height: 2.6rem; }
-        #kal .fc-timegrid-slot-label-cushion,
-        #kal .fc-timegrid-axis-cushion { font-size: .7rem; color: #94a3b8; }
-
-        /* Tampilan Daftar */
-        #kal .fc-list-day-cushion { background: #f5f9ff; }
-        #kal .fc-list-event:hover td { background: #f8fbff; }
-
-        /* Tampilan Tahun */
-        #kal .fc-multimonth-title { font-size: .9rem; color: #1e3a8a; }
-        #kal .fc-multimonth .fc-daygrid-day-number { font-size: .72rem; padding: .2rem 0; }
-        #kal .fc-multimonth .fc-daygrid-day-frame { min-height: 0; }
-        #kal .fc-multimonth .fc-daygrid-day.fc-day-today { box-shadow: none; }
-
-        /* ====== Isi event (judul + avatar) ====== */
-        #kal .ev-in { width: 100%; min-width: 0; overflow: hidden; }
-        #kal .ev-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
-        #kal .ev-t b { font-variant-numeric: tabular-nums; margin-right: .25rem; }
-
-        /* ====== Warna event per status (biru) ====== */
-        #kal .ev-baru { background: #2563eb !important; color: #fff !important; }
-        #kal .ev-dibaca { background: #60a5fa !important; color: #fff !important; }
-        #kal .ev-diteruskan { background: #c7d2fe !important; color: #312e81 !important; }
-        #kal .ev-selesai { background: #bbf7d0 !important; color: #14532d !important; }
-        #kal .ev-keluar { background: #fff !important; color: #1e40af !important; box-shadow: inset 0 0 0 1px #93c5fd; }
-        #kal .ev .fc-event-main,
-        #kal .ev .fc-event-time,
-        #kal .ev .fc-event-title { color: inherit !important; }
-
-        /* Warna titik pada tampilan Daftar */
-        #kal .fc-list-event.ev { background: transparent !important; color: #0f172a !important; box-shadow: none; }
-        #kal .fc-list-event.ev-baru .fc-list-event-dot { border-color: #2563eb; }
-        #kal .fc-list-event.ev-dibaca .fc-list-event-dot { border-color: #60a5fa; }
-        #kal .fc-list-event.ev-diteruskan .fc-list-event-dot { border-color: #818cf8; }
-        #kal .fc-list-event.ev-selesai .fc-list-event-dot { border-color: #22c55e; }
-        #kal .fc-list-event.ev-keluar .fc-list-event-dot { border-color: #94a3b8; }
-
-        /* ====== Mobile ====== */
-        @media (max-width: 767px) {
-            #kal .fc-daygrid-day-frame { min-height: 72px; }
-            #kal .fc-daygrid-day-number { font-size: .9rem; padding: .35rem 0 .1rem; }
-            #kal .fc-daygrid-event { margin: 1px 2px 0; padding: 2px 4px; font-size: .62rem; }
-            #kal .fc-col-header-cell-cushion { font-size: .68rem; padding: .55rem 0; }
-            #kal .av { width: 16px; height: 16px; font-size: .5rem; margin-left: -5px; }
-        }
-
-        /* ====== Popup ====== */
-        #modal-dispo[hidden] { display: none; }
-    </style>
+    @include('disposisi._gaya-kalender')
 
     <div class="kd-wrap min-h-full">
         <div class="kd-container space-y-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 
             {{-- Notifikasi --}}
             @if (session('success'))
-                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ session('success') }}</div>
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+                    role="status">{{ session('success') }}</div>
             @endif
             @if (session('error'))
-                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ session('error') }}</div>
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+                    {{ session('error') }}
+                </div>
             @endif
 
             {{-- ================= Tab + pencarian + filter dalam satu kartu ================= --}}
-            <x-disposisi.kartu-atas tampil="kalender" form-id="form-filter"
-                :q="$f['q']" placeholder="Cari perihal, nomor surat, asal, tempat…"
-                :lanjut="$jumlahLanjutan > 0" :reset-url="$resetUrl" :boleh-catat="$bolehCatat">
+            <x-disposisi.kartu-atas tampil="kalender" form-id="form-filter" :q="$f['q']"
+                placeholder="Cari perihal, nomor surat, asal, tempat…" :lanjut="$jumlahLanjutan > 0"
+                :reset-url="$resetUrl" :boleh-catat="$bolehCatat">
 
                 <x-slot name="hidden">
                     <input type="hidden" name="tampil" value="kalender">
@@ -205,33 +82,46 @@
 
                 <x-slot name="bawah">
                     <div class="p-3 sm:p-4">
-                        {{-- ================= KALENDER ================= --}}
                         <div class="kal-layout">
 
-                            {{-- Kiri: Rapat Hari Ini (atas ke bawah) --}}
+                            {{-- Kiri: Jadwal Hari Ini --}}
                             <aside class="kal-side">
                                 <div class="kd-card p-4">
                                     <div class="mb-3 flex items-start justify-between gap-2">
                                         <div>
-                                            <p class="text-sm font-semibold text-gray-800">Rapat Hari Ini</p>
-                                            <p class="text-[11px] text-gray-400">{{ now()->translatedFormat('l, d F Y') }}</p>
+                                            <p class="text-sm font-semibold text-gray-800">Jadwal Hari Ini</p>
+                                            <p class="text-[11px] text-gray-400">
+                                                {{ now()->translatedFormat('l, d F Y') }}
+                                            </p>
                                         </div>
-                                        <span class="kd-chip kd-chip-gray">{{ $rapatHariIni->count() }}</span>
+                                        <span class="kd-chip kd-chip-gray">{{ $rapatTampil->count() }}</span>
                                     </div>
 
-                                    @if ($rapatHariIni->isEmpty())
+                                    @if ($rapatTampil->isEmpty())
                                         <div class="rounded-xl bg-slate-50 px-3 py-6 text-center text-xs text-gray-400">
-                                            Tidak ada rapat hari ini.
+                                            Tidak ada jadwal hari ini.
                                         </div>
                                     @else
                                         <ol class="rp-list">
-                                            @foreach ($rapatHariIni as $r)
+                                            @foreach ($rapatTampil as $r)
                                                 @php
                                                     $s = $r['surat'];
-                                                    $orangRapat = $r['orang_users'] ?? [];
+
+                                                    // Orang sudah lengkap dari controller (termasuk yang "ikut")
+                                                    $orangRapat = collect($r['orang_users'] ?? []);
+
+                                                    // Link zoom: kolom link_daring, atau URL yang terselip di kolom tempat
+                                                    $tempat = trim((string) $s?->tempat);
+                                                    $linkRapat = $s?->link_daring ?: null;
+                                                    if (!$linkRapat && preg_match('~https?://\S+~i', $tempat, $m)) {
+                                                        $linkRapat = $m[0];
+                                                        $tempat = trim(str_replace($m[0], '', $tempat));
+                                                    }
+                                                    $hostRapat = $linkRapat ? (parse_url($linkRapat, PHP_URL_HOST) ?: $linkRapat) : null;
                                                 @endphp
                                                 <li>
-                                                    <button type="button" data-buka="{{ $r['surat_id'] }}" class="rp-item rp-{{ $r['status'] }}">
+                                                    <div role="button" tabindex="0" data-buka="{{ $r['surat_id'] }}"
+                                                        class="rp-item w-{{ $r['kelas'] }}">
                                                         <div class="flex items-center justify-between gap-2">
                                                             <span class="rp-jam">
                                                                 @if ($s?->waktu_mulai)
@@ -240,30 +130,49 @@
                                                                     Seharian
                                                                 @endif
                                                             </span>
-                                                            <span class="kd-st {{ $statusKelas[$r['status']] ?? 'kd-st-keluar' }}">{{ $r['status_label'] }}</span>
+                                                            <span
+                                                                class="kd-st {{ $statusKelas[$r['status']] ?? 'kd-st-keluar' }}">{{ $r['status_label'] }}</span>
                                                         </div>
 
                                                         <p class="rp-judul">{{ $s?->perihal }}</p>
 
-                                                        @if ($s?->tempat)
-                                                            <p class="rp-tempat">{{ $s->tempat }}</p>
+                                                        @if ($s?->asal_surat)
+                                                            <p class="rp-meta" title="Dari: {{ $s->asal_surat }}">Dari:
+                                                                {{ $s->asal_surat }}</p>
                                                         @endif
 
-                                                        @if (count($orangRapat))
+                                                        @if ($tempat !== '')
+                                                            <p class="rp-tempat">{{ $tempat }}</p>
+                                                        @endif
+
+                                                        @if ($linkRapat)
+                                                            <a href="{{ $linkRapat }}" target="_blank" rel="noopener noreferrer"
+                                                                onclick="event.stopPropagation()" title="{{ $linkRapat }}"
+                                                                class="rp-link">{{ $hostRapat }}</a>
+                                                        @endif
+
+                                                        @if ($orangRapat->isNotEmpty())
                                                             <div class="av-row">
-                                                                @foreach (array_slice($orangRapat, 0, 5) as $o)
+                                                                @foreach ($orangRapat->take(5) as $o)
+                                                                    @php $judulAv = $o['nama'] . (!empty($o['ikut']) ? ' (ikut)' : ''); @endphp
                                                                     @if (!empty($o['foto']))
-                                                                        <img class="av" src="{{ $o['foto'] }}" alt="{{ $o['nama'] }}" title="{{ $o['nama'] }}">
+                                                                        <img class="av" src="{{ $o['foto'] }}" alt="{{ $o['nama'] }}"
+                                                                            title="{{ $judulAv }}">
                                                                     @else
-                                                                        <span class="av" title="{{ $o['nama'] }}">{{ mb_strtoupper(mb_substr(trim($o['nama']), 0, 1)) }}</span>
+                                                                        <span class="av"
+                                                                            title="{{ $judulAv }}">{{ mb_strtoupper(mb_substr(trim($o['nama']), 0, 1)) }}</span>
                                                                     @endif
                                                                 @endforeach
-                                                                @if (count($orangRapat) > 5)
-                                                                    <span class="av av-n">+{{ count($orangRapat) - 5 }}</span>
+                                                                @if ($orangRapat->count() > 5)
+                                                                    <span class="av av-n">+{{ $orangRapat->count() - 5 }}</span>
                                                                 @endif
                                                             </div>
+                                                            <p class="rp-nama">
+                                                                {{ $orangRapat->pluck('nama')->take(3)->implode(', ') }}@if ($orangRapat->count() > 3)
+                                                                +{{ $orangRapat->count() - 3 }}@endif
+                                                            </p>
                                                         @endif
-                                                    </button>
+                                                    </div>
                                                 </li>
                                             @endforeach
                                         </ol>
@@ -275,28 +184,42 @@
                             <div class="min-w-0">
                                 <div class="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
                                     <div class="flex items-center gap-2">
-                                        <button type="button" id="k-prev" class="kd-btn-ghost kd-ikon" aria-label="Sebelumnya">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                                        <button type="button" id="k-today" class="kb">Hari ini</button>
+                                        <button type="button" id="k-prev" class="kb" style="width:2.25rem;padding:0"
+                                            aria-label="Sebelumnya">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                stroke-width="2.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M15 19l-7-7 7-7" />
+                                            </svg>
                                         </button>
-                                        <h2 id="k-judul" class="text-lg font-bold capitalize text-gray-900" style="min-width: 9rem">&nbsp;</h2>
-                                        <button type="button" id="k-next" class="kd-btn-ghost kd-ikon" aria-label="Berikutnya">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                        <button type="button" id="k-next" class="kb" style="width:2.25rem;padding:0"
+                                            aria-label="Berikutnya">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                stroke-width="2.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                            </svg>
                                         </button>
-                                        <button type="button" id="k-today" class="kd-btn-soft kd-kecil">Hari ini</button>
+                                        <div class="ml-2 leading-tight" style="min-width:7rem">
+                                            <p id="k-bulan" class="text-base font-bold capitalize text-gray-900">&nbsp;
+                                            </p>
+                                            <p id="k-tahun" class="text-xs text-gray-400">&nbsp;</p>
+                                        </div>
                                     </div>
 
                                     <div class="kd-seg" id="k-view">
                                         <button type="button" data-v="timeGridDay">Hari</button>
                                         <button type="button" data-v="timeGridWeek">Minggu</button>
                                         <button type="button" data-v="dayGridMonth">Bulan</button>
-                                        <button type="button" data-v="multiMonthYear" class="kd-hanya-desktop">Tahun</button>
+                                        <button type="button" data-v="multiMonthYear"
+                                            class="kd-hanya-desktop">Tahun</button>
                                         <button type="button" data-v="listWeek">Daftar</button>
                                     </div>
                                 </div>
 
                                 <div id="kal"></div>
                                 <p id="kal-gagal" class="mt-3 hidden text-sm text-gray-500">
-                                    Kalender gagal dimuat (koneksi ke CDN). Buka tab "Hari Ini" untuk melihat disposisi dalam bentuk tabel.
+                                    Kalender gagal dimuat (koneksi ke CDN). Muat ulang halaman atau periksa koneksi internet.
                                 </p>
                             </div>
 
@@ -309,34 +232,39 @@
     </div>
 
     {{-- ================= Popup detail + feedback ================= --}}
-    <div id="modal-dispo" hidden class="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4" style="background: rgb(15 23 42 / .45)">
-        <div class="kd-modal-box w-full overflow-y-auto rounded-t-3xl bg-white shadow-2xl sm:max-w-2xl sm:rounded-2xl">
+    <div id="modal-dispo" hidden class="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+        style="background: rgb(15 23 42 / .5)">
+        <div class="pp-box w-full rounded-t-3xl bg-white shadow-2xl sm:max-w-2xl sm:rounded-2xl">
+            <div class="pp-accent"></div>
 
             {{-- Kepala --}}
-            <div class="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur">
+            <div class="pp-head">
                 <div class="min-w-0">
-                    <div id="m-chip" class="mb-1 flex flex-wrap gap-1.5"></div>
-                    <h3 id="m-perihal" class="text-base font-semibold text-gray-900"></h3>
-                    <p id="m-nomor" class="text-xs text-gray-500"></p>
+                    <div id="m-chip" class="mb-2 flex flex-wrap gap-1.5"></div>
+                    <h3 id="m-perihal" class="pp-title"></h3>
+                    <p id="m-nomor" class="pp-sub"></p>
                 </div>
                 <button type="button" data-tutup class="kd-btn-ghost kd-ikon" aria-label="Tutup">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 </button>
             </div>
 
             {{-- Isi (diisi lewat JS) --}}
-            <div id="m-isi" class="space-y-4 px-5 py-4 text-sm">
+            <div id="m-isi" class="pp-body text-sm">
                 <p class="text-gray-400">Memuat…</p>
             </div>
 
             {{-- Form feedback --}}
-            <form id="m-form" method="POST" class="space-y-2 border-t border-gray-100 bg-slate-50/60 px-5 py-4">
+            <form id="m-form" method="POST" class="pp-foot space-y-2">
                 @csrf
                 <input type="hidden" name="_dari" value="kalender">
                 <input type="hidden" name="_tanggal" id="m-tanggal" value="{{ $tanggal }}">
 
                 <label for="m-feedback" class="kd-label">Tulis feedback</label>
-                <textarea id="m-feedback" name="isi" rows="2" required maxlength="2000" class="kd-input" style="background: #fff"
+                <textarea id="m-feedback" name="isi" rows="2" required maxlength="2000" class="kd-input"
+                    style="background: #fff"
                     placeholder="mis. Siap hadir / sudah ditindaklanjuti / diwakilkan oleh …"></textarea>
                 @error('isi')
                     <p class="text-xs text-red-500">{{ $message }}</p>
@@ -344,11 +272,13 @@
 
                 <div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                     <label id="m-selesai-wrap" class="hidden items-center gap-2 text-xs text-gray-600">
-                        <input type="checkbox" name="tandai_selesai" value="1" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <input type="checkbox" name="tandai_selesai" value="1"
+                            class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                         Sekalian tandai disposisi saya selesai
                     </label>
                     <div class="flex gap-2 sm:ml-auto">
-                        <a id="m-detail" href="#" class="kd-btn-ghost flex-1 border border-gray-200 bg-white sm:flex-none">Detail lengkap</a>
+                        <a id="m-detail" href="#"
+                            class="kd-btn-ghost flex-1 border border-gray-200 bg-white sm:flex-none">Detail lengkap</a>
                         <button class="kd-btn-primary flex-1 sm:flex-none">Kirim Feedback</button>
                     </div>
                 </div>
@@ -411,13 +341,32 @@
 
             function renderDetail(s) {
                 const selesai = s.status === 'selesai';
+                const ico = (d) => `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="${d}"/></svg>`;
+                const IC = {
+                    tgl: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+                    pin: 'M17.66 16.66L13.41 20.9a2 2 0 01-2.82 0l-4.25-4.24a8 8 0 1111.32 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z',
+                    org: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+                    vid: 'M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z',
+                };
+
+                // Link rapat online: dari link_daring atau URL yang terselip di tempat
+                let tempat = String(s.tempat || '').trim();
+                let link = s.link_daring || '';
+                if (!link) {
+                    const m = tempat.match(/https?:\/\/\S+/i);
+                    if (m) { link = m[0]; tempat = tempat.replace(m[0], '').trim(); }
+                }
+                link = /^https?:\/\//i.test(link) ? link : '';
+                let host = '';
+                try { host = link ? new URL(link).hostname : ''; } catch (e) { host = link; }
+                if (!tempat && link) tempat = 'Online';
 
                 // Kepala popup
                 $('m-chip').innerHTML =
                     `<span class="kd-chip kd-chip-gray">${esc(s.sifat)}</span>` +
                     `<span class="kd-st ${selesai ? 'kd-st-selesai' : 'kd-st-baru'}">${selesai ? 'Surat selesai' : 'Proses'}</span>`;
                 $('m-perihal').textContent = s.perihal;
-                $('m-nomor').textContent = s.nomor_surat + ' · dari ' + s.asal_surat;
+                $('m-nomor').textContent = s.nomor_surat;
 
                 // Form feedback
                 $('m-form').action = s.url_feedback;
@@ -425,64 +374,82 @@
                 $('m-selesai-wrap').classList.toggle('hidden', !s.bisa_selesai);
                 $('m-selesai-wrap').classList.toggle('flex', !!s.bisa_selesai);
 
-                // Jadwal kegiatan
-                const jadwal = s.tanggal_kegiatan ? `
-                    <div class="flex items-start gap-3 rounded-xl bg-blue-50 px-4 py-3 text-blue-900">
-                        <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <div>
-                            <b>${esc(s.tanggal_kegiatan)}</b>${s.waktu ? ' · ' + esc(s.waktu) : ''}
-                            ${s.tempat ? `<div class="text-xs text-blue-700">${esc(s.tempat)}</div>` : ''}
+                // Kartu info: jadwal, tempat, asal surat
+                const info = [];
+                if (s.tanggal_kegiatan) {
+                    info.push(`<div class="pp-info"><span class="pp-ic">${ico(IC.tgl)}</span><div><p class="pp-lbl">Jadwal</p><p class="pp-val">${esc(s.tanggal_kegiatan)}${s.waktu ? `<small>${esc(s.waktu)}</small>` : ''}</p></div></div>`);
+                }
+                if (tempat) {
+                    info.push(`<div class="pp-info"><span class="pp-ic">${ico(link && /^online$/i.test(tempat) ? IC.vid : IC.pin)}</span><div><p class="pp-lbl">Tempat</p><p class="pp-val">${esc(tempat)}</p></div></div>`);
+                }
+                if (s.asal_surat) {
+                    info.push(`<div class="pp-info ${info.length % 2 === 0 ? 'full' : ''}"><span class="pp-ic">${ico(IC.org)}</span><div><p class="pp-lbl">Asal surat</p><p class="pp-val">${esc(s.asal_surat)}</p></div></div>`);
+                }
+                const infoHtml = info.length ? `<div class="pp-grid">${info.join('')}</div>` : '';
+
+                // Tombol gabung rapat online
+                const zoom = link ? `
+                    <a href="${esc(link)}" target="_blank" rel="noopener noreferrer" class="pp-zoom">
+                        <div style="display:flex;align-items:center;gap:.7rem;min-width:0">
+                            <span class="pp-ic">${ico(IC.vid)}</span>
+                            <div class="t"><b>Gabung rapat online</b><span class="h">${esc(host)}</span></div>
                         </div>
-                    </div>` : '';
+                        <span class="go">Buka ↗</span>
+                    </a>` : '';
 
                 // Berkas surat
                 const berkas = s.url_berkas ? `
-                    <a href="${esc(s.url_berkas)}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    <a href="${esc(s.url_berkas)}" target="_blank" rel="noopener noreferrer" class="pp-file">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                         Lihat file surat
                     </a>` : '';
 
-                // Alur disposisi
+                // Alur disposisi (timeline)
                 const alur = s.disposisi.map((d) => `
-                    <li class="rounded-xl border ${d.saya ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200'} px-3.5 py-2.5">
-                        <div class="flex flex-wrap items-start justify-between gap-2">
-                            <span class="text-gray-600">
-                                ${esc(d.dari)} <span class="text-gray-400">→</span>
-                                <b class="text-gray-900">${esc(d.kepada)}</b>
-                                ${d.saya ? '<span class="ml-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">Anda</span>' : ''}
-                            </span>
-                            <span class="kd-st ${stKelas[d.status] || 'kd-st-keluar'}">${esc(d.status_label)}</span>
+                    <li>
+                        <div class="pp-card ${d.saya ? 'saya' : ''}">
+                            <div class="flex flex-wrap items-start justify-between gap-2">
+                                <span class="pp-flow">
+                                    ${esc(d.dari)} <span style="color:#94a3b8">→</span>
+                                    <b>${esc(d.kepada)}</b>
+                                    ${d.saya ? '<span class="pp-ikut anda">Anda</span>' : ''}
+                                    ${d.ikut ? '<span class="pp-ikut">ikut</span>' : ''}
+                                </span>
+                                <span class="kd-st ${stKelas[d.status] || 'kd-st-keluar'}">${esc(d.status_label)}</span>
+                            </div>
+                            ${d.instruksi.length ? `<div class="mt-1.5 flex flex-wrap gap-1">${d.instruksi.map((i) => `<span class="pp-tag">${esc(i)}</span>`).join('')}</div>` : ''}
+                            ${d.catatan ? `<p class="pp-note">${esc(d.catatan)}</p>` : ''}
+                            ${d.batas ? `<p class="pp-due ${d.terlambat ? 'telat' : ''}">Batas ${esc(d.batas)}${d.terlambat ? ' · terlambat' : ''}</p>` : ''}
                         </div>
-                        ${d.instruksi.length ? `
-                            <div class="mt-1.5 flex flex-wrap gap-1">
-                                ${d.instruksi.map((i) => `<span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">${esc(i)}</span>`).join('')}
-                            </div>` : ''}
-                        ${d.catatan ? `<p class="mt-1.5 whitespace-pre-line text-gray-700">${esc(d.catatan)}</p>` : ''}
-                        ${d.batas ? `<p class="mt-1 text-[11px] ${d.terlambat ? 'font-semibold text-red-600' : 'text-gray-500'}">Batas ${esc(d.batas)}${d.terlambat ? ' · terlambat' : ''}</p>` : ''}
                     </li>`).join('');
 
                 // Feedback
                 const fb = s.feedback.length ? s.feedback.map((f) => `
                     <li class="flex gap-2.5 ${f.saya ? 'flex-row-reverse text-right' : ''}">
                         ${f.foto
-                            ? `<img src="${esc(f.foto)}" alt="${esc(f.nama)}" title="${esc(f.nama)}" class="h-8 w-8 shrink-0 rounded-full object-cover">`
-                            : `<span title="${esc(f.nama)}" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${f.saya ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'} text-[11px] font-bold">${inisial(f.nama)}</span>`}
+                        ? `<img src="${esc(f.foto)}" alt="${esc(f.nama)}" title="${esc(f.nama)}" class="h-8 w-8 shrink-0 rounded-full object-cover">`
+                        : `<span title="${esc(f.nama)}" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${f.saya ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'} text-[11px] font-bold">${inisial(f.nama)}</span>`}
                         <div class="max-w-[85%] rounded-2xl ${f.saya ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'} px-3.5 py-2">
                             <p class="text-[11px] ${f.saya ? 'text-blue-100' : 'text-slate-500'}">${esc(f.nama)} · ${esc(f.waktu)}</p>
                             <p class="whitespace-pre-line text-left">${esc(f.isi)}</p>
                         </div>
-                    </li>`).join('') : '<li class="text-gray-400">Belum ada feedback.</li>';
+                    </li>`).join('') : '<li class="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-gray-400">Belum ada feedback.</li>';
 
-                $('m-isi').innerHTML = `${jadwal}${berkas}
-                    <div><p class="kd-label">Alur disposisi</p><ul class="space-y-2">${alur}</ul></div>
-                    <div><p class="kd-label">Feedback</p><ul class="space-y-2.5">${fb}</ul></div>`;
+                $('m-isi').innerHTML = `${infoHtml}${zoom}${berkas}
+                    <div><p class="pp-sec">Alur disposisi <i>${s.disposisi.length}</i></p><ul class="pp-tl">${alur}</ul></div>
+                    <div><p class="pp-sec">Feedback <i>${s.feedback.length}</i></p><ul class="space-y-2.5">${fb}</ul></div>`;
             }
 
-            // Tombol pembuka popup (sidebar "Rapat Hari Ini")
-            document.querySelectorAll('[data-buka]').forEach((el) => el.addEventListener('click', (e) => {
-                e.stopPropagation();
-                buka(el.dataset.buka);
-            }));
+            // Tombol pembuka popup (sidebar jadwal hari ini)
+            document.querySelectorAll('[data-buka]').forEach((el) => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    buka(el.dataset.buka);
+                });
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && e.target === el) buka(el.dataset.buka);
+                });
+            });
             if (BUKA) buka(BUKA);
 
             // ---------------- Kalender ----------------
@@ -493,16 +460,18 @@
             }
 
             const mobile = window.matchMedia('(max-width: 767px)').matches;
-            const maxAvatar = mobile ? 3 : 5;
 
             // Avatar satu orang: foto kalau ada, kalau tidak huruf depan nama
             const avatar = (o) => o.foto
-                ? `<img class="av" src="${esc(o.foto)}" alt="${esc(o.nama)}" title="${esc(o.nama)}">`
-                : `<span class="av" title="${esc(o.nama)}">${inisial(o.nama)}</span>`;
+                ? `<img class="av" src="${esc(o.foto)}" alt="${esc(o.nama)}" title="${esc(o.nama)}${o.ikut ? ' (ikut)' : ''}">`
+                : `<span class="av" title="${esc(o.nama)}${o.ikut ? ' (ikut)' : ''}">${inisial(o.nama)}</span>`;
+
+            const IKON_VIDEO = '<svg class="ev-ic" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>';
+            const IKON_GEDUNG = '<svg class="ev-ic" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>';
 
             const cal = new FullCalendar.Calendar($('kal'), {
                 locale: 'id',
-                initialView: VIEW || (mobile ? 'listWeek' : 'dayGridMonth'),
+                initialView: VIEW || (mobile ? 'listWeek' : 'timeGridWeek'),
                 initialDate: TANGGAL,
                 headerToolbar: false,
                 height: 'auto',
@@ -511,30 +480,50 @@
                 navLinks: true, // klik angka tanggal -> buka tampilan Hari
                 slotMinTime: '06:00:00',
                 slotMaxTime: '20:00:00',
+                slotDuration: '01:00:00',
+                slotLabelInterval: '01:00',
+                slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+                slotEventOverlap: false,      // event bentrok jadi berdampingan
+                eventMinHeight: 40,
+                displayEventEnd: true,        // jam tampil "08:30 - 12:00"
+                eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                 allDayText: 'Seharian',
                 noEventsText: 'Tidak ada disposisi',
-                eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                 multiMonthMaxColumns: 3,
+                // Controller sudah mengirim satu event per surat, jadi tidak perlu disaring lagi
                 events: {
                     url: URL_EVENTS,
                     failure: () => $('kal-gagal').classList.remove('hidden'),
                 },
 
-                // Isi event: judul + deretan avatar orang yang didispo / mengirim
+                // Header hari: nama kecil + angka besar
+                dayHeaderContent: (arg) => {
+                    const t = arg.view.type;
+                    if (t !== 'timeGridWeek' && t !== 'timeGridDay') return arg.text;
+                    const hari = arg.date.toLocaleDateString('id-ID', { weekday: 'short' });
+                    return { html: `<div class="dh"><span class="dh-n">${esc(hari)}</span><span class="dh-d">${arg.date.getDate()}</span></div>` };
+                },
+
+                // Isi event: ikon + avatar di atas, judul, jam di bawah
                 eventContent: (arg) => {
                     const tipe = arg.view.type;
                     if (tipe === 'multiMonthYear' || tipe === 'listWeek') return true; // pakai tampilan bawaan
 
-                    const orang = arg.event.extendedProps.orang || [];
-                    const avatarHtml = orang.slice(0, maxAvatar).map(avatar).join('');
-                    const sisa = orang.length - maxAvatar;
-                    const lebih = sisa > 0 ? `<span class="av av-n">+${sisa}</span>` : '';
-                    const jam = arg.timeText ? `<b>${esc(arg.timeText)}</b>` : '';
+                    const p = arg.event.extendedProps;
+                    const orang = p.orang || [];
+                    const online = /online|zoom|meet|teams|https?:\/\//i.test(p.tempat || '');
+
+                    const maks = mobile ? 2 : 3;
+                    const sisa = orang.length - maks;
+                    const avatarHtml = orang.length
+                        ? `<div class="av-row">${orang.slice(0, maks).map(avatar).join('')}${sisa > 0 ? `<span class="av av-n">${sisa}+</span>` : ''}</div>`
+                        : '';
 
                     return {
-                        html: `<div class="ev-in">
-                            <div class="ev-t">${jam}${esc(arg.event.title)}</div>
-                            ${orang.length ? `<div class="av-row">${avatarHtml}${lebih}</div>` : ''}
+                        html: `<div class="ev-card">
+                            <div class="ev-top">${online ? IKON_VIDEO : IKON_GEDUNG}${avatarHtml}</div>
+                            <div class="ev-ttl">${esc(arg.event.title)}</div>
+                            <div class="ev-jam">${arg.event.allDay ? 'Seharian' : esc(arg.timeText)}</div>
                         </div>`,
                     };
                 },
@@ -551,7 +540,10 @@
 
                 datesSet: (info) => {
                     const awal = ymd(cal.getDate());
-                    $('k-judul').textContent = info.view.title;
+                    const mulai = info.view.currentStart;
+                    const tahunSaja = info.view.type === 'multiMonthYear';
+                    $('k-bulan').textContent = tahunSaja ? mulai.getFullYear() : mulai.toLocaleDateString('id-ID', { month: 'long' });
+                    $('k-tahun').textContent = tahunSaja ? '' : mulai.getFullYear();
                     document.querySelectorAll('#k-view button').forEach((b) => {
                         b.classList.toggle('aktif', b.dataset.v === info.view.type);
                     });

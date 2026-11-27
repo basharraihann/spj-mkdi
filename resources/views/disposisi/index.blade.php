@@ -182,6 +182,14 @@
                                 $selesaiSurat = $i['selesaiSurat'];
                                 $file = $berkas($s);
                                 $lok = $lokasi($s);
+// Eselon II yang meneruskan tapi ikut serta (kolom `ikut`)
+$ikut = $s->disposisi
+    ->where('ikut', true)
+    ->reject(fn($d) => $posisi->contains('kepada_user_id', $d->kepada_user_id))
+    ->unique('kepada_user_id')
+    ->values();
+$tampilan = $posisi->concat($ikut)->values();
+                                
 
                                 // Blok tanggal: tanggal kegiatan, atau tanggal diterima jika tidak ada kegiatan
                                 $adaKegiatan = (bool) $s->tanggal_kegiatan;
@@ -261,24 +269,27 @@
                                     <p class="mt-1 line-clamp-2 text-sm font-medium text-slate-900">{{ $s->perihal }}</p>
 
                                     <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                                        @if ($posisi->isNotEmpty())
-                                            <div class="flex min-w-0 items-center gap-2">
-                                                <div class="flex flex-none -space-x-1.5">
-                                                    @foreach ($posisi->take(4) as $d)
-                                                        <x-avatar :user="$d->kepada" class="h-6 w-6 text-[9px] ring-2 ring-white" />
-                                                    @endforeach
-                                                    @if ($posisi->count() > 4)
-                                                        <span class="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 ring-2 ring-white">+{{ $posisi->count() - 4 }}</span>
-                                                    @endif
-                                                </div>
-                                                <p class="min-w-0 truncate text-xs text-slate-500">
-                                                    {{ $posisi->pluck('kepada.name')->filter()->take(2)->implode(', ') }}@if ($posisi->count() > 2) +{{ $posisi->count() - 2 }} @endif
-                                                </p>
-                                            </div>
-                                        @else
-                                            <p class="text-xs text-slate-400">{{ $selesaiSurat ? 'Tidak ada yang menunggu tindakan' : 'Belum ada penerima aktif' }}</p>
-                                        @endif
-                                    </div>
+    @if ($tampilan->isNotEmpty())
+        <div class="flex min-w-0 items-center gap-2">
+            <div class="flex flex-none -space-x-1.5">
+                @foreach ($tampilan->take(4) as $d)
+                    <x-avatar :user="$d->kepada" class="h-6 w-6 text-[9px] ring-2 ring-white" />
+                @endforeach
+                @if ($tampilan->count() > 4)
+                    <span class="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 ring-2 ring-white">+{{ $tampilan->count() - 4 }}</span>
+                @endif
+            </div>
+            <p class="min-w-0 truncate text-xs text-slate-500">
+                {{ $posisi->pluck('kepada.name')->filter()->take(2)->implode(', ') }}@if ($posisi->count() > 2) +{{ $posisi->count() - 2 }} @endif
+                @foreach ($ikut as $d)
+                    <span class="ml-1 inline-flex rounded-full bg-blue-50 px-1.5 py-px text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-200">{{ $d->kepada?->name }} ikut</span>
+                @endforeach
+            </p>
+        </div>
+    @else
+        <p class="text-xs text-slate-400">{{ $selesaiSurat ? 'Tidak ada yang menunggu tindakan' : 'Belum ada penerima aktif' }}</p>
+    @endif
+</div>
                                 </div>
 
                                 {{-- Lampiran surat + waktu, tepat sebelum status --}}
