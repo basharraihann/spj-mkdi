@@ -118,6 +118,28 @@ class KalenderDisposisiController extends Controller
         $user = $request->user();
         abort_unless($surat->bolehDilihat($user), 403);
 
+        // Membuka popup dihitung sebagai membaca
+        Disposisi::where('surat_id', $surat->id)
+            ->where('kepada_user_id', $user->id)
+            ->where('status', 'baru')
+            ->update(['status' => 'dibaca', 'dibaca_at' => now(), 'updated_at' => now()]);
+
+        $user->unreadNotifications
+            ->where('data.surat_id', $surat->id)
+            ->each->markAsRead();
+
+        // Prefetch (?intip=1) tidak boleh menandai dibaca
+        if (!$request->boolean('intip')) {
+            Disposisi::where('surat_id', $surat->id)
+                ->where('kepada_user_id', $user->id)
+                ->where('status', 'baru')
+                ->update(['status' => 'dibaca', 'dibaca_at' => now(), 'updated_at' => now()]);
+
+            $user->unreadNotifications
+                ->where('data.surat_id', $surat->id)
+                ->each->markAsRead();
+        }
+
         $surat->load(['disposisi.dari.unit', 'disposisi.kepada.unit', 'feedback.user.unit']);
         $tgl = fn($d) => $d ? Carbon::parse($d)->translatedFormat('d M Y') : null;
 
@@ -129,6 +151,7 @@ class KalenderDisposisiController extends Controller
             'perihal' => $surat->perihal,
             'asal_surat' => $surat->asal_surat,
             'sifat' => $surat->sifat_label,
+            'sifat_key' => $surat->sifat,
             'status' => $surat->status,
             'tanggal_kegiatan' => $tgl($surat->tanggal_kegiatan),
             'waktu' => $surat->waktu_label,

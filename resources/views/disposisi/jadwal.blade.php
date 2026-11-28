@@ -27,319 +27,421 @@
     @endphp
 
     @include('disposisi._gaya')
-
-    <style>
-        .jp-sub { font-size: .75rem; color: #9ca3af; margin-top: .15rem; }
-
-        .jp-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
-        @media (min-width: 768px) { .jp-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-
-        .jp-orang { display: flex; align-items: center; gap: .85rem; }
-        .jp-avatar {
-            height: 2.75rem; width: 2.75rem; border-radius: 999px; background: #eff6ff; color: #2563eb;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        .jp-nama { font-size: 1.1rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
-        .jp-ket { font-size: .8rem; color: #64748b; }
-
-        /* Blok per tanggal */
-        .jp-hari { overflow: hidden; }
-        .jp-hari-kepala { display: flex; align-items: center; gap: .9rem; padding: .9rem 1.1rem; background: #f1f6fb; border-bottom: 1px solid #e8edf5; }
-        .jp-hari-kepala.jp-hari-ini { background: #eaf2ff; box-shadow: inset 0 3px 0 #2563eb; }
-        .jp-tgl {
-            width: 3.2rem; height: 3.2rem; border-radius: .8rem; background: #fff; border: 1px solid #dbe4f0;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; flex-shrink: 0;
-        }
-        .jp-tgl b { font-size: 1.15rem; color: #0f172a; font-variant-numeric: tabular-nums; }
-        .jp-tgl span { font-size: .68rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
-        .jp-hari-nama { font-weight: 700; color: #0f172a; }
-        .jp-hari-tgl { font-size: .75rem; color: #64748b; }
-        .jp-jml { margin-left: auto; font-size: .8rem; font-weight: 600; color: #475569; white-space: nowrap; }
-        .jp-daftar { display: grid; }
-        .jp-daftar > .jp-kartu + .jp-kartu { border-top: 1px solid #f1f5f9; }
-
-        /* Seksi khusus (telat / belum terjadwal) */
-        .jp-seksi-judul { display: flex; align-items: center; gap: .6rem; padding: .8rem 1.1rem; font-weight: 700; font-size: .9rem; }
-        .jp-seksi-telat .jp-seksi-judul { background: #fef2f2; color: #b91c1c; border-bottom: 1px solid #fee2e2; }
-        .jp-seksi-belum .jp-seksi-judul { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fef3c7; }
-
-        /* Kartu */
-        .jp-kartu { position: relative; padding: .95rem 1.1rem .95rem 1.35rem; display: grid; gap: .4rem; cursor: pointer; transition: background .1s; }
-        .jp-kartu:hover, .jp-kartu:focus-visible { background: #f8fbff; outline: none; }
-        .jp-kartu::before { content: ""; position: absolute; left: 0; top: .6rem; bottom: .6rem; width: 4px; border-radius: 0 4px 4px 0; background: #94a3b8; }
-        .jp-g-baru::before { background: #2563eb; }
-        .jp-g-dibaca::before { background: #60a5fa; }
-        .jp-g-diteruskan::before { background: #818cf8; }
-        .jp-g-selesai::before { background: #22c55e; }
-        .jp-g-telat::before { background: #ef4444; }
-        .jp-badges { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
-        .jp-chip-jenis { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
-        .jp-chip-unit { background: #fae8ff; color: #a21caf; }
-        .jp-judul { font-size: 1rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
-        .jp-judul:hover { color: #1d4ed8; }
-        .jp-baris { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem; font-size: .8rem; color: #475569; }
-        .jp-ik { height: .95rem; width: .95rem; color: #64748b; flex-shrink: 0; align-self: center; }
-        .jp-tebal-biru { color: #1d4ed8; }
-        .jp-merah { color: #b91c1c; font-weight: 600; }
-        .jp-link { color: #1d4ed8; text-decoration: underline; word-break: break-all; }
-
-        .jp-kosong { padding: 3.5rem 1.5rem; text-align: center; }
-        .jp-kosong p:first-child { font-weight: 600; color: #1f2937; }
-        .jp-kosong p:last-child { font-size: .85rem; color: #6b7280; margin-top: .25rem; }
-
-        /* Matriks */
-        .jp-scroll { overflow-x: auto; }
-        .jp-matriks { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .8rem; }
-        .jp-matriks th { padding: .6rem .4rem; background: #f8fafc; color: #64748b; font-size: .68rem; font-weight: 600; text-align: center; border-bottom: 1px solid #e8edf5; white-space: nowrap; }
-        .jp-matriks th.jp-libur, .jp-matriks td.jp-libur { background: #f8fafc; }
-        .jp-matriks td { padding: .45rem .3rem; text-align: center; border-bottom: 1px solid #f1f5f9; }
-        .jp-matriks .jp-nm { position: sticky; left: 0; z-index: 1; background: #fff; text-align: left; padding: .5rem .9rem; min-width: 11rem; border-right: 1px solid #f1f5f9; }
-        .jp-matriks th.jp-nm { background: #f8fafc; }
-        .jp-matriks .jp-nm a { font-weight: 600; color: #0f172a; }
-        .jp-matriks .jp-nm a:hover { color: #1d4ed8; }
-        .jp-matriks .jp-nm small { display: block; font-size: .68rem; color: #94a3b8; }
-        .jp-sel {
-            display: inline-flex; align-items: center; justify-content: center; min-width: 1.7rem; height: 1.7rem; padding: 0 .35rem;
-            border-radius: .5rem; font-weight: 700; font-variant-numeric: tabular-nums;
-        }
-        .jp-sel-hijau { background: #dcfce7; color: #166534; }
-        .jp-sel-kuning { background: #fef3c7; color: #92400e; }
-        .jp-sel-merah { background: #fee2e2; color: #b91c1c; }
-        .jp-sel-abu { background: #f1f5f9; color: #64748b; }
-        .jp-legenda { display: flex; flex-wrap: wrap; gap: .9rem; font-size: .75rem; color: #64748b; padding: .8rem 1rem; }
-        .jp-legenda span { display: inline-flex; align-items: center; gap: .35rem; }
-        .jp-legenda i { display: inline-block; width: .8rem; height: .8rem; border-radius: .25rem; }
-    </style>
+    @include('disposisi._gaya-kalender')
+    @include('disposisi._gaya-jadwal')
 
     <div class="mx-auto max-w-7xl space-y-5 px-4 py-8 sm:px-6 lg:px-8">
 
-            {{-- Tab + pencarian + filter dalam satu kartu --}}
-            <x-disposisi.kartu-atas tampil="jadwal"
-                :q="$f['q']" placeholder="Cari perihal, nomor, asal, tempat…"
-                :lanjut="$jumlahLanjutan > 0" :reset-url="$resetUrl" :boleh-catat="$bolehCatat ?? false">
+        <x-disposisi.kartu-atas tampil="jadwal" :q="$f['q']" placeholder="Cari perihal, nomor, asal, tempat…"
+            :lanjut="$jumlahLanjutan > 0" :reset-url="$resetUrl" :boleh-catat="$bolehCatat ?? false">
 
-                <x-slot name="hidden">
-                    <input type="hidden" name="tampil" value="jadwal">
-                    <input type="hidden" name="mode" value="{{ $mode }}">
-                </x-slot>
+            <x-slot name="hidden">
+                <input type="hidden" name="tampil" value="jadwal">
+                <input type="hidden" name="mode" value="{{ $mode }}">
+            </x-slot>
 
-                {{-- Selalu tampil: pegawai, rentang tanggal, mode tampilan --}}
-                <x-slot name="tambahan">
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        @if ($bisaTim)
-                            <x-disposisi.pilih name="pegawai" label="Pegawai" id="j-pegawai">
-                                @foreach ($daftar as $p)
-                                    <option value="{{ $p->id }}" @selected($p->id === $pegawai->id)>
-                                        {{ $p->name }}{{ $p->unit?->kode ? ' · ' . $p->unit->kode : '' }}
-                                    </option>
-                                @endforeach
-                            </x-disposisi.pilih>
-                        @endif
+            <x-slot name="tambahan">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    @if ($bisaTim)
+                        <x-disposisi.pilih name="pegawai" label="Pegawai" id="j-pegawai">
+                            @foreach ($daftar as $p)
+                                <option value="{{ $p->id }}" @selected($p->id === $pegawai->id)>
+                                    {{ $p->name }}{{ $p->unit?->kode ? ' · ' . $p->unit->kode : '' }}
+                                </option>
+                            @endforeach
+                        </x-disposisi.pilih>
+                    @endif
 
-                        <x-disposisi.kolom name="dari" label="Dari tanggal" type="date" id="j-dari" :value="$dari" />
+                    <x-disposisi.kolom name="dari" label="Dari tanggal" type="date" id="j-dari" :value="$dari" />
 
-                        @if ($mode === 'agenda')
-                            <x-disposisi.kolom name="sampai" label="Sampai tanggal" type="date" id="j-sampai" :value="$sampai" />
-                        @endif
-                    </div>
+                    @if ($mode === 'agenda')
+                        <x-disposisi.kolom name="sampai" label="Sampai tanggal" type="date" id="j-sampai"
+                            :value="$sampai" />
+                    @endif
+                </div>
 
-                    <div class="kd-seg">
-                        <a href="{{ route('disposisi.index', $param + ['mode' => 'agenda']) }}" class="kd-btn-{{ $mode === 'agenda' ? 'primary' : 'soft' }} kd-kecil">Agenda</a>
-                        @if ($bisaTim)
-                            <a href="{{ route('disposisi.index', $param + ['mode' => 'matriks']) }}" class="kd-btn-{{ $mode === 'matriks' ? 'primary' : 'soft' }} kd-kecil">Matriks tim</a>
-                        @endif
-                    </div>
-                </x-slot>
+                <div class="kd-seg">
+                    <a href="{{ route('disposisi.index', $param + ['mode' => 'agenda']) }}"
+                        class="kd-btn-{{ $mode === 'agenda' ? 'primary' : 'soft' }} kd-kecil">Aktivitas</a>
+                    @if ($bisaTim)
+                        <a href="{{ route('disposisi.index', $param + ['mode' => 'matriks']) }}"
+                            class="kd-btn-{{ $mode === 'matriks' ? 'primary' : 'soft' }} kd-kecil">Matriks tim</a>
+                    @endif
+                </div>
+            </x-slot>
 
-                {{-- Filter lanjutan --}}
-                <x-disposisi.pilih name="status" label="Status" id="j-status">
-                    <option value="">Semua status</option>
-                    <option value="perlu" @selected($f['status'] === 'perlu')>Perlu tindakan</option>
-                    @foreach (\App\Models\Disposisi::STATUS as $k => $v)
-                        <option value="{{ $k }}" @selected($f['status'] === $k)>{{ $v }}</option>
+            {{-- Filter lanjutan --}}
+            <x-disposisi.pilih name="status" label="Status" id="j-status">
+                <option value="">Semua status</option>
+                <option value="perlu" @selected($f['status'] === 'perlu')>Perlu tindakan</option>
+                @foreach (\App\Models\Disposisi::STATUS as $k => $v)
+                    <option value="{{ $k }}" @selected($f['status'] === $k)>{{ $v }}</option>
+                @endforeach
+            </x-disposisi.pilih>
+
+            @if ($adaJenis)
+                <x-disposisi.pilih name="jenis" label="Jenis dokumen" id="j-jenis">
+                    <option value="">Semua jenis</option>
+                    @foreach ($jenisList as $k => $v)
+                        <option value="{{ $k }}" @selected($f['jenis'] === $k)>{{ $v }}</option>
                     @endforeach
                 </x-disposisi.pilih>
+            @endif
 
-                @if ($adaJenis)
-                    <x-disposisi.pilih name="jenis" label="Jenis dokumen" id="j-jenis">
-                        <option value="">Semua jenis</option>
-                        @foreach ($jenisList as $k => $v)
-                            <option value="{{ $k }}" @selected($f['jenis'] === $k)>{{ $v }}</option>
-                        @endforeach
-                    </x-disposisi.pilih>
-                @endif
+            <x-disposisi.pilih name="sifat" label="Sifat surat" id="j-sifat">
+                <option value="">Semua sifat</option>
+                @foreach (\App\Models\DisposisiSurat::SIFAT as $k => $v)
+                    <option value="{{ $k }}" @selected($f['sifat'] === $k)>{{ $v }}</option>
+                @endforeach
+            </x-disposisi.pilih>
 
-                <x-disposisi.pilih name="sifat" label="Sifat surat" id="j-sifat">
-                    <option value="">Semua sifat</option>
-                    @foreach (\App\Models\DisposisiSurat::SIFAT as $k => $v)
-                        <option value="{{ $k }}" @selected($f['sifat'] === $k)>{{ $v }}</option>
-                    @endforeach
-                </x-disposisi.pilih>
+            <x-slot name="bawah">
+                <div class="grid gap-5 p-3 sm:p-4">
 
-                <x-slot name="bawah">
-                    <div class="grid gap-5 p-3 sm:p-4">
-                        {{-- ================= TAMPILAN AGENDA ================= --}}
-                        @if ($mode === 'agenda')
+                    {{-- ================= TAMPILAN AKTIVITAS ================= --}}
+                    @if ($mode === 'agenda')
 
-                            <div class="jp-orang">
-                                <div class="jp-avatar">
-                                    <svg style="height:1.3rem;width:1.3rem" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                </div>
-                                <div>
-                                    <p class="jp-nama">{{ $pegawai->name }}</p>
-                                    <p class="jp-ket">
-                                        Jadwal pegawai · {{ $ringkasan['mendatang'] }} mendatang · {{ $ringkasan['belum'] }} belum terjadwal
-                                        @if ($ringkasan['telat'] > 0)
-                                            · <b class="jp-merah">{{ $ringkasan['telat'] }} telat</b>
-                                        @endif
-                                    </p>
-                                </div>
+                        <div class="jp-orang">
+                            <x-avatar :user="$pegawai" class="h-11 w-11 text-sm"
+                                style="height:2.75rem;width:2.75rem;font-size:.9rem" />
+                            <div>
+                                <p class="jp-nama">{{ $pegawai->name }}</p>
                             </div>
+                        </div>
 
-                            <div class="jp-stat-grid">
-                                @foreach ([
-                                    ['Mendatang', $ringkasan['mendatang'], '#2563eb'],
-                                    ['Telat', $ringkasan['telat'], '#dc2626'],
-                                    ['Belum terjadwal', $ringkasan['belum'], '#d97706'],
-                                    ['Selesai (dalam rentang)', $ringkasan['selesai'], '#16a34a'],
-                                ] as [$label, $angka, $warna])
-                                    <div class="kd-card kd-stat">
-                                        <p>{{ $label }}</p>
-                                        <p style="color: {{ $warna }}">{{ $angka }}</p>
-                                    </div>
-                                @endforeach
-                            </div>
+                        <div id="db-root" data-hari-ini="{{ $hariIni }}" class="grid gap-4">
 
-                            {{-- Telat --}}
-                            @if (count($telat))
-                                <section class="kd-card jp-hari jp-seksi-telat">
-                                    <div class="jp-seksi-judul">Telat · {{ count($telat) }} disposisi melewati batas waktu</div>
-                                    <div class="jp-daftar">
-                                        @foreach ($telat as $k)
-                                            @include('disposisi._kartu-jadwal', ['k' => $k])
-                                        @endforeach
-                                    </div>
-                                </section>
-                            @endif
+                            {{-- Baris atas: kalender + daftar kegiatan --}}
+                            <div class="db-atas">
 
-                            {{-- Per tanggal --}}
-                            @forelse ($hari as $h)
-                                @php $c = $C::parse($h['tanggal']); @endphp
-                                <section class="kd-card jp-hari">
-                                    <header class="jp-hari-kepala {{ $h['tanggal'] === $hariIni ? 'jp-hari-ini' : '' }}">
-                                        <div class="jp-tgl"><b>{{ $c->format('d') }}</b><span>{{ $c->translatedFormat('M') }}</span></div>
-                                        <div>
-                                            <p class="jp-hari-nama">
-                                                {{ $c->translatedFormat('l') }}
-                                                @if ($h['tanggal'] === $hariIni)
-                                                    <span class="kd-chip" style="background:#2563eb;color:#fff;margin-left:.35rem">Hari ini</span>
-                                                @endif
-                                            </p>
-                                            <p class="jp-hari-tgl">{{ $c->translatedFormat('d F Y') }}</p>
+                                {{-- Kalender bulanan (dibuat oleh JS dari data-tgl kegiatan) --}}
+                                <section class="db-panel" aria-label="Kalender">
+                                    <div class="db-panel-kepala">
+                                        <h3 class="db-panel-judul"><span id="db-bulan"></span> <span id="db-tahun"
+                                                class="db-thn"></span></h3>
+                                        <div class="db-kontrol">
+                                            <button type="button" class="db-ikon-btn" id="db-prev"
+                                                aria-label="Bulan sebelumnya">
+                                                <svg viewBox="0 0 20 20" fill="currentColor">
+                                                    <path
+                                                        d="M12.7 5.3a1 1 0 010 1.4L9.4 10l3.3 3.3a1 1 0 11-1.4 1.4l-4-4a1 1 0 010-1.4l4-4a1 1 0 011.4 0z" />
+                                                </svg>
+                                            </button>
+                                            <button type="button" class="db-ikon-btn" id="db-hariini"
+                                                aria-label="Ke hari ini" title="Hari ini">
+                                                <svg viewBox="0 0 20 20" fill="currentColor">
+                                                    <circle cx="10" cy="10" r="3" />
+                                                </svg>
+                                            </button>
+                                            <button type="button" class="db-ikon-btn" id="db-next"
+                                                aria-label="Bulan berikutnya">
+                                                <svg viewBox="0 0 20 20" fill="currentColor">
+                                                    <path
+                                                        d="M7.3 14.7a1 1 0 010-1.4l3.3-3.3-3.3-3.3a1 1 0 011.4-1.4l4 4a1 1 0 010 1.4l-4 4a1 1 0 01-1.4 0z" />
+                                                </svg>
+                                            </button>
                                         </div>
-                                        <span class="jp-jml">{{ count($h['kartu']) }} kegiatan</span>
-                                    </header>
-                                    <div class="jp-daftar">
-                                        @foreach ($h['kartu'] as $k)
-                                            @include('disposisi._kartu-jadwal', ['k' => $k])
-                                        @endforeach
                                     </div>
+                                    <div class="db-kal" id="db-kal"></div>
                                 </section>
-                            @empty
-                                @if (!count($telat) && !count($belum))
-                                    <div class="kd-card jp-kosong">
-                                        <p>Tidak ada jadwal disposisi</p>
-                                        <p>{{ $jumlahFilter ? 'Coba reset filter, atau' : 'Coba' }} perlebar rentang tanggal.</p>
-                                    </div>
-                                @endif
-                            @endforelse
 
-                            {{-- Belum terjadwal --}}
-                            @if (count($belum))
-                                <section class="kd-card jp-hari jp-seksi-belum">
-                                    <div class="jp-seksi-judul">Belum terjadwal · {{ count($belum) }} disposisi tanpa tanggal kegiatan / batas waktu</div>
-                                    <div class="jp-daftar">
-                                        @foreach ($belum as $k)
-                                            @include('disposisi._kartu-jadwal', ['k' => $k])
+                                {{-- Daftar kegiatan --}}
+                                <section class="db-panel" aria-label="Kegiatan">
+                                    <div class="db-panel-kepala">
+                                        <h3 class="db-panel-judul">Kegiatan <small id="db-jumlah">0</small></h3>
+                                        <div class="db-kontrol">
+                                            <select id="db-filter" class="db-pilih" aria-label="Tampilkan kegiatan">
+                                                <option value="mendatang">Mendatang</option>
+                                                <option value="riwayat">Riwayat</option>
+                                                <option value="semua">Semua</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <p class="jp-sub" id="db-info" style="display:none;margin:-.5rem 0 .75rem"></p>
+
+                                    <div class="db-gulung" id="db-events">
+                                        @foreach ($hari->concat($riwayat) as $h)
+                                            @foreach ($h['kartu'] as $k)
+                                                @include('disposisi._item-dash', ['k' => $k])
+                                            @endforeach
                                         @endforeach
                                     </div>
+                                    <div class="db-kosong" id="db-kosong" style="display:none">
+                                        Tidak ada kegiatan untuk tampilan ini.
+                                        @if ($jumlahFilter)
+                                            Coba reset filter.
+                                        @else
+                                            Coba perlebar rentang tanggal.
+                                        @endif
+                                    </div>
                                 </section>
+                            </div>
+
+                            {{-- Baris bawah: telat + belum terjadwal --}}
+                            @if (count($telat) || count($belum))
+                                <div class="db-bawah">
+                                    <section class="db-panel db-panel-telat" aria-label="Telat">
+                                        <div class="db-panel-kepala">
+                                            <h3 class="db-panel-judul">Telat <small>{{ count($telat) }}</small></h3>
+                                        </div>
+                                        @if (count($telat))
+                                            <div class="db-gulung db-pendek">
+                                                @foreach ($telat as $k)
+                                                    @include('disposisi._item-dash', ['k' => $k])
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <div class="db-kosong">Tidak ada disposisi yang melewati batas waktu.</div>
+                                        @endif
+                                    </section>
+
+                                    <section class="db-panel db-panel-belum" aria-label="Belum terjadwal">
+                                        <div class="db-panel-kepala">
+                                            <h3 class="db-panel-judul">Belum terjadwal <small>{{ count($belum) }}</small></h3>
+                                        </div>
+                                        @if (count($belum))
+                                            <div class="db-gulung db-pendek">
+                                                @foreach ($belum as $k)
+                                                    @include('disposisi._item-dash', ['k' => $k])
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <div class="db-kosong">Semua disposisi sudah punya tanggal.</div>
+                                        @endif
+                                    </section>
+                                </div>
                             @endif
+                        </div>
 
                         {{-- ================= TAMPILAN MATRIKS ================= --}}
-                        @else
-                            <div class="kd-card" style="overflow:hidden">
-                                <div class="jp-scroll">
-                                    <table class="jp-matriks">
-                                        <thead>
+                    @else
+                        <div class="kd-card" style="overflow:hidden">
+                            <div class="jp-scroll">
+                                <table class="jp-matriks">
+                                    <thead>
+                                        <tr>
+                                            <th class="jp-nm">Pegawai</th>
+                                            @foreach ($hariKolom as $h)
+                                                <th class="{{ $h->isWeekend() ? 'jp-libur' : '' }}" @if ($h->toDateString() === $hariIni) style="color:#2563eb" @endif>
+                                                    {{ $h->translatedFormat('D') }}<br>{{ $h->format('d/m') }}
+                                                </th>
+                                            @endforeach
+                                            <th>Aktif</th>
+                                            <th>Telat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($baris as $p)
                                             <tr>
-                                                <th class="jp-nm">Pegawai</th>
+                                                <td class="jp-nm">
+                                                    <a
+                                                        href="{{ route('disposisi.index', ['pegawai' => $p->id, 'mode' => 'agenda'] + $param) }}">{{ $p->name }}</a>
+                                                    <small>{{ $p->unit?->kode ?? $p->unit?->nama }}</small>
+                                                </td>
                                                 @foreach ($hariKolom as $h)
-                                                    <th class="{{ $h->isWeekend() ? 'jp-libur' : '' }}" @if ($h->toDateString() === $hariIni) style="color:#2563eb" @endif>
-                                                        {{ $h->translatedFormat('D') }}<br>{{ $h->format('d/m') }}
-                                                    </th>
-                                                @endforeach
-                                                <th>Aktif</th>
-                                                <th>Telat</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($baris as $p)
-                                                <tr>
-                                                    <td class="jp-nm">
-                                                        <a href="{{ route('disposisi.index', ['pegawai' => $p->id, 'mode' => 'agenda'] + $param) }}">{{ $p->name }}</a>
-                                                        <small>{{ $p->unit?->kode ?? $p->unit?->nama }}</small>
-                                                    </td>
-                                                    @foreach ($hariKolom as $h)
-                                                        @php $c = $sel[$p->id][$h->toDateString()] ?? null; @endphp
-                                                        <td class="{{ $h->isWeekend() ? 'jp-libur' : '' }}">
-                                                            @if ($c)
-                                                                <span class="jp-sel {{ $c['telat'] ? 'jp-sel-merah' : ($c['terbuka'] === 0 ? 'jp-sel-abu' : ($c['terbuka'] >= 3 ? 'jp-sel-kuning' : 'jp-sel-hijau')) }}">{{ $c['n'] }}</span>
-                                                            @endif
-                                                        </td>
-                                                    @endforeach
-                                                    <td><b>{{ $aktif[$p->id] ?? 0 }}</b></td>
-                                                    <td>
-                                                        @if (($telatTotal[$p->id] ?? 0) > 0)
-                                                            <span class="jp-sel jp-sel-merah">{{ $telatTotal[$p->id] }}</span>
-                                                        @else
-                                                            <span style="color:#cbd5e1">0</span>
+                                                    @php $c = $sel[$p->id][$h->toDateString()] ?? null; @endphp
+                                                    <td class="{{ $h->isWeekend() ? 'jp-libur' : '' }}">
+                                                        @if ($c)
+                                                            <span
+                                                                class="jp-sel {{ $c['telat'] ? 'jp-sel-merah' : ($c['terbuka'] === 0 ? 'jp-sel-abu' : ($c['terbuka'] >= 3 ? 'jp-sel-kuning' : 'jp-sel-hijau')) }}">{{ $c['n'] }}</span>
                                                         @endif
                                                     </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="jp-legenda">
-                                    <span><i style="background:#dcfce7"></i> 1-2 tugas terbuka</span>
-                                    <span><i style="background:#fef3c7"></i> 3+ tugas terbuka (padat)</span>
-                                    <span><i style="background:#fee2e2"></i> ada yang telat</span>
-                                    <span><i style="background:#f1f5f9"></i> semua selesai</span>
-                                    <span>Angka di sel = jumlah disposisi pada tanggal itu · kolom Aktif/Telat = total saat ini (tanpa filter)</span>
-                                </div>
+                                                @endforeach
+                                                <td><b>{{ $aktif[$p->id] ?? 0 }}</b></td>
+                                                <td>
+                                                    @if (($telatTotal[$p->id] ?? 0) > 0)
+                                                        <span class="jp-sel jp-sel-merah">{{ $telatTotal[$p->id] }}</span>
+                                                    @else
+                                                        <span style="color:#cbd5e1">0</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
-                            @if ($terpotong)
-                                <p class="jp-sub">Hanya {{ $baris->count() }} pegawai pertama yang ditampilkan. Pilih pegawai tertentu untuk melihat agenda lengkap.</p>
-                            @endif
+                            <div class="jp-legenda">
+                                <span><i style="background:#dcfce7"></i> 1-2 tugas terbuka</span>
+                                <span><i style="background:#fef3c7"></i> 3+ tugas terbuka (padat)</span>
+                                <span><i style="background:#fee2e2"></i> ada yang telat</span>
+                                <span><i style="background:#f1f5f9"></i> semua selesai</span>
+                                <span>Angka di sel = jumlah disposisi pada tanggal itu · kolom Aktif/Telat = total saat ini
+                                    (tanpa filter)</span>
+                            </div>
+                        </div>
+                        @if ($terpotong)
+                            <p class="jp-sub">Hanya {{ $baris->count() }} pegawai pertama yang ditampilkan. Pilih pegawai
+                                tertentu untuk melihat aktivitas lengkap.</p>
                         @endif
-                    </div>
-                </x-slot>
-            </x-disposisi.kartu-atas>
+                    @endif
+                </div>
+            </x-slot>
+        </x-disposisi.kartu-atas>
 
     </div>
 
-    <script>
-        // Klik di mana saja pada kartu membuka detail; link Zoom/judul tetap berfungsi sendiri
-        document.querySelectorAll('.jp-kartu[data-href]').forEach(function (el) {
-            el.addEventListener('click', function (e) {
-                if (e.target.closest('a')) return;
-                window.location.href = el.dataset.href;
-            });
-            el.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && !e.target.closest('a')) window.location.href = el.dataset.href;
-            });
-        });
-    </script>
+    @if ($mode === 'agenda')
+        <script>
+            (function () {
+                var root = document.getElementById('db-root');
+                if (!root) return;
+
+                var hariIni = root.dataset.hariIni;
+
+                // Chip link zoom: buka tab baru, jangan ikut membuka popup detail.
+                // Capture + stopPropagation supaya jalan sebelum handler popup di kartu.
+                function bukaZoom(z) { window.open(z.dataset.href, '_blank', 'noopener,noreferrer'); }
+                root.addEventListener('click', function (e) {
+                    var z = e.target.closest('.db-zoom');
+                    if (!z) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    bukaZoom(z);
+                }, true);
+                root.addEventListener('keydown', function (e) {
+                    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('db-zoom')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        bukaZoom(e.target);
+                    }
+                }, true);
+                var items = Array.prototype.slice.call(root.querySelectorAll('#db-events .db-item'));
+                // Tandai kegiatan hari ini (orange) dan jadikan tiap kartu pembuka popup
+                Array.prototype.forEach.call(root.querySelectorAll('.db-item'), function (el) {
+                    if (el.dataset.tgl === hariIni) el.classList.add('db-hari-ini');
+                    var id = el.dataset.buka || el.dataset.surat || '';
+                    if (!id && el.getAttribute('href')) {
+                        try {
+                            var u = new URL(el.href, location.origin);
+                            id = u.searchParams.get('buka') || ((u.pathname.match(/surat\/(\d+)/) || [])[1] || '');
+                        } catch (e) { }
+                    }
+                    if (id) el.dataset.buka = id;
+                });
+                var NAMA_HARI = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+                var perTgl = {};
+                items.forEach(function (el) {
+                    (perTgl[el.dataset.tgl] = perTgl[el.dataset.tgl] || []).push(el);
+                });
+
+                var kini = new Date(hariIni + 'T00:00:00');
+                var tampil = new Date(kini.getFullYear(), kini.getMonth(), 1);
+                var dipilih = null;
+
+                function iso(d) {
+                    var m = String(d.getMonth() + 1).padStart(2, '0');
+                    var t = String(d.getDate()).padStart(2, '0');
+                    return d.getFullYear() + '-' + m + '-' + t;
+                }
+
+                function adaTelat(tgl) {
+                    return (perTgl[tgl] || []).some(function (el) {
+                        return el.querySelector('.db-pil-merah') && tgl < hariIni && el.querySelector('.db-pil-merah').textContent.trim() === 'Telat';
+                    });
+                }
+
+                function gambarKalender() {
+                    var kal = document.getElementById('db-kal');
+                    kal.innerHTML = '';
+
+                    NAMA_HARI.forEach(function (n, i) {
+                        var h = document.createElement('div');
+                        h.className = 'db-kal-hari' + (i === kini.getDay() && iso(tampil).slice(0, 7) === hariIni.slice(0, 7) ? ' db-kini' : '');
+                        h.textContent = n;
+                        kal.appendChild(h);
+                    });
+
+                    document.getElementById('db-bulan').textContent = tampil.toLocaleDateString('id-ID', { month: 'long' });
+                    document.getElementById('db-tahun').textContent = tampil.getFullYear();
+
+                    var mulai = new Date(tampil);
+                    mulai.setDate(1 - tampil.getDay());
+                    var jumlahHari = new Date(tampil.getFullYear(), tampil.getMonth() + 1, 0).getDate();
+                    var minggu = Math.ceil((tampil.getDay() + jumlahHari) / 7);
+
+                    for (var i = 0; i < minggu * 7; i++) {
+                        var d = new Date(mulai.getFullYear(), mulai.getMonth(), mulai.getDate() + i);
+                        var k = iso(d);
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.textContent = d.getDate();
+                        b.dataset.tgl = k;
+                        b.className = 'db-sel'
+                            + (d.getMonth() !== tampil.getMonth() ? ' db-luar' : '')
+                            + (k === hariIni ? ' db-ini' : '')
+                            + (perTgl[k] ? ' db-ada' : '')
+                            + (perTgl[k] && adaTelat(k) ? ' db-ada-telat' : '')
+                            + (k === dipilih ? ' db-dipilih' : '');
+                        b.setAttribute('aria-label', d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + (perTgl[k] ? ', ' + perTgl[k].length + ' kegiatan' : ''));
+                        b.setAttribute('aria-pressed', k === dipilih ? 'true' : 'false');
+                        kal.appendChild(b);
+                    }
+                }
+
+                function gambarDaftar() {
+                    var mode = document.getElementById('db-filter').value;
+                    var n = 0;
+
+                    items.forEach(function (el) {
+                        var t = el.dataset.tgl;
+                        var tampilkan = dipilih
+                            ? t === dipilih
+                            : (mode === 'semua' || (mode === 'mendatang' && t >= hariIni) || (mode === 'riwayat' && t < hariIni));
+                        el.style.display = tampilkan ? '' : 'none';
+                        if (tampilkan) n++;
+                    });
+
+                    document.getElementById('db-jumlah').textContent = n;
+                    document.getElementById('db-kosong').style.display = n ? 'none' : '';
+                    document.getElementById('db-events').style.display = n ? '' : 'none';
+
+                    var info = document.getElementById('db-info');
+                    if (dipilih) {
+                        var d = new Date(dipilih + 'T00:00:00');
+                        info.innerHTML = 'Tanggal ' + d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · <button type="button" class="db-lepas" id="db-lepas">tampilkan semua</button>';
+                        info.style.display = '';
+                        document.getElementById('db-lepas').addEventListener('click', function () { pilih(null); });
+                    } else {
+                        info.style.display = 'none';
+                    }
+                }
+
+                function pilih(tgl) {
+                    dipilih = tgl;
+                    gambarKalender();
+                    gambarDaftar();
+                }
+
+                document.getElementById('db-kal').addEventListener('click', function (e) {
+                    var b = e.target.closest('.db-sel');
+                    if (!b) return;
+                    var k = b.dataset.tgl;
+                    var d = new Date(k + 'T00:00:00');
+                    if (d.getMonth() !== tampil.getMonth()) tampil = new Date(d.getFullYear(), d.getMonth(), 1);
+                    pilih(dipilih === k ? null : k);
+                });
+
+                document.getElementById('db-prev').addEventListener('click', function () {
+                    tampil = new Date(tampil.getFullYear(), tampil.getMonth() - 1, 1);
+                    gambarKalender();
+                });
+                document.getElementById('db-next').addEventListener('click', function () {
+                    tampil = new Date(tampil.getFullYear(), tampil.getMonth() + 1, 1);
+                    gambarKalender();
+                });
+                document.getElementById('db-hariini').addEventListener('click', function () {
+                    tampil = new Date(kini.getFullYear(), kini.getMonth(), 1);
+                    pilih(null);
+                });
+                document.getElementById('db-filter').addEventListener('change', function () { pilih(null); });
+
+                gambarKalender();
+                gambarDaftar();
+            })();
+        </script>
+    @endif
+
+    @include('disposisi._popup', ['dari' => 'jadwal'])
 
 </x-app-layout>

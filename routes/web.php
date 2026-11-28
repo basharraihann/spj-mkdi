@@ -7,6 +7,7 @@ use App\Http\Controllers\AnggaranPemetaanController;
 use App\Http\Controllers\BerkasFisikController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
+use App\Http\Controllers\JadwalPegawaiController;
 use App\Http\Controllers\KalenderDisposisiController;
 use App\Http\Controllers\MakOptionController;
 use App\Http\Controllers\MemoController;
@@ -16,11 +17,11 @@ use App\Http\Controllers\MemoTahapController;
 use App\Http\Controllers\MonitoringMemoController;
 use App\Http\Controllers\NominatifController;
 use App\Http\Controllers\NominatifCustomController;
+use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UnduhMassalController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\JadwalPegawaiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
@@ -56,6 +57,24 @@ Route::middleware('auth')->group(function () {
             Route::delete('/', 'destroy')->name('destroy');
         });
     Route::patch('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notifikasi (lonceng di top bar): semua akun yang login
+    | - data: daftar notifikasi + jumlah belum dibaca (di-polling tiap 30 detik)
+    | - baca-semua: tandai semua notifikasi sebagai dibaca
+    | - buka: tandai satu notifikasi dibaca, lalu arahkan ke url-nya
+    |--------------------------------------------------------------------------
+    */
+    Route::controller(NotifikasiController::class)
+        ->prefix('notifikasi')
+        ->name('notifikasi.')
+        ->group(function () {
+            Route::get('data', 'data')->name('data');
+            Route::post('baca-semua', 'bacaSemua')->name('baca-semua');
+            Route::get('{id}/buka', 'buka')->whereUuid('id')->name('buka');
+        });
+
     /*
     |--------------------------------------------------------------------------
     | Unduh massal: semua role
@@ -354,6 +373,7 @@ Route::middleware('auth')->group(function () {
             Route::post('google/putuskan', 'googlePutuskan')->name('google.putuskan');
         });
     Route::get('kalender/jadwal', [JadwalPegawaiController::class, 'index'])->name('kalender.jadwal');
+
     /*
     |--------------------------------------------------------------------------
     | User manajemen: admin saja

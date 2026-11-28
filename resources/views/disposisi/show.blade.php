@@ -223,22 +223,26 @@
                 </section>
             </div>
 
-            {{-- ============ Kanan: permohonan saya + feedback + alur ============ --}}
+            {{-- ============ Kanan: permohonan/penunjukan saya + feedback + alur ============ --}}
             <div class="min-w-0 space-y-6 lg:col-span-2">
 
-                {{-- Permohonan disposisi untuk saya --}}
+                {{-- Permohonan (dari TU) atau penunjukan (dari Eselon II) disposisi untuk saya --}}
                 @foreach ($milikSaya as $m)
-                    @php $formIni = $idLama === $m->id; @endphp
+                    @php
+                        $formIni = $idLama === $m->id;
+                        // Tanpa instruksi = permohonan dari TU ke Eselon II; berisi instruksi = penunjukan ke bawahan
+                        $permohonan = $m->permohonan;
+                    @endphp
                     <section x-data="{ aksi: @js($formIni ? $formLama : '') }"
                         class="rounded-2xl border border-slate-200 border-t-4 border-t-blue-600 bg-white">
                         <div class="flex flex-wrap items-start justify-between gap-4 p-6">
                             <div class="flex min-w-0 flex-1 items-start gap-3">
                                 <x-avatar :user="$m->dari" class="h-11 w-11 text-sm" />
                                 <div class="min-w-0">
-                                    <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Permohonan
-                                        disposisi</p>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                                        {{ $permohonan ? 'Permohonan disposisi' : 'Penunjukan disposisi' }}</p>
                                     <p class="mt-0.5 text-sm text-slate-700">
-                                        Diajukan oleh <span
+                                        {{ $permohonan ? 'Diajukan oleh' : 'Ditunjuk oleh' }} <span
                                             class="font-semibold text-slate-900">{{ $m->dari?->name ?? '-' }}</span>
                                     </p>
                                     @if ($m->batas_waktu)

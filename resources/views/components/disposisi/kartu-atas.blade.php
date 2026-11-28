@@ -50,8 +50,7 @@
     <form method="GET" action="{{ $action ?: route('disposisi.index') }}" @if ($formId) id="{{ $formId }}" @endif
         class="space-y-3 p-4 @isset($bawah) border-b border-slate-100 @endisset">
 
-        {{ $hidden ?? '' }}
-
+<div hidden>{{ $hidden ?? '' }}</div>
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div class="relative flex-1">
                 <label for="cari" class="sr-only">Cari disposisi</label>

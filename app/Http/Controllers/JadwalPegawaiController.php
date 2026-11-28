@@ -14,10 +14,20 @@ use Illuminate\Support\Str;
 
 /**
  * Tab "Jadwal Pegawai" di halaman Disposisi (?tampil=jadwal).
+ * Berfungsi sebagai LOG AKTIVITAS pegawai: kegiatan yang berkaitan dengan dia
+ * (hari ini, mendatang, yang sudah lewat, dan yang sudah ditandai selesai).
  *
  * Mode (parameter ?mode=):
- * - agenda  : jadwal disposisi SATU pegawai, dikelompokkan per tanggal (default)
+ * - agenda  : aktivitas SATU pegawai, dikelompokkan per tanggal (default)
  * - matriks : beban banyak pegawai x 14 hari (hanya kalau boleh melihat > 1 pegawai)
+ *
+ * Rentang default mode agenda: 30 hari ke belakang sampai 30 hari ke depan.
+ *
+ * Isi mode agenda:
+ * - Telat      : disposisi terbuka yang batas waktunya lewat (bukan kegiatan berjadwal yang sudah lewat)
+ * - Hari ini + mendatang : urut tanggal naik
+ * - Riwayat    : kegiatan yang tanggalnya sudah lewat (urut tanggal turun), termasuk yang sudah selesai
+ * - Belum terjadwal : terbuka, tanpa tanggal kegiatan dan tanpa batas waktu
  *
  * Hak lihat:
  * - admin / super admin     : semua pegawai
@@ -40,6 +50,8 @@ class JadwalPegawaiController extends Controller
 
     private const HARI_MATRIKS = 14;
     private const MAKS_PEGAWAI_MATRIKS = 80;
+    private const HARI_MUNDUR = 30;
+    private const HARI_MAJU = 30;
 
     private ?bool $adaJenis = null;
 
@@ -60,9 +72,17 @@ class JadwalPegawaiController extends Controller
         abort_unless($pegawai, 403, 'Anda tidak boleh melihat jadwal pegawai ini.');
 
         $f = $this->filter($request);
+        $mode = ($request->query('mode') === 'matriks' && $daftar->count() > 1) ? 'matriks' : 'agenda';
 
-        $dari = $this->tgl($request->query('dari')) ?? $hariIni;
-        $sampai = $this->tgl($request->query('sampai')) ?? Carbon::parse($dari)->addDays(29)->toDateString();
+        // Matriks mulai dari hari ini; agenda mulai 30 hari ke belakang supaya riwayat ikut tampil
+        $dari = $this->tgl($request->query('dari'))
+            ?? ($mode === 'matriks' ? $hariIni : Carbon::parse($hariIni)->subDays(self::HARI_MUNDUR)->toDateString());
+
+        $sampaiDefault = Carbon::parse($hariIni)->addDays(self::HARI_MAJU)->toDateString();
+        if ($sampaiDefault < $dari) {
+            $sampaiDefault = Carbon::parse($dari)->addDays(29)->toDateString();
+        }
+        $sampai = $this->tgl($request->query('sampai')) ?? $sampaiDefault;
         if ($sampai < $dari) {
             $sampai = $dari;
         }
@@ -70,8 +90,6 @@ class JadwalPegawaiController extends Controller
         if ($sampai > $batas) {
             $sampai = $batas;
         }
-
-        $mode = ($request->query('mode') === 'matriks' && $daftar->count() > 1) ? 'matriks' : 'agenda';
 
         $data = $mode === 'matriks'
             ? $this->dataMatriks($daftar, $dari, $f, $hariIni)
@@ -96,14 +114,19 @@ class JadwalPegawaiController extends Controller
     private function dataAgenda(User $pegawai, string $dari, string $sampai, array $f, string $hariIni): array
     {
         $dasar = $this->dasar([$pegawai->id], $f);
-        $with = ['surat.unit', 'surat.disposisi.kepada:id,name', 'dari:id,name'];
+        // 'surat.disposisi.kepada' sengaja tidak di-eager-load: 'ditandai' tidak dipakai kartu tab ini
+        // (hemat 2 query + ratusan model per render)
+        $with = ['surat.unit', 'dari:id,name'];
         $kolom = ['disposisi.*', DB::raw(self::TGL . ' as tgl_kal')];
 
-        // Telat: masih terbuka dan batas waktu sudah lewat (di luar rentang tanggal)
+        // Telat: masih terbuka, batas waktu lewat, dan BUKAN kegiatan berjadwal yang sudah lewat
+        // (kegiatan yang sudah lewat masuk Riwayat)
         $telat = (clone $dasar)->select($kolom)
             ->whereIn('disposisi.status', Disposisi::TERBUKA)
             ->whereNotNull('disposisi.batas_waktu')
             ->whereDate('disposisi.batas_waktu', '<', $hariIni)
+            ->where(fn($w) => $w->whereNull('disposisi_surat.tanggal_kegiatan')
+                ->orWhereDate('disposisi_surat.tanggal_kegiatan', '>=', $hariIni))
             ->with($with)->orderBy('disposisi.batas_waktu')->get();
 
         // Belum terjadwal: terbuka, tanpa tanggal kegiatan dan tanpa batas waktu
@@ -128,23 +151,31 @@ class JadwalPegawaiController extends Controller
 
         $tglD = fn($d) => Carbon::parse($d->tgl_kal)->toDateString();
 
-        $hari = $agenda
+        $perHari = $agenda
             ->groupBy($tglD)
             ->map(fn($grup, $tgl) => [
                 'tanggal' => $tgl,
+                'lewat' => $tgl < $hariIni,
                 'kartu' => $this->tandaiBentrok($grup->map(fn($d) => $this->kartu($d, $tgl))->values()->all()),
             ])->values();
 
+        // Hari ini + mendatang: tanggal naik. Riwayat: tanggal turun (terbaru di atas).
+        $hari = $perHari->where('lewat', false)->values();
+        $riwayat = $perHari->where('lewat', true)->sortByDesc('tanggal')->values();
+
         return [
             'ringkasan' => [
-                'mendatang' => $agenda->filter(fn($d) => in_array($d->status, Disposisi::TERBUKA, true) && $tglD($d) >= $hariIni)->count(),
+                'hari_ini' => $agenda->filter(fn($d) => $tglD($d) === $hariIni)->count(),
+                'mendatang' => $agenda->filter(fn($d) => in_array($d->status, Disposisi::TERBUKA, true) && $tglD($d) > $hariIni)->count(),
                 'belum' => $belum->count(),
                 'telat' => $telat->count(),
                 'selesai' => $agenda->where('status', 'selesai')->count(),
+                'riwayat' => $agenda->filter(fn($d) => $tglD($d) < $hariIni)->count(),
             ],
             'telat' => $telat->map(fn($d) => $this->kartu($d, $tglD($d)))->values()->all(),
             'belum' => $belum->map(fn($d) => $this->kartu($d, $tglD($d)))->values()->all(),
             'hari' => $hari,
+            'riwayat' => $riwayat,
         ];
     }
 
@@ -196,7 +227,7 @@ class JadwalPegawaiController extends Controller
     /** Pegawai yang boleh dilihat jadwalnya (selalu termasuk diri sendiri). */
     private function pegawaiBoleh(User $user): Collection
     {
-        $q = User::query()->with('unit')->orderBy('name');
+        $q = User::query()->with('unit:id,kode,nama')->select('users.*')->orderBy('name');
 
         if ($user->isAdmin()) {
             // semua pegawai
@@ -206,7 +237,7 @@ class JadwalPegawaiController extends Controller
             $q->whereKey($user->id);
         }
 
-        return $q->get(['id', 'name', 'role', 'unit_id']);
+        return $q->get();
     }
 
     /** Query dasar: disposisi diterima para pegawai + filter. Belum ada select. */
@@ -260,7 +291,10 @@ class JadwalPegawaiController extends Controller
         $selesaiMnt = $berjam ? $this->menit($s->waktu_selesai) : null;
         $akhir = $mulai !== null ? (($selesaiMnt !== null && $selesaiMnt > $mulai) ? $selesaiMnt : $mulai + 60) : null;
 
-        $ditandai = ($s?->disposisi ?? collect())->map(fn($x) => $x->kepada?->name)->filter()->unique()->values()->all();
+        // Hanya dihitung kalau relasinya memang sudah dimuat (tidak memicu query tambahan)
+        $ditandai = ($s && $s->relationLoaded('disposisi'))
+            ? $s->disposisi->map(fn($x) => $x->relationLoaded('kepada') ? $x->kepada?->name : null)->filter()->unique()->values()->all()
+            : [];
 
         $jenis = $s?->jenis ?: 'surat_masuk';
 
@@ -289,6 +323,8 @@ class JadwalPegawaiController extends Controller
             'mulai' => $mulai,
             'akhir' => $akhir,
             'bentrok' => false,
+            // Kapan pegawai ini menandai selesai (untuk log aktivitas)
+            'selesai_at' => $d->selesai_at ? Carbon::parse($d->selesai_at)->translatedFormat('d M Y H:i') : null,
             'url' => route('disposisi.index', ['tampil' => 'kalender', 'tanggal' => $tgl, 'buka' => $d->surat_id]),
         ];
     }

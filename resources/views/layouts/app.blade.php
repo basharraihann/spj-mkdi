@@ -60,6 +60,7 @@
                         Pasang
                     </button>
 
+                    <x-lonceng />
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
                             <button type="button" class="spj-user" aria-label="Menu pengguna">

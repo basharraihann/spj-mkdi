@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Disposisi;
 use App\Models\DisposisiSurat;
 use App\Models\DisposisiFeedback;
+use App\Notifications\DisposisiBaru;
 use App\Models\User;
 use App\Services\GoogleKalenderService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -681,6 +682,10 @@ class DisposisiController extends Controller
     /** Setelah aksi dari popup (tab Kalender), kembali ke kalender; selain itu ke detail surat. */
     private function kembali(Request $request, int $suratId, string $pesan)
     {
+
+        if (in_array($request->input('_dari'), ['daftar', 'jadwal'], true)) {
+            return redirect()->route('disposisi.index', ['tampil' => $request->input('_dari')])->with('success', $pesan);
+        }
         if ($request->input('_dari') === 'kalender') {
             return redirect()->route('disposisi.index', array_filter([
                 'tampil' => 'kalender',
@@ -752,7 +757,7 @@ class DisposisiController extends Controller
     {
         $baru = [];
         foreach (array_unique($data['kepada']) as $kepada) {
-            $baru[] = Disposisi::create([
+            $d = Disposisi::create([
                 'surat_id' => $surat->id,
                 'parent_id' => $induk?->id,
                 'dari_user_id' => $dari->id,
@@ -762,6 +767,12 @@ class DisposisiController extends Controller
                 'batas_waktu' => $data['batas_waktu'] ?? null,
                 'status' => 'baru',
             ]);
+
+            // Notifikasi lonceng untuk penerima
+            $d->setRelation('surat', $surat);
+            $d->kepada?->notify(new DisposisiBaru($d));
+
+            $baru[] = $d;
         }
 
         if ($surat->status === 'selesai') {

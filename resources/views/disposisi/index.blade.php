@@ -118,10 +118,17 @@
         $polaSelesai = 'background-image: repeating-linear-gradient(135deg, transparent 0 12px, rgba(148,163,184,.14) 12px 24px);';
     @endphp
 
+    {{-- CSS popup (kelas pp-*, kd-*) --}}
+    @include('disposisi._gaya')
+    @include('disposisi._gaya-kalender')
+
     <div class="mx-auto max-w-7xl space-y-5 px-4 py-8 sm:px-6 lg:px-8">
 
         @if (session('success'))
             <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{{ session('success') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{{ session('error') }}</div>
         @endif
 
         {{-- Tab + pencarian + filter + daftar dalam satu kartu --}}
@@ -182,14 +189,14 @@
                                 $selesaiSurat = $i['selesaiSurat'];
                                 $file = $berkas($s);
                                 $lok = $lokasi($s);
-// Eselon II yang meneruskan tapi ikut serta (kolom `ikut`)
-$ikut = $s->disposisi
-    ->where('ikut', true)
-    ->reject(fn($d) => $posisi->contains('kepada_user_id', $d->kepada_user_id))
-    ->unique('kepada_user_id')
-    ->values();
-$tampilan = $posisi->concat($ikut)->values();
-                                
+
+                                // Eselon II yang meneruskan tapi ikut serta (kolom `ikut`)
+                                $ikut = $s->disposisi
+                                    ->where('ikut', true)
+                                    ->reject(fn($d) => $posisi->contains('kepada_user_id', $d->kepada_user_id))
+                                    ->unique('kepada_user_id')
+                                    ->values();
+                                $tampilan = $posisi->concat($ikut)->values();
 
                                 // Blok tanggal: tanggal kegiatan, atau tanggal diterima jika tidak ada kegiatan
                                 $adaKegiatan = (bool) $s->tanggal_kegiatan;
@@ -269,27 +276,27 @@ $tampilan = $posisi->concat($ikut)->values();
                                     <p class="mt-1 line-clamp-2 text-sm font-medium text-slate-900">{{ $s->perihal }}</p>
 
                                     <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-    @if ($tampilan->isNotEmpty())
-        <div class="flex min-w-0 items-center gap-2">
-            <div class="flex flex-none -space-x-1.5">
-                @foreach ($tampilan->take(4) as $d)
-                    <x-avatar :user="$d->kepada" class="h-6 w-6 text-[9px] ring-2 ring-white" />
-                @endforeach
-                @if ($tampilan->count() > 4)
-                    <span class="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 ring-2 ring-white">+{{ $tampilan->count() - 4 }}</span>
-                @endif
-            </div>
-            <p class="min-w-0 truncate text-xs text-slate-500">
-                {{ $posisi->pluck('kepada.name')->filter()->take(2)->implode(', ') }}@if ($posisi->count() > 2) +{{ $posisi->count() - 2 }} @endif
-                @foreach ($ikut as $d)
-                    <span class="ml-1 inline-flex rounded-full bg-blue-50 px-1.5 py-px text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-200">{{ $d->kepada?->name }} ikut</span>
-                @endforeach
-            </p>
-        </div>
-    @else
-        <p class="text-xs text-slate-400">{{ $selesaiSurat ? 'Tidak ada yang menunggu tindakan' : 'Belum ada penerima aktif' }}</p>
-    @endif
-</div>
+                                        @if ($tampilan->isNotEmpty())
+                                            <div class="flex min-w-0 items-center gap-2">
+                                                <div class="flex flex-none -space-x-1.5">
+                                                    @foreach ($tampilan->take(4) as $d)
+                                                        <x-avatar :user="$d->kepada" class="h-6 w-6 text-[9px] ring-2 ring-white" />
+                                                    @endforeach
+                                                    @if ($tampilan->count() > 4)
+                                                        <span class="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 ring-2 ring-white">+{{ $tampilan->count() - 4 }}</span>
+                                                    @endif
+                                                </div>
+                                                <p class="min-w-0 truncate text-xs text-slate-500">
+                                                    {{ $posisi->pluck('kepada.name')->filter()->take(2)->implode(', ') }}@if ($posisi->count() > 2) +{{ $posisi->count() - 2 }} @endif
+                                                    @foreach ($ikut as $d)
+                                                        <span class="ml-1 inline-flex rounded-full bg-blue-50 px-1.5 py-px text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-200">{{ $d->kepada?->name }} ikut</span>
+                                                    @endforeach
+                                                </p>
+                                            </div>
+                                        @else
+                                            <p class="text-xs text-slate-400">{{ $selesaiSurat ? 'Tidak ada yang menunggu tindakan' : 'Belum ada penerima aktif' }}</p>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 {{-- Lampiran surat + waktu, tepat sebelum status --}}
@@ -337,11 +344,15 @@ $tampilan = $posisi->concat($ikut)->values();
                                         @endif
                                     </div>
 
-                                    <span class="inline-flex flex-none items-center justify-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition group-hover:bg-slate-50">Detail</span>
+                                    {{-- Halaman detail lengkap (klik kartu = popup ringkas) --}}
+                                    <a href="{{ route('disposisi.show', $s) }}" title="Buka halaman detail lengkap"
+                                        class="relative z-10 inline-flex flex-none items-center justify-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50">Detail</a>
                                 </div>
 
-                                {{-- Seluruh kartu bisa diklik; tautan lampiran dan meeting berada di atasnya (z-10) --}}
-                                <a href="{{ route('disposisi.show', $s) }}" class="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-100" aria-label="Detail disposisi {{ $s->perihal }}"></a>
+                                {{-- Seluruh kartu bisa diklik untuk membuka popup; tautan lampiran, meeting, dan Detail berada di atasnya (z-10) --}}
+                                <button type="button" data-buka="{{ $s->id }}"
+                                    class="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+                                    aria-label="Buka ringkasan disposisi {{ $s->perihal }}"></button>
                             </li>
                         @endforeach
                     </ul>
@@ -353,4 +364,7 @@ $tampilan = $posisi->concat($ikut)->values();
             </x-slot>
         </x-disposisi.kartu-atas>
     </div>
+
+    {{-- Popup detail + feedback (sama dengan tab Kalender). Terbuka otomatis kalau ada ?buka=ID --}}
+    @include('disposisi._popup', ['dari' => 'daftar'])
 </x-app-layout>

@@ -117,6 +117,15 @@ class Disposisi extends Model
         return self::STATUS[$this->status] ?? $this->status;
     }
 
+    /**
+     * Permohonan disposisi = disposisi pertama dari TU ke Eselon II (belum berisi instruksi).
+     * Yang sudah berisi instruksi adalah penunjukan disposisi (Eselon II ke bawahan).
+     */
+    public function getPermohonanAttribute(): bool
+    {
+        return empty($this->instruksi);
+    }
+
     /** Label instruksi yang dicentang. */
     public function getInstruksiLabelAttribute(): array
     {
@@ -125,7 +134,7 @@ class Disposisi extends Model
 
         // Disposisi pertama dari TU belum berisi instruksi
         if (!$label && $this->parent_id === null) {
-            return ['Mohon disposisi'];
+            return ['Permohonan disposisi'];
         }
 
         return $label;
